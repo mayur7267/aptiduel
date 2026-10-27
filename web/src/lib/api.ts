@@ -23,6 +23,7 @@ export type ReviewItem = {
   q_index: number;
   section: string;
   topic: string;
+  companies: string[]; // company test patterns this topic is on
   body: string;
   figure: string | null;
   options: string[];
@@ -61,6 +62,7 @@ export type QuestionView =
       total: number;
       section: string;
       topic: string;
+      companies: string[]; // company test patterns this topic is on
       difficulty: 1 | 2 | 3;
       body: string;
       figure: string | null; // SVG shown with the question
@@ -184,6 +186,7 @@ async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
 export const api = {
   createChallenge: () => rpc<{ duel_id: string; code: string }>("create_challenge"),
   quickMatch: () => rpc<{ duel_id: string }>("quick_match"),
+  companyMatch: (company: string) => rpc<{ duel_id: string }>("company_match", { p_company: company }),
   dailyChallenge: () => rpc<{ duel_id: string }>("daily_challenge"),
   leaderboard: (scope: "college" | "india", limit = 50) =>
     rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),

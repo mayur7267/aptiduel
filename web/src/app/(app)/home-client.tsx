@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { api, type Board, type DuelSummary, type Me } from "@/lib/api";
+import { COMPANIES } from "@/lib/companies";
 import { challengeShareText, clock, greeting, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
@@ -170,6 +171,8 @@ export function HomeClient() {
           />
         </div>
 
+        <CompanyCard />
+
         <div className="flex flex-wrap items-start gap-4">
           <RecentDuels duels={duels} />
           <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
@@ -235,6 +238,32 @@ function QuickMatchCard() {
         Find opponent
       </Link>
     </div>
+  );
+}
+
+function CompanyCard() {
+  return (
+    <Card className="flex flex-col gap-4 p-[22px]">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-[17px] font-bold">Practise for a company</h2>
+        <p className="text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
+      </div>
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
+        {COMPANIES.map((c) => (
+          <Link
+            key={c.slug}
+            href={`/play/${c.slug}`}
+            className="group flex items-center gap-3 rounded-2xl border border-line bg-raised px-4 py-3.5 text-text hover:border-violet/60 hover:text-text"
+          >
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold">{c.name}</span>
+              <span className="block text-xs text-muted">{c.blurb}</span>
+            </span>
+            <ChevronRight size={18} className="shrink-0 text-muted group-hover:text-violet" />
+          </Link>
+        ))}
+      </div>
+    </Card>
   );
 }
 

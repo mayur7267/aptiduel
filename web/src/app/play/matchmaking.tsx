@@ -4,15 +4,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Duel, type Me, type Player } from "@/lib/api";
+import type { Company } from "@/lib/companies";
 import { tierFor } from "@/lib/format";
 import { Close } from "@/components/icons";
 import { BotTag, ErrorNote, PlayerAvatar } from "@/components/ui";
 
 const STATUS = ["Looking for players near your rating", "Checking recent runs", "Lining up a fair match"];
+const companyStatus = (c: Company) => [`Picking ${c.name} pattern questions`, "Finding a bot near your rating", "Lining up a fair match"];
 
 // Quick Match lobby: a short radar search, then the opponent reveal and
-// a 3-2-1 countdown into the duel.
-export function Matchmaking() {
+// a 3-2-1 countdown into the duel. With a company, the questions all come
+// from that company's test pattern.
+export function Matchmaking({ company = null }: { company?: Company | null }) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [duel, setDuel] = useState<Duel | null>(null);
@@ -29,7 +32,8 @@ export function Matchmaking() {
       .getMe()
       .then((m) => active && setMe(m))
       .catch(() => {});
-    Promise.all([api.quickMatch().then(({ duel_id }) => api.getDuel(duel_id)), minWait])
+    const find = company ? api.companyMatch(company.name) : api.quickMatch();
+    Promise.all([find.then(({ duel_id }) => api.getDuel(duel_id)), minWait])
       .then(([d]) => active && setDuel(d))
       .catch((e: Error) => active && setError(e.message));
     const ticker = setInterval(() => setStatus((s) => (s + 1) % STATUS.length), 1100);
@@ -43,7 +47,7 @@ export function Matchmaking() {
       setCount(3);
       setStatus(0);
     };
-  }, [attempt]);
+  }, [attempt, company]);
 
   useEffect(() => {
     if (!duel) return;
@@ -64,7 +68,7 @@ export function Matchmaking() {
         >
           <Close size={18} strokeWidth={2.2} />
         </Link>
-        <span className="text-sm font-semibold text-muted">Quick Match</span>
+        <span className="text-sm font-semibold text-muted">{company ? `${company.name} practice` : "Quick Match"}</span>
         <span className="size-11" />
       </div>
 
@@ -79,7 +83,7 @@ export function Matchmaking() {
         ) : duel ? (
           <Reveal me={duel.me} opponent={duel.opponent} count={count} resuming={duel.me.answered > 0} />
         ) : (
-          <Searching me={me} status={STATUS[status]} />
+          <Searching me={me} status={(company ? companyStatus(company) : STATUS)[status]} />
         )}
       </div>
     </main>

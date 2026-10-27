@@ -295,6 +295,14 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
       <div className="flex flex-wrap gap-2">
         <span className="rounded-lg bg-raised px-2.5 py-1 text-xs font-semibold text-soft">{q.topic}</span>
         <span className="rounded-lg bg-raised px-2.5 py-1 text-xs font-semibold text-soft">{SECTION_LABEL[q.section] ?? q.section}</span>
+        {q.companies?.length > 0 && (
+          <span
+            title="This topic is part of these companies' aptitude tests"
+            className="rounded-lg bg-violet-tint px-2.5 py-1 text-xs font-semibold text-violet"
+          >
+            {q.companies.join(" · ")} pattern
+          </span>
+        )}
       </div>
 
       <p className="text-lg leading-relaxed font-semibold">{q.body}</p>

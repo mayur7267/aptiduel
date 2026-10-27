@@ -1040,6 +1040,41 @@ const curatedReasoning: Curated[] = [
   ['Inequalities', 3, 'If X ≥ Y and Y ≥ Z, which of these must be true?', 'X ≥ Z', ['X > Z', 'Z > X', 'Y > X'], 'X ≥ Y ≥ Z gives X ≥ Z. "X > Z" is not certain, because all three could be equal.'],
 ];
 
+// Classic interview puzzles. Longer to read, so they get more time.
+const PUZZLE_TIME: Record<Difficulty, number> = { 1: 40, 2: 55, 3: 75 };
+
+const curatedPuzzles: Curated[] = [
+  ['Puzzles', 2, 'There are 25 horses and a track that races 5 at a time. There is no stopwatch, so a race only tells you the finishing order. What is the fewest races needed to find the single fastest horse?', '6', ['5', '7', '25'], 'Race 5 groups of 5, then race the 5 group winners. The winner of that 6th race is the fastest.'],
+  ['Puzzles', 3, 'There are 25 horses and a track that races 5 at a time. There is no stopwatch, so a race only tells you the finishing order. What is the fewest races needed to find the 3 fastest horses?', '7', ['6', '8', '11'], 'Race 5 groups of 5 (5 races), then race the group winners (race 6); its winner is the fastest. Only 5 horses can still be 2nd or 3rd: the 2nd and 3rd of race 6, the 2nd and 3rd from the fastest horse\'s group, and the 2nd from the runner-up\'s group. Race them (race 7).'],
+  ['Puzzles', 3, '100 doors are all closed. On pass 1 you toggle every door, on pass 2 every 2nd door, on pass 3 every 3rd door, and so on up to pass 100. How many doors are open at the end?', '10', ['50', '25', '1'], 'A door is toggled once for each of its factors. Only perfect squares have an odd number of factors, so doors 1, 4, 9, …, 100 end up open: 10 doors.'],
+  ['Puzzles', 3, '100 doors start closed. On pass k (k = 1 to 100) you toggle every k-th door. Which of these doors is open at the end?', 'Door 64', ['Door 50', 'Door 48', 'Door 99'], '64 is a perfect square (8 × 8), so it has an odd number of factors and is toggled an odd number of times. 50, 48 and 99 are not squares, so they end closed.'],
+  ['Puzzles', 3, 'You have 2 identical eggs and a 100-floor building. An egg breaks if dropped from a certain floor or higher. In the worst case, what is the fewest drops needed to find that floor?', '14', ['10', '50', '7'], 'With d drops, drop the first egg from floor d, then d + (d − 1), and so on, checking the gaps with the second egg. That covers d(d + 1)/2 floors, and the smallest d with d(d + 1)/2 ≥ 100 is 14.'],
+  ['Puzzles', 3, 'Two ropes each take exactly 60 minutes to burn, but they burn unevenly, and you can only light their ends. Which of these times can you measure exactly?', '45 minutes', ['40 minutes', '50 minutes', '20 minutes'], 'Light rope A at both ends and rope B at one end. A burns out at 30 minutes; then light B\'s other end. Its remaining half burns from both ends in 15 minutes, giving 45 in total.'],
+  ['Puzzles', 2, 'Three switches outside a closed room control three bulbs inside. You can flip the switches as you like but enter the room only once. How do you match every switch to its bulb?', 'Leave one switch on for a few minutes, switch it off, switch on another, then go in and touch the bulbs', ['Switch all three on, then go in', 'It cannot be done in one visit', 'Switch one on, then go in and look'], 'The lit bulb belongs to the switch that is on. The warm, dark bulb belongs to the switch you turned off. The cold, dark bulb belongs to the switch you never touched.'],
+  ['Puzzles', 2, 'You have 8 identical-looking balls. One is slightly heavier. Using a balance scale, what is the fewest weighings that always finds the heavy ball?', '2', ['3', '1', '4'], 'Weigh 3 against 3. If they balance, weigh the last 2 against each other. If not, take the heavier 3 and weigh 1 against 1: the heavier side wins, or the ball left out if they balance.'],
+  ['Puzzles', 2, 'There are 27 coins and one is a lighter fake. With a balance scale, what is the fewest weighings that always finds the fake?', '3', ['4', '9', '5'], 'Each weighing splits the suspects into three equal groups and shows which group holds the fake: 27 → 9 → 3 → 1, so 3 weighings.'],
+  ['Puzzles', 3, 'One of 1,000 bottles is poisoned, and the poison takes exactly 24 hours to act. You have only 24 hours. What is the fewest testers needed to find the poisoned bottle?', '10', ['100', '500', '1,000'], 'Number the bottles in binary. Tester k sips from every bottle whose k-th bit is 1. Who falls ill spells out the poisoned bottle\'s number, and 10 bits cover up to 1,024 bottles.'],
+  ['Puzzles', 3, 'Four people must cross a bridge at night with one torch, which must be carried on every crossing. At most two cross at a time, at the slower person\'s pace. They take 1, 2, 5 and 10 minutes. What is the shortest total time?', '17 minutes', ['19 minutes', '18 minutes', '21 minutes'], '1 and 2 cross (2), 1 returns (1), 5 and 10 cross (10), 2 returns (2), 1 and 2 cross (2): 2 + 1 + 10 + 2 + 2 = 17.'],
+  ['Puzzles', 1, 'At a party, each of 10 people shakes hands with every other person exactly once. How many handshakes are there?', '45', ['90', '100', '50'], 'Each handshake is one pair of people: 10 × 9 / 2 = 45.'],
+  ['Puzzles', 3, 'A prize is behind one of 3 doors. You pick a door, and the host, who knows where the prize is, opens another door with no prize behind it. If you switch to the remaining door, what is your chance of winning?', '2/3', ['1/2', '1/3', '1'], 'Your first pick is right only 1/3 of the time. In the other 2/3 of cases the host has to leave the prize behind the remaining door, so switching wins 2/3 of the time.'],
+  ['Puzzles', 2, 'Three ants sit at the corners of a triangle. Each picks one of its two edges at random and walks along it at the same speed. What is the chance that no two ants meet?', '1/4', ['1/8', '1/2', '3/4'], 'There are 2 × 2 × 2 = 8 equally likely choices. The ants avoid each other only if all go clockwise or all go anticlockwise: 2 out of 8, so 1/4.'],
+  ['Puzzles', 2, 'A snail is at the bottom of a 30 m well. Each day it climbs 3 m, and each night it slips back 2 m. On which day does it reach the top?', 'Day 28', ['Day 30', 'Day 27', 'Day 29'], 'After 27 days and nights it is at 27 m. On day 28 it climbs 3 m, reaches 30 m and is out before it can slip back.'],
+  ['Puzzles', 1, 'A drawer holds 10 black and 10 white socks. In the dark, what is the fewest socks you must take out to be sure of a matching pair?', '3', ['2', '11', '4'], 'With only two colours, any 3 socks must include two of the same colour.'],
+  ['Puzzles', 2, 'A drawer holds 10 black and 10 white socks. In the dark, what is the fewest socks you must take out to be sure of getting 2 black socks?', '12', ['3', '11', '20'], 'In the worst case you first take all 10 white socks. The next 2 must be black: 10 + 2 = 12.'],
+  ['Puzzles', 1, 'A bat and a ball cost ₹110 together. The bat costs ₹100 more than the ball. How much does the ball cost?', '₹5', ['₹10', '₹15', '₹55'], 'If the ball costs x, the bat costs x + 100, so 2x + 100 = 110 and x = 5.'],
+  ['Puzzles', 2, 'A patch of lily pads doubles in size every day. It covers the whole lake on day 48. On which day did it cover half the lake?', 'Day 47', ['Day 24', 'Day 46', 'Day 36'], 'It doubles each day, so one day before covering the whole lake it covered half: day 47.'],
+  ['Puzzles', 2, 'If 5 machines make 5 widgets in 5 minutes, how long do 100 machines take to make 100 widgets?', '5 minutes', ['100 minutes', '20 minutes', '1 minute'], 'Each machine makes 1 widget in 5 minutes. 100 machines working at once make 100 widgets in the same 5 minutes.'],
+  ['Puzzles', 3, 'How many squares of any size are there on a standard 8 × 8 chessboard?', '204', ['64', '196', '256'], 'Count each size: 8² + 7² + … + 1² = 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204.'],
+  ['Puzzles', 2, 'What is the fewest straight cuts needed to cut a round cake into 8 equal pieces?', '3', ['4', '7', '8'], 'Two cuts across the top make 4 equal pieces, and one horizontal cut through the middle doubles that to 8.'],
+  ['Puzzles', 2, 'You must pay a worker 1/7 of a gold bar at the end of each day for 7 days. What is the fewest cuts you need to make in the bar?', '2', ['3', '6', '1'], 'Cut it into pieces of 1/7, 2/7 and 4/7. Any amount from 1/7 to 7/7 can be paid by handing over pieces and taking change back.'],
+  ['Puzzles', 2, 'There are 10 bags of coins. Real coins weigh 10 g, but every coin in one bag is fake and weighs 9 g. With a digital scale, what is the fewest weighings needed to find the fake bag?', '1', ['2', '3', '10'], 'Take 1 coin from bag 1, 2 from bag 2, and so on up to 10 from bag 10, and weigh them once. The total falls short of 550 g by the number of the fake bag.'],
+  ['Puzzles', 1, '100 players enter a knockout tournament, and every match knocks out its loser. How many matches are needed to find the champion?', '99', ['50', '100', '64'], 'Every player except the champion loses exactly once, and each match has one loser: 99 matches.'],
+  ['Puzzles', 2, 'Three boxes are labelled Apples, Oranges and Mixed, and every label is wrong. Without looking inside, what is the fewest fruits you must take out to label all the boxes correctly?', '1', ['2', '3', '6'], 'The box labelled Mixed holds only one kind, so one fruit from it tells you which. Say it is an apple: that box is Apples. The box labelled Oranges can\'t be Oranges, so it is Mixed, and the last box is Oranges.'],
+  ['Puzzles', 1, 'What is the fewest people needed in a room to be sure that at least two were born in the same month?', '13', ['12', '24', '7'], 'There are 12 months, so with 13 people at least two must share a month (the pigeonhole principle).'],
+  ['Puzzles', 2, 'How many times do the hour and minute hands of a clock overlap in 12 hours?', '11', ['12', '24', '22'], 'The minute hand catches the hour hand once every 12/11 hours, so they overlap 11 times in 12 hours.'],
+  ['Puzzles', 2, 'Two trains start 100 km apart and head towards each other at 50 km/h each. A bird flies back and forth between them at 75 km/h until they meet. How far does the bird fly?', '75 km', ['100 km', '150 km', '50 km'], 'The gap closes at 100 km/h, so the trains meet after 1 hour. The bird flies for that hour at 75 km/h: 75 km.'],
+];
+
 const curatedVerbal: Curated[] = [
   // Synonyms
   ['Synonyms', 1, 'Choose the word closest in meaning to ABUNDANT.', 'Plentiful', ['Scarce', 'Tiny', 'Hidden'], 'Abundant means existing in large amounts, the same as plentiful.'],
@@ -1140,6 +1175,30 @@ for (const [section, items] of [['reasoning', curatedReasoning], ['verbal', cura
   }
 }
 
+for (const [topic, difficulty, body, answer, wrong, explanation] of curatedPuzzles) {
+  const q = build('reasoning', topic, difficulty, body, answer, [...wrong], explanation, PUZZLE_TIME[difficulty]);
+  if (!q) throw new Error(`Bad puzzle: ${body}`);
+  add(q, 'curated_puzzles');
+}
+
+// Which companies' aptitude tests cover each topic, going by their
+// published test patterns. It means "this kind of question is on that
+// test", never "this exact question was asked there".
+const COMPANY_TOPICS: Record<string, string[]> = {
+  'TCS NQT': ['Percentages', 'Ratio', 'Profit & Loss', 'Speed & Distance', 'Number System', 'LCM & HCF',
+    'Number Series', 'Letter Series', 'Seating Arrangement', 'Ranking', 'Blood Relations', 'Coding-Decoding',
+    'Syllogisms', 'Grammar', 'Synonyms', 'Antonyms'],
+  Infosys: ['Percentages', 'Profit & Loss', 'Speed & Distance', 'Probability', 'Number Series', 'Syllogisms',
+    'Seating Arrangement', 'Blood Relations', 'Direction Sense', 'Coding-Decoding', 'Puzzles', 'Grammar',
+    'Synonyms', 'Antonyms'],
+  Accenture: ['Percentages', 'Profit & Loss', 'Time & Work', 'Coding-Decoding', 'Blood Relations',
+    'Seating Arrangement', 'Syllogisms', 'Figure Series', 'Pattern Matrix', 'Odd Figure Out', 'Grammar'],
+  Wipro: ['Probability', 'Clocks', 'Calendars', 'Number System', 'LCM & HCF', 'Speed & Distance',
+    'Coding-Decoding', 'Direction Sense', 'Syllogisms', 'Synonyms', 'Antonyms'],
+};
+const companiesFor = (topic: string) =>
+  Object.entries(COMPANY_TOPICS).filter(([, topics]) => topics.includes(topic)).map(([company]) => company);
+
 const COLLEGES: [string, string | null][] = [
   ['VIT Vellore', 'Vellore'], ['VIT Chennai', 'Chennai'], ['VIT-AP', 'Amaravati'], ['VIT Bhopal', 'Bhopal'],
   ['SRM Institute of Science and Technology', 'Chennai'], ['Manipal Institute of Technology', 'Manipal'],
@@ -1164,6 +1223,8 @@ const COLLEGES: [string, string | null][] = [
 
 const sq = (s: string | null) => (s === null ? 'null' : `'${s.replace(/'/g, "''")}'`);
 const sqArr = (xs: string[] | null | undefined) => (xs ? `array[${xs.map(sq).join(', ')}]` : 'null');
+const tagUpdates = [...new Set(out.map((q) => q.topic))].sort().map((topic) =>
+  `update public.questions set company_tags = ${sqArr(companiesFor(topic))}::text[] where topic = ${sq(topic)};`);
 const lines = out.map((q) =>
   `  (${sq(q.section)}, ${sq(q.topic)}, ${q.difficulty}, ${sq(q.body)}, ${sqArr(q.options)}, ${q.correctIdx}, ${sq(q.explanation)}, ${q.timeLimit}, ${sq(q.template)}, ${sq(q.figure ?? null)}, ${sqArr(q.optionFigures)}, ${sq(q.variant)})`);
 
@@ -1179,6 +1240,9 @@ insert into public.questions
 values
 ${lines.join(',\n')}
 on conflict (body, (coalesce(variant, ''))) do nothing;
+
+-- Company test patterns each topic belongs to (see COMPANY_TOPICS).
+${tagUpdates.join('\n')}
 `;
 
 const target = new URL('../supabase/seed.sql', import.meta.url);

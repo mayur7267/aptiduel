@@ -358,6 +358,7 @@ function Review({ items, opponentName }: { items: ReviewItem[]; opponentName: st
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <span className="font-semibold text-muted">
               Q{r.q_index + 1} · {r.topic}
+              {r.companies?.length > 0 && <span className="text-violet"> · {r.companies.join(", ")} pattern</span>}
             </span>
             <span className={r.is_correct ? "font-bold text-lime" : "font-bold text-red-soft"}>
               {r.is_correct ? `+${r.points} · ${clock(r.ms)}` : r.chosen_idx === null ? "Time ran out" : "Wrong"}
