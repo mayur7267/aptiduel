@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/ui";
+import { AccountPanel } from "./account-panel";
 import { ProfileForm } from "./profile-form";
 
 export const metadata: Metadata = { title: "Your profile", robots: { index: false } };
@@ -12,6 +13,7 @@ export default function ProfilePage() {
       </div>
       <h1 className="font-display text-[clamp(22px,2.4vw,30px)] font-bold">Your profile</h1>
       <ProfileForm />
+      <AccountPanel />
     </main>
   );
 }

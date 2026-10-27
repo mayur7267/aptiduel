@@ -102,10 +102,6 @@ export function ProfileForm() {
       >
         {saving ? "Saving…" : "Save"}
       </button>
-
-      <p className="text-xs leading-relaxed text-muted">
-        You&apos;re playing as a guest on this device. Your rating stays here as long as you use the same browser.
-      </p>
     </form>
   );
 }

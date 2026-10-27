@@ -168,6 +168,12 @@ export function ensureSession() {
   return sessionReady;
 }
 
+// Forget the session after signing out or deleting the account. The next
+// call starts a fresh guest.
+export function resetSession() {
+  sessionReady = null;
+}
+
 async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
   await ensureSession();
   const { data, error } = await supabase().rpc(fn, args);
@@ -191,6 +197,7 @@ export const api = {
   myDuels: (limit = 10) => rpc<DuelSummary[]>("my_duels", { p_limit: limit }),
   updateProfile: (name: string, collegeId: number | null, gradYear: number | null) =>
     rpc<Me>("update_profile", { p_name: name, p_college_id: collegeId, p_grad_year: gradYear }),
+  deleteMe: () => rpc<void>("delete_me"),
   colleges: async () => {
     const { data, error } = await supabase().from("colleges").select("id, name").order("name");
     if (error) throw new Error(error.message);
