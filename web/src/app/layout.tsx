@@ -13,7 +13,7 @@ const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["lati
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "AptiDuel: aptitude duels for placements", template: "%s · AptiDuel" },
+  title: { default: "Apticks: aptitude duels for placements", template: "%s · Apticks" },
   description:
     "Beat your friends at placement aptitude. 5 quick questions, live rating, college leaderboards.",
 };

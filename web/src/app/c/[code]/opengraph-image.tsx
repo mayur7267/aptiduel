@@ -2,7 +2,7 @@ import { ImageResponse } from "next/og";
 import { getChallenge } from "@/lib/challenge";
 import { clock } from "@/lib/format";
 
-export const alt = "An AptiDuel challenge";
+export const alt = "An Apticks challenge";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -26,23 +26,19 @@ export default async function Image({ params }: { params: Promise<{ code: string
           padding: 72,
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              borderRadius: 18,
-              background: "#c8f135",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#0b0e17" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z" />
-            </svg>
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {/* Same drawing as <Mark> in components/ui.tsx. */}
+          <svg width="72" height="72" viewBox="0 0 64 64">
+            <rect x="26" y="5" width="12" height="6" rx="2.5" fill="#f2f4f8" />
+            <rect x="30" y="10" width="4" height="6" fill="#f2f4f8" />
+            <circle cx="32" cy="37.5" r="21.5" fill="#c8f135" />
+            <path d="M35.66 16.31L27.5 35.5L37 35.5L28.45 58.71A21.5 21.5 0 0 0 35.66 16.31Z" fill="#ff8a4c" />
+            <path d="M35.66 16.31L27.5 35.5L37 35.5L28.45 58.71" fill="none" stroke="#0b0e17" strokeWidth="3.4" />
+          </svg>
+          <div style={{ display: "flex", fontSize: 40, fontWeight: 700 }}>
+            <span>Ap</span>
+            <span style={{ color: "#c8f135" }}>ticks</span>
           </div>
-          <div style={{ fontSize: 38, fontWeight: 700 }}>AptiDuel</div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

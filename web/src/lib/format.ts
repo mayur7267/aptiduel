@@ -68,5 +68,5 @@ export function siteUrl(path = "") {
 }
 
 export function challengeShareText(name: string, correct: number, ms: number, code: string) {
-  return `${name} scored ${correct}/5 in ${clock(ms)} on AptiDuel. Think you can beat that? 5 placement aptitude questions, 3 minutes: ${siteUrl(`/c/${code}`)}`;
+  return `${name} scored ${correct}/5 in ${clock(ms)} on Apticks. Think you can beat that? 5 placement aptitude questions, 3 minutes: ${siteUrl(`/c/${code}`)}`;
 }

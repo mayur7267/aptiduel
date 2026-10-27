@@ -90,7 +90,7 @@ export function SharePanel({ code, text, quiet = false }: { code: string; text: 
         </button>
         {canShare && (
           <button
-            onClick={() => navigator.share({ title: "AptiDuel challenge", text, url }).catch(() => {})}
+            onClick={() => navigator.share({ title: "Apticks challenge", text, url }).catch(() => {})}
             aria-label="More ways to share"
             className="flex size-11 items-center justify-center rounded-xl border border-line bg-raised hover:bg-line"
           >

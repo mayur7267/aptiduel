@@ -1,4 +1,4 @@
-# AptiDuel
+# Apticks
 
 Placement aptitude duels. Two players race through the same 5 questions (quant, reasoning, verbal), and the faster, more accurate one gains rating. There are three modes: challenge a friend with a link, Quick Match against a player near your rating, and a Daily Challenge that's the same for everyone.
 

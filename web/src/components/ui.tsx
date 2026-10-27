@@ -1,16 +1,31 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { initials, tierFor } from "@/lib/format";
-import { Bolt, Bot, Shield } from "./icons";
+import { Bot, Shield } from "./icons";
+
+// The Apticks stopwatch: a bolt splits its face into your half (lime) and
+// your opponent's (orange). Plain shapes, no clip path, so the same
+// drawing works in the share image and the favicon (src/app/icon.svg).
+export function Mark({ size = 34 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" aria-hidden="true">
+      <rect x="26" y="5" width="12" height="6" rx="2.5" fill="var(--color-text)" />
+      <rect x="30" y="10" width="4" height="6" fill="var(--color-text)" />
+      <circle cx="32" cy="37.5" r="21.5" fill="var(--color-lime)" />
+      <path d="M35.66 16.31L27.5 35.5L37 35.5L28.45 58.71A21.5 21.5 0 0 0 35.66 16.31Z" fill="var(--color-orange)" />
+      <path d="M35.66 16.31L27.5 35.5L37 35.5L28.45 58.71" fill="none" stroke="var(--color-ink)" strokeWidth="3.4" />
+    </svg>
+  );
+}
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
-    <Link href={href} className="group flex items-center gap-2.5 text-text hover:text-text">
-      <span className="sticker flex size-[34px] -rotate-6 items-center justify-center rounded-[10px] bg-lime text-ink transition-transform [--pop:#6f8a14] group-hover:rotate-0">
-        <Bolt size={18} strokeWidth={2.6} />
+    <Link href={href} className="group flex items-center gap-2 text-text hover:text-text">
+      <span className="transition-transform group-hover:-rotate-12">
+        <Mark size={34} />
       </span>
       <span className="font-display text-lg font-bold">
-        Apti<span className="text-lime">Duel</span>
+        Ap<span className="text-lime">ticks</span>
       </span>
     </Link>
   );
