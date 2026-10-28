@@ -2,6 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { setTouring } from "@/lib/companion";
+import { DOCK } from "./companion";
 import { Tiko, type TikoMood } from "./tiko";
 
 // First-visit tour of the home page. Tiko hops from card to card along a
@@ -66,8 +68,9 @@ function spotFor(step: Step, size: number): Point {
   const vh = window.innerHeight;
   const el = step.target ? visibleTarget(step.target) : null;
   if (!el) {
-    const aboveBar = vw < 1024 ? 92 : 24; // clear the phone tab bar
-    return { x: vw - size - 20, y: vh - size - aboveBar };
+    // The companion's spot, so Tiko starts and ends the tour where it lives.
+    const bottom = vw >= 1024 ? DOCK.bottomWide : DOCK.bottomPhone;
+    return { x: vw - size - DOCK.right, y: vh - size - bottom };
   }
   const r = el.getBoundingClientRect();
   const x = Math.min(Math.max(r.right - size - 14, GAP), vw - size - GAP);
@@ -125,7 +128,7 @@ export function TikoTour() {
     if (!replay && seen) return;
     // Let the home page lay out first.
     const t = window.setTimeout(() => {
-      setSize(window.innerWidth < 640 ? 64 : 76);
+      setSize(window.innerWidth >= 1024 ? DOCK.sizeWide : DOCK.sizePhone);
       setOpen(true);
     }, 700);
     return () => window.clearTimeout(t);
@@ -150,6 +153,14 @@ export function TikoTour() {
     setStep((n) => n + 1);
   };
 
+  // While the tour is on screen its Tiko stands in for the companion, which
+  // takes over from the same spot when the tour ends or the page is left.
+  useEffect(() => {
+    if (!open) return;
+    setTouring(true);
+    return () => setTouring(false);
+  }, [open]);
+
   // Move to the current step: bring its card into view, then hop there.
   useEffect(() => {
     if (!open) return;
@@ -162,8 +173,8 @@ export function TikoTour() {
     const go = window.setTimeout(
       () => {
         const to = spotFor(s, size);
-        // The first hop comes in from just off the bottom of the screen.
-        const from = posRef.current ?? { x: to.x + 40, y: window.innerHeight + 20 };
+        // The tour starts where the companion already stands.
+        const from = posRef.current ?? to;
         posRef.current = to;
         const node = tikoRef.current;
         if (!node || reducedMotion()) {

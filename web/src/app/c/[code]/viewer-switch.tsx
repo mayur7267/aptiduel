@@ -7,7 +7,7 @@ import { challengeShareText, clock, inviteShareText } from "@/lib/format";
 import { hasSavedSession } from "@/lib/supabase";
 import { Play } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
-import { TikoSays } from "@/components/tiko";
+import { Tiko, type TikoMood } from "@/components/tiko";
 import { Avatar, Card, Spinner } from "@/components/ui";
 
 const noSubscribe = () => () => {};
@@ -65,12 +65,18 @@ function OwnerView({ status }: { status: ChallengeStatus }) {
       : friends.length === 1
         ? `${friends[0].name} is in`
         : `${friends.length} friends are in`;
+  // Tiko waits with you, points you to your turn, then cheers or sulks.
+  const settled = friends.filter((f) => f.finished && me.finished);
+  const lostOne = settled.some((f) => f.score > me.score || (f.score === me.score && f.total_ms < me.total_ms));
+  const mood: TikoMood =
+    friends.length === 0 ? "think" : !me.finished ? "point" : settled.length === 0 ? "think" : lostOne ? "sad" : "cheer";
   const shareText = me.finished
     ? challengeShareText(me.name, me.correct, me.total_ms, status.code)
     : inviteShareText(me.name, status.code);
 
   return (
     <div className="flex w-full max-w-[640px] flex-col gap-5">
+      <Tiko mood={mood} size={88} className="self-start" />
       <span className="flex items-center gap-2 self-start rounded-full bg-orange-tint px-3 py-1.5 text-[13px] font-bold text-orange">
         Your challenge · <span className="font-mono">{status.code}</span>
       </span>
@@ -108,9 +114,7 @@ function OwnerView({ status }: { status: ChallengeStatus }) {
       <Card className="flex max-w-[520px] flex-col p-4">
         <h2 className="px-1 pb-2 text-[15px] font-bold">Friends</h2>
         {friends.length === 0 ? (
-          <TikoSays mood="sleep" size={64}>
-            Nobody has opened your link yet. It stays open for 7 days.
-          </TikoSays>
+          <p className="px-1 text-sm text-muted">Nobody has opened your link yet. It stays open for 7 days.</p>
         ) : (
           <ul className="flex flex-col">
             {friends.map((f) => (

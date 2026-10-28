@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, type Board, type BoardRow } from "@/lib/api";
 import { batch, signed } from "@/lib/format";
-import { TikoSays } from "@/components/tiko";
+import { useCompanionPage } from "@/lib/companion";
 import { Avatar, ErrorNote, Logo, Spinner } from "@/components/ui";
 
 type Scope = "college" | "india";
@@ -30,6 +30,10 @@ export function LeaderboardClient() {
   }, [scope]);
 
   const board = boards[scope];
+  const empty = board !== undefined && board.rows.length === 0 && !(board.scope === "college" && !board.college);
+  useCompanionPage(
+    empty ? { mood: "think", say: "Nobody's ranked here yet. One Quick Match puts you on top!" } : { mood: "point" },
+  );
 
   return (
     <main className="mx-auto flex w-full max-w-[880px] flex-col gap-5 px-4 pt-5 pb-12 sm:px-6 lg:px-10 lg:pt-8">
@@ -104,9 +108,9 @@ function BoardView({ board }: { board: Board }) {
       </div>
 
       {board.rows.length === 0 ? (
-        <div className="rounded-[20px] border border-dashed border-line p-5">
-          <TikoSays mood="think">Nobody is ranked here yet. Play a Quick Match to take the top spot.</TikoSays>
-        </div>
+        <p className="rounded-[20px] border border-dashed border-line p-6 text-sm text-muted">
+          Nobody is ranked here yet. Play a Quick Match to take the top spot.
+        </p>
       ) : (
         <>
           {top.length === 3 && <Podium rows={top} />}

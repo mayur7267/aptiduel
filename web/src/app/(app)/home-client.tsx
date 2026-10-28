@@ -8,7 +8,7 @@ import { COMPANIES } from "@/lib/companies";
 import { challengeShareText, clock, greeting, inviteShareText, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
-import { TikoSays } from "@/components/tiko";
+import { useCompanionPage, type CompanionPage } from "@/lib/companion";
 import { TikoTour } from "@/components/tiko-tour";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
 
@@ -32,6 +32,7 @@ export function HomeClient() {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState<Action | null>(null);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
+  useCompanionPage(homeNudge(me));
 
   useEffect(() => {
     let active = true;
@@ -197,6 +198,20 @@ export function HomeClient() {
       </main>
     </div>
   );
+}
+
+// What Tiko says on the home page: the most useful nudge first.
+function homeNudge(me: Me | null): CompanionPage {
+  if (!me) return {};
+  if (me.games_played === 0) return { mood: "wave", say: "Start your first duel and I'll cheer you on!" };
+  if (me.streak > 0 && !me.played_today) {
+    return { mood: "think", say: `Your ${me.streak}-day streak needs a duel today!` };
+  }
+  if (me.quests.daily === 0) return { mood: "point", say: "Today's Daily Challenge is waiting for you." };
+  if (me.quests.quick_wins >= 2 && me.quests.accepted >= 1) {
+    return { mood: "cheer", say: "Every goal done today. You're on fire!" };
+  }
+  return { mood: "happy" };
 }
 
 // Marker-pen squiggle under a word.
@@ -488,7 +503,7 @@ function RecentDuels({ duels }: { duels: DuelSummary[] }) {
         Recent duels
       </h2>
       {rows.length === 0 ? (
-        <TikoSays mood="sleep">No duels yet. Wake me up with a Quick Match, it takes about 3 minutes.</TikoSays>
+        <p className="text-sm text-muted">No duels yet. A Quick Match takes about 3 minutes.</p>
       ) : (
         <>
           {/* Phones: one compact line per duel. */}

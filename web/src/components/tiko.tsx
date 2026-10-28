@@ -227,12 +227,14 @@ export function Tiko({
   size = 96,
   still = false,
   interactive = true,
+  onTap,
   className = "",
 }: {
   mood?: TikoMood;
   size?: number;
   still?: boolean; // no idle motion, for when something else is moving Tiko
   interactive?: boolean; // false inside another button or link
+  onTap?: () => void; // after Tiko reacts to a tap, e.g. to say something
   className?: string;
 }) {
   const body = useRef<HTMLSpanElement>(null);
@@ -244,6 +246,7 @@ export function Tiko({
   function react() {
     if (busy.current) return;
     busy.current = true;
+    onTap?.();
     const now = Date.now();
     taps.current = [...taps.current.filter((t) => now - t < 3000), now];
     const dizzy = taps.current.length >= 5;
@@ -298,32 +301,5 @@ export function Tiko({
     >
       {inner}
     </button>
-  );
-}
-
-// Tiko with a speech bubble, for empty states and tips.
-export function TikoSays({
-  mood = "happy",
-  size = 72,
-  children,
-  className = "",
-}: {
-  mood?: TikoMood;
-  size?: number;
-  children: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <div className={`flex items-end gap-3 ${className}`}>
-      <Tiko mood={mood} size={size} className="shrink-0" />
-      <div className="relative mb-3 rounded-2xl border border-line bg-raised px-3.5 py-2.5 text-sm text-soft">
-        {/* The bubble's tail, pointing at Tiko. */}
-        <span
-          aria-hidden="true"
-          className="absolute bottom-3 -left-[7px] size-3 rotate-45 border-b border-l border-line bg-raised"
-        />
-        {children}
-      </div>
-    </div>
   );
 }
