@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Duel } from "@/lib/api";
-import { Calendar } from "@/components/icons";
+import { Tiko } from "@/components/tiko";
 import { ErrorNote, Spinner } from "@/components/ui";
 
 // Opens today's daily challenge. A run you've already started or
@@ -39,9 +39,7 @@ export function DailyStart() {
 
   return (
     <div className="flex flex-col items-start gap-4 rounded-[22px] border-2 border-violet-strong bg-[linear-gradient(150deg,#251f4a_0%,#151a26_70%)] p-6">
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-violet-tint text-violet">
-        <Calendar size={24} />
-      </span>
+      <Tiko mood="wave" size={76} />
       <div className="flex flex-col gap-1.5">
         <h1 className="font-display text-2xl font-bold">Today&apos;s Daily Challenge</h1>
         <p className="text-[15px] text-violet-soft/80">

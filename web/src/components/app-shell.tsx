@@ -30,6 +30,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             return (
               <Link
                 key={href}
+                data-tour={href === "/profile" ? "profile" : undefined}
                 href={href}
                 aria-current={active ? "page" : undefined}
                 className={`flex h-11 items-center gap-3 rounded-xl px-3 text-[15px] font-semibold transition ${
@@ -55,6 +56,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           return (
             <Link
               key={href}
+              data-tour={href === "/profile" ? "profile" : undefined}
               href={href}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-12 flex-col items-center justify-center gap-1 text-[11px] font-semibold ${

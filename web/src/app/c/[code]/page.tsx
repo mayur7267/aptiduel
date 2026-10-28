@@ -6,6 +6,7 @@ import { getChallenge } from "@/lib/challenge";
 import { clock } from "@/lib/format";
 import { Bolt, Check } from "@/components/icons";
 import { Avatar, Logo, TierBadge } from "@/components/ui";
+import { Tiko } from "@/components/tiko";
 import { AcceptButton } from "./accept-button";
 import { ViewerSwitch } from "./viewer-switch";
 
@@ -41,8 +42,12 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
                 <ChallengeIntro params={params} />
               </Suspense>
             </div>
-            <div className="flex min-w-0 flex-[1_1_360px] justify-center">
-              <DuelPreview />
+            <div className="flex min-w-0 flex-[1_1_360px] justify-center pt-10">
+              {/* Tiko perches on the preview, waving the friend in. */}
+              <div className="relative w-full max-w-[420px]">
+                <DuelPreview />
+                <Tiko mood="wave" size={84} className="absolute -top-[72px] -left-3 z-10" />
+              </div>
             </div>
           </ViewerSwitch>
         </section>

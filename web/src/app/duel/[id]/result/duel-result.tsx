@@ -6,8 +6,9 @@ import { use, useEffect, useEffectEvent, useState } from "react";
 import { api, type Duel, type Player, type ReviewItem } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
 import { challengeShareText, clock, signed, tierFor } from "@/lib/format";
-import { Bolt, Calendar, Check, ChevronRight, Close, Refresh, Shield, Trophy } from "@/components/icons";
+import { Bolt, Check, ChevronRight, Close, Refresh, Shield, Trophy } from "@/components/icons";
 import { Figure } from "@/components/figure";
+import { Tiko, type TikoMood } from "@/components/tiko";
 import { SharePanel } from "@/components/share-panel";
 import { BotTag, Card, ErrorNote, PlayerAvatar, Spinner } from "@/components/ui";
 
@@ -192,23 +193,21 @@ function Hero({ duel, outcome }: { duel: Duel; outcome: Outcome | null }) {
 
   let title: string;
   let line: string;
-  let tile = "bg-raised text-text";
   let titleTone = "text-text";
-  let icon = <Bolt size={32} strokeWidth={2} />;
+  let mood: TikoMood = "happy";
 
   if (outcome && opp) {
     const gap = Math.abs(me.score - opp.score);
     if (outcome === "win") {
       title = "You won!";
       line = gap ? `You beat ${opp.name} by ${gap} points` : `Same points as ${opp.name}, but you were faster`;
-      tile = "bg-lime text-ink";
       titleTone = "text-lime";
-      icon = <Trophy size={32} strokeWidth={2} />;
+      mood = "cheer";
     } else if (outcome === "loss") {
       title = "You lost";
       line = gap ? `${opp.name} won by ${gap} points. Run it back?` : `Same points, but ${opp.name} was faster`;
-      tile = "bg-orange-tint text-orange";
       titleTone = "text-orange";
+      mood = "sad";
     } else {
       title = "It's a draw";
       line = "Same points, same time";
@@ -216,28 +215,26 @@ function Hero({ duel, outcome }: { duel: Duel; outcome: Outcome | null }) {
   } else if (opp) {
     title = `Waiting for ${opp.name}`;
     line = `${summary}. This page updates when they finish.`;
+    mood = "think";
   } else if (duel.mode === "daily") {
     title = duel.daily ? `#${duel.daily.rank} today` : "Daily done";
     line = duel.daily
       ? `${summary}. You're #${duel.daily.rank} of ${duel.daily.players} who played today's set.`
       : summary;
-    tile = "bg-violet-tint text-violet";
     titleTone = "text-violet-soft";
-    icon = <Calendar size={32} strokeWidth={2} />;
+    mood = duel.daily && duel.daily.rank <= 3 ? "cheer" : "happy";
   } else if (duel.mode === "quick") {
     title = "Run saved";
     line = `${summary}. No one near your rating was free, so players who match with you will race this run.`;
   } else {
     title = "Score set";
     line = `${summary}. Your friends get the same 5 questions.`;
-    tile = "bg-lime text-ink";
+    mood = "wave";
   }
 
   return (
     <div className="flex flex-col items-center gap-2 text-center">
-      <span className={`flex size-[68px] items-center justify-center rounded-[22px] motion-safe:animate-pop ${tile}`}>
-        {icon}
-      </span>
+      <Tiko mood={mood} size={104} className="motion-safe:animate-pop" />
       <h1 className={`mt-1 font-display text-3xl font-bold ${titleTone}`}>{title}</h1>
       <p className="max-w-sm text-[15px] text-muted">{line}</p>
     </div>

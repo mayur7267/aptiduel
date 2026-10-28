@@ -8,6 +8,8 @@ import { COMPANIES } from "@/lib/companies";
 import { challengeShareText, clock, greeting, inviteShareText, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
+import { TikoSays } from "@/components/tiko";
+import { TikoTour } from "@/components/tiko-tour";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
 
 type Action = "quick" | "challenge" | "daily";
@@ -183,6 +185,8 @@ export function HomeClient() {
 
         <CompanyCard />
 
+        <TikoTour />
+
         <div className="flex flex-wrap items-start gap-4">
           <RecentDuels duels={duels} />
           <div className="flex min-w-0 flex-[1_1_300px] flex-col gap-4">
@@ -218,11 +222,14 @@ function Scribble({ children }: { children: React.ReactNode }) {
   );
 }
 
-const CARD = "relative isolate flex flex-col gap-3.5 overflow-hidden rounded-[22px] border-2 p-[22px] sticker md:min-h-[244px]";
+// Cards ease in one after another (see each card's animationDelay).
+const CARD =
+  "relative isolate flex flex-col gap-3.5 overflow-hidden rounded-[22px] border-2 p-[22px] sticker md:min-h-[244px] motion-safe:animate-rise";
 
 function QuickMatchCard() {
   return (
     <div
+      data-tour="quick"
       className={`${CARD} border-[#9fc41f] bg-lime bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(11_14_23/0.035)_14px_28px)] text-ink [--pop:#5f7710]`}
     >
       <div className="flex items-start justify-between">
@@ -253,7 +260,7 @@ function QuickMatchCard() {
 
 function CompanyCard() {
   return (
-    <Card className="flex flex-col gap-4 p-[22px]">
+    <Card data-tour="company" style={{ animationDelay: "200ms" }} className="flex flex-col gap-4 p-[22px] motion-safe:animate-rise">
       <div className="flex flex-col gap-1">
         <h2 className="text-[17px] font-bold">Practise for a company</h2>
         <p className="text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
@@ -309,6 +316,8 @@ function ChallengeCard({
     "pressable flex h-12 items-center justify-center gap-1.5 rounded-[14px] border border-orange/40 bg-orange-tint text-[15px] font-bold text-orange [--pop:#6b3415] hover:text-orange disabled:opacity-70";
   return (
     <div
+      data-tour="challenge"
+      style={{ animationDelay: "70ms" }}
       className={`${CARD} border-orange/35 bg-surface bg-[radial-gradient(280px_200px_at_100%_0%,rgba(255,138,76,0.18),transparent)] [--pop:#4a2612]`}
     >
       <div className="flex items-start justify-between">
@@ -390,6 +399,8 @@ function DailyCard({
   const doneToday = me.quests.daily > 0;
   return (
     <div
+      data-tour="daily"
+      style={{ animationDelay: "140ms" }}
       className={`${CARD} border-violet-strong bg-[linear-gradient(150deg,#251f4a_0%,#151a26_70%)] [--pop:#2c2660]`}
     >
       <div className="flex items-start justify-between gap-3">
@@ -477,7 +488,7 @@ function RecentDuels({ duels }: { duels: DuelSummary[] }) {
         Recent duels
       </h2>
       {rows.length === 0 ? (
-        <p className="text-sm text-muted">No duels yet. A Quick Match takes about 3 minutes.</p>
+        <TikoSays mood="sleep">No duels yet. Wake me up with a Quick Match, it takes about 3 minutes.</TikoSays>
       ) : (
         <>
           {/* Phones: one compact line per duel. */}
@@ -706,7 +717,7 @@ function QuestsCard({
   const doneCount = quests.filter((q) => q.have >= q.need).length;
 
   return (
-    <Card className="flex flex-col gap-2 p-[22px]">
+    <Card data-tour="goals" className="flex flex-col gap-2 p-[22px]">
       <div className="flex items-center justify-between">
         <h2 className="text-[17px] font-bold">Today&apos;s goals</h2>
         <span className="text-xs text-muted tabular-nums">

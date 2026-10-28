@@ -7,6 +7,7 @@ import { challengeShareText, clock, inviteShareText } from "@/lib/format";
 import { hasSavedSession } from "@/lib/supabase";
 import { Play } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
+import { TikoSays } from "@/components/tiko";
 import { Avatar, Card, Spinner } from "@/components/ui";
 
 const noSubscribe = () => () => {};
@@ -107,7 +108,9 @@ function OwnerView({ status }: { status: ChallengeStatus }) {
       <Card className="flex max-w-[520px] flex-col p-4">
         <h2 className="px-1 pb-2 text-[15px] font-bold">Friends</h2>
         {friends.length === 0 ? (
-          <p className="px-1 text-sm text-muted">Nobody has opened your link yet. It stays open for 7 days.</p>
+          <TikoSays mood="sleep" size={64}>
+            Nobody has opened your link yet. It stays open for 7 days.
+          </TikoSays>
         ) : (
           <ul className="flex flex-col">
             {friends.map((f) => (

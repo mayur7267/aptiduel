@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, type Board, type BoardRow } from "@/lib/api";
 import { batch, signed } from "@/lib/format";
+import { TikoSays } from "@/components/tiko";
 import { Avatar, ErrorNote, Logo, Spinner } from "@/components/ui";
 
 type Scope = "college" | "india";
@@ -103,9 +104,9 @@ function BoardView({ board }: { board: Board }) {
       </div>
 
       {board.rows.length === 0 ? (
-        <p className="rounded-[20px] border border-dashed border-line p-6 text-sm text-muted">
-          Nobody is ranked here yet. Play a Quick Match to take the top spot.
-        </p>
+        <div className="rounded-[20px] border border-dashed border-line p-5">
+          <TikoSays mood="think">Nobody is ranked here yet. Play a Quick Match to take the top spot.</TikoSays>
+        </div>
       ) : (
         <>
           {top.length === 3 && <Podium rows={top} />}

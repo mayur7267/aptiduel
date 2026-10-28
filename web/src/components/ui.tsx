@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { ReactNode } from "react";
+import type { HTMLAttributes, ReactNode } from "react";
 import { initials, tierFor } from "@/lib/format";
 import { Bot, Shield } from "./icons";
 
@@ -93,8 +93,12 @@ export function TierBadge({ rating, showRating = false }: { rating: number; show
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-[20px] border border-line bg-surface ${className}`}>{children}</div>;
+export function Card({ children, className = "", ...rest }: { children: ReactNode } & HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={`rounded-[20px] border border-line bg-surface ${className}`} {...rest}>
+      {children}
+    </div>
+  );
 }
 
 export function Spinner({ label = "Loading" }: { label?: string }) {

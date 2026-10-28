@@ -7,6 +7,7 @@ import { api, type Duel, type Me, type Player } from "@/lib/api";
 import type { Company } from "@/lib/companies";
 import { tierFor } from "@/lib/format";
 import { Close } from "@/components/icons";
+import { Tiko } from "@/components/tiko";
 import { BotTag, ErrorNote, PlayerAvatar } from "@/components/ui";
 
 const STATUS = ["Looking for players near your rating", "Checking recent runs", "Lining up a fair match"];
@@ -132,6 +133,7 @@ function Searching({ me, status }: { me: Me | null; status: string }) {
       </div>
 
       <div className="flex flex-col items-center gap-2 text-center">
+        <Tiko mood="think" size={64} />
         <h1 role="status" className="font-display text-2xl font-bold">
           Finding an opponent
           <span aria-hidden="true" className="ml-1 inline-flex gap-1">
