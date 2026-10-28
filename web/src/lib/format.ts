@@ -39,15 +39,6 @@ export function greeting(date = new Date()) {
   return h < 5 ? "Up late" : h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-// ISO week number, used to label the weekly leaderboard.
-export function isoWeek(date = new Date()) {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  const day = d.getUTCDay() || 7;
-  d.setUTCDate(d.getUTCDate() + 4 - day);
-  const yearStart = Date.UTC(d.getUTCFullYear(), 0, 1);
-  return Math.ceil(((d.getTime() - yearStart) / 86_400_000 + 1) / 7);
-}
-
 // Time left until the daily challenge resets at midnight IST.
 export function untilIstMidnight(nowMs: number) {
   const IST = 5.5 * 3_600_000;

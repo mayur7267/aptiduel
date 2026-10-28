@@ -31,6 +31,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   const [error, setError] = useState<string | null>(null);
   // Question whose opponent result has been shown (see submit).
   const [oppRevealed, setOppRevealed] = useState(-1);
+  const [leaving, setLeaving] = useState(false);
   const deadline = useRef(0);
   const answered = useRef(-1);
   // Next keeps this page mounted (hidden) after you leave. Pending timers
@@ -85,6 +86,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
       visible.current = false;
       timers.current.forEach(clearTimeout);
       timers.current = [];
+      setLeaving(false);
     };
   }, [id]);
 
@@ -181,13 +183,14 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex items-center justify-between">
-        <Link
-          href="/"
+        <button
+          onClick={() => setLeaving(true)}
           aria-label="Leave duel"
+          aria-expanded={leaving}
           className="flex size-11 items-center justify-center rounded-full border border-line bg-surface hover:bg-raised"
         >
           <Close size={18} strokeWidth={2.2} />
-        </Link>
+        </button>
         <span className="text-[15px] font-semibold">
           Question {q.q_index + 1} of {q.total}
         </span>
@@ -200,6 +203,29 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
           <span aria-live="off">{clock(remaining)}</span>
         </span>
       </div>
+
+      {/* The server keeps timing while you're away, so leaving isn't free. */}
+      {leaving && (
+        <div role="alert" className="flex flex-col gap-3 rounded-2xl border border-orange/40 bg-orange-tint p-4">
+          <p className="text-sm text-orange-soft">
+            Leave this duel? The clock keeps running, and questions you don&apos;t answer in time count as wrong.
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              onClick={() => setLeaving(false)}
+              className="h-11 flex-1 rounded-xl bg-lime px-4 text-sm font-bold text-ink hover:bg-lime-hover"
+            >
+              Keep playing
+            </button>
+            <Link
+              href="/"
+              className="flex h-11 flex-1 items-center justify-center rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-text hover:bg-raised hover:text-text"
+            >
+              Leave
+            </Link>
+          </div>
+        </div>
+      )}
 
       <div className="sticker grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-[20px] border-2 border-line bg-[linear-gradient(90deg,rgba(200,241,53,0.09),transparent_42%,transparent_58%,rgba(255,138,76,0.09))] bg-surface p-4">
         <div className="flex flex-col gap-2">

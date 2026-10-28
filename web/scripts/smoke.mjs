@@ -1,6 +1,10 @@
-// End-to-end check of the game API against the real Supabase project.
+// End-to-end check of the game API against a Supabase project.
 // Plays a challenge between three guest players and checks scoring,
 // ratings and the anti-cheat rules.
+//
+// It creates real guest players, duels and answers. Point it at a test
+// project (or a local `supabase start`), not the live one: on a hosted
+// project it refuses to run unless SMOKE_ALLOW_REMOTE=1.
 //
 // Run from web/:  node scripts/smoke.mjs
 
@@ -10,6 +14,15 @@ import dotenv from "dotenv";
 dotenv.config({ path: ".env.local", quiet: true });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+
+const local = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?/.test(url ?? "");
+if (!local && process.env.SMOKE_ALLOW_REMOTE !== "1") {
+  console.error(
+    `Refusing to run against ${url}: the smoke test writes real players and duels.\n` +
+      "Use a test project or local Supabase, or set SMOKE_ALLOW_REMOTE=1 if you mean it.",
+  );
+  process.exit(2);
+}
 
 const client = () => createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
 let failures = 0;
@@ -89,11 +102,32 @@ check((await rpc(a, "get_me")).rating === ratingABeforeC, "replays don't change 
 const share = await rpc(c, "challenge_from_duel", { p_duel_id: joinC.duel_id });
 check(/^[A-Z0-9]{6}$/.test(share.code) && share.code !== code, "an acceptor can share their own score as a new link");
 
+console.log("Rating farming");
+const rematch = await rpc(a, "create_challenge");
+await play(a, rematch.duel_id, 1);
+await rpc(b, "join_challenge", { p_code: rematch.code });
+await play(b, rematch.duel_id, 0);
+const dRematch = await rpc(a, "get_duel", { p_duel_id: rematch.duel_id });
+check(
+  dRematch.me.rating_after === dRematch.me.rating_before &&
+    dRematch.opponent.rating_after === dRematch.opponent.rating_before,
+  "a second challenge between the same two players on the same day is unrated",
+);
+
 console.log("Anti-cheat");
 const { data: leaked } = await a.from("questions").select("correct_idx").limit(1);
 check(!leaked || leaked.length === 0, "players can't read the answer key");
 const { error: tamper } = await a.from("profiles").update({ rating: 3000 }).eq("id", (await rpc(a, "get_me")).id);
 check((await rpc(a, "get_me")).rating !== 3000, `players can't edit their own rating${tamper ? "" : " (silently ignored)"}`);
+const { data: dump } = await client().from("profiles").select("id, display_name").limit(1);
+check(!dump || dump.length === 0, "player records can't be downloaded directly");
+let badName = null;
+try {
+  await rpc(a, "update_profile", { p_name: "www.spam.com", p_college_id: null, p_grad_year: null });
+} catch (e) {
+  badName = e.message;
+}
+check(badName !== null, "names with links are refused");
 let replay = null;
 try {
   await rpc(a, "submit_answer", { p_duel_id: duel_id, p_q_index: 0, p_choice: 0 });
@@ -122,7 +156,9 @@ const ghostOwnerRatings = {
 };
 const qm = await rpc(stranger, "quick_match");
 const again = await rpc(stranger, "quick_match");
-check(again.duel_id === qm.duel_id, "an unfinished quick match is resumed, not replaced");
+check(again.duel_id === qm.duel_id && again.resumed === true, "an unfinished quick match is resumed, not replaced");
+const viaCompany = await rpc(stranger, "company_match", { p_company: "Infosys" });
+check(viaCompany.duel_id === qm.duel_id && viaCompany.resumed === true, "company practice also resumes it first");
 await play(stranger, qm.duel_id, 3);
 const dq = await rpc(stranger, "get_duel", { p_duel_id: qm.duel_id });
 check(dq.mode === "quick" && dq.opponent?.is_replay === true, "quick match races another player's recorded run");
@@ -176,10 +212,7 @@ const botDuel = await rpc(c, "get_duel", { p_duel_id: qb.duel_id });
 check(botDuel.opponent.rating === botRating, "the bot's rating never changes");
 check(botDuel.me.rating_before === cBefore && botDuel.me.rating_after !== null, "your rating is settled against the bot");
 const board = await rpc(c, "leaderboard", { p_scope: "india", p_limit: 100 });
-const { data: bots } = await client().from("profiles").select("display_name").eq("is_bot", true);
-const botNames = new Set((bots ?? []).map((b) => b.display_name));
-check(botNames.size === 48, `48 bots are ready (${botNames.size})`);
-check(!board.rows.some((r) => botNames.has(r.name)), "bots never appear on leaderboards");
+check(!board.rows.some((r) => r.name === botDuel.opponent.name), "bots never appear on leaderboards");
 const cRecent = await rpc(c, "my_duels", { p_limit: 5 });
 check(cRecent.some((d) => d.opponent_is_bot === true), "recent duels mark bot opponents");
 
@@ -195,8 +228,14 @@ const dailyA = await rpc(a, "get_duel", { p_duel_id: day1.duel_id });
 check(dailyA.daily?.players >= 2 && dailyA.daily.rank >= 1, `daily rank works (#${dailyA.daily?.rank} of ${dailyA.daily?.players})`);
 const meA = await rpc(a, "get_me");
 check(meA.quests.daily === 1 && meA.daily_week[meA.today_idx] === true, "daily quest and week dots update");
-const dailyShare = await rpc(a, "challenge_from_duel", { p_duel_id: day1.duel_id });
-check(/^[A-Z0-9]{6}$/.test(dailyShare.code), "a daily score can be shared as a challenge");
+check(dailyA.status === "complete", "a finished daily run is marked complete");
+let dailyShare = null;
+try {
+  await rpc(a, "challenge_from_duel", { p_duel_id: day1.duel_id });
+} catch (e) {
+  dailyShare = e.message;
+}
+check(dailyShare !== null, "today's daily set can't be shared before it resets");
 
 console.log("Leaderboards");
 const india = await rpc(a, "leaderboard", { p_scope: "india", p_limit: 100 });
@@ -209,7 +248,7 @@ check(recent.some((d) => d.mode === "daily") && recent.every((d) => "total_ms" i
 console.log("Cleanup");
 for (const p of [a, b, c, stranger]) await rpc(p, "delete_me");
 const gone = await rpc(client(), "get_challenge", { p_code: code });
-check(gone === null, "test players and their duels are deleted");
+check(gone === null, "a deleted player's challenge link stops working");
 
 console.log(failures ? `\n${failures} check(s) failed` : "\nAll checks passed");
 process.exit(failures ? 1 : 0);

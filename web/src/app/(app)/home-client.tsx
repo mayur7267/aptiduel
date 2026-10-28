@@ -543,7 +543,9 @@ function describeDuel(d: DuelSummary) {
   const won = settled && (d.score > opp || (d.score === opp && d.total_ms < (d.opponent_total_ms ?? 0)));
 
   let who = d.opponent_name ?? "";
-  let sub = d.opponent_college ?? (d.mode === "quick" ? "Quick Match" : "Challenge");
+  let sub = d.company
+    ? `${d.company} practice`
+    : (d.opponent_college ?? (d.mode === "quick" ? "Quick Match" : "Challenge"));
   if (d.mode === "daily") {
     who = "Daily Challenge";
     sub = "Same set for everyone";
@@ -556,7 +558,7 @@ function describeDuel(d: DuelSummary) {
   } else if (d.is_replay) {
     sub = "Played your challenge";
   } else if (d.opponent_is_bot) {
-    sub = "Practice bot";
+    sub = d.company ? `${d.company} practice · bot` : "Practice bot";
   }
 
   let chip: { text: string; tone: string };
@@ -624,7 +626,7 @@ function CollegeCard({ me, board }: { me: Me; board: Board | null }) {
     <Card className="flex flex-col gap-3 p-[22px]">
       <div className="flex items-center justify-between gap-3">
         <h2 className="truncate text-[17px] font-bold">{me.college}</h2>
-        <span className="shrink-0 text-xs text-muted">This week</span>
+        <span className="shrink-0 text-xs text-muted">By rating</span>
       </div>
       {rows.length === 0 ? (
         <p className="text-sm text-muted">Nobody here is ranked yet. Play a duel to be first.</p>

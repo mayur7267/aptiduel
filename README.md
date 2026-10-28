@@ -1,6 +1,6 @@
 # Apticks
 
-Placement aptitude duels. Two players race through the same 5 questions (quant, reasoning, verbal), and the faster, more accurate one gains rating. There are three modes: challenge a friend with a link, Quick Match against a player near your rating, and a Daily Challenge that's the same for everyone.
+Placement aptitude duels. Two players race through the same 5 questions (quant, reasoning, verbal), and the faster, more accurate one gains rating. Modes: challenge a friend with a link, Quick Match against a player near your rating, a Daily Challenge that's the same for everyone, and company practice built from the topics on TCS NQT, Infosys, Accenture and Wipro tests.
 
 - `web/`: the Next.js app
 - `supabase/migrations/`: tables, row-level security and every game rule, as Postgres functions
@@ -13,7 +13,7 @@ All game logic runs in the database. Clients only call the functions granted at 
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the SQL editor, run each file in `supabase/migrations/` in order (`0001` → `0007`), then run `supabase/seed.sql`. Every migration after `0001` is safe to run more than once.
+2. In the SQL editor, run each file in `supabase/migrations/` in order (`0001` → `0010`), then run `supabase/seed.sql`. Every migration after `0001` is safe to run more than once. Then run `supabase/record-migrations.sql`, so **Database → Migrations** lists them too (add a line to it for each new migration).
 3. **Authentication → Sign In / Providers**: turn on **Allow anonymous sign-ins** (every visitor starts as a guest) and keep **Email** on.
 4. **Authentication → Emails → SMTP Settings**: turn on custom SMTP. Supabase's built-in sender only delivers to your own team's addresses, and the templates can't be edited without custom SMTP. Gmail works for testing: host `smtp.gmail.com`, port `465`, with your Gmail address as the username and sender, and a Google [app password](https://myaccount.google.com/apppasswords) as the password.
 5. **Authentication → Emails → Templates**: in both **Magic link or OTP** and **Change Email Address**, put `{{ .Token }}` in the body. Players save their account and sign in with that code, not a link.
@@ -32,14 +32,15 @@ npm run dev                  # http://localhost:3000
 
 ```bash
 cd web
-node scripts/smoke.mjs
+npm test                 # unit tests for the helpers in src/lib
+node scripts/smoke.mjs   # end-to-end game rules, against a test project
 ```
 
-The smoke test plays real duels between guest players against your Supabase project, then checks scoring, ratings and the anti-cheat rules.
+The smoke test plays real duels between guest players, then checks scoring, ratings, the daily rules and the anti-cheat rules. It writes real data, so point `.env.local` at a separate test project (a second free Supabase project works) or a local `supabase start`. Against a hosted project it refuses to run unless you set `SMOKE_ALLOW_REMOTE=1`.
 
 ## Accounts
 
-Visitors play as anonymous guests, and their rating is stored in that browser. On the profile page they can save the account with an email. That keeps the same account and rating, so they can sign in on another device. The profile page can also sign out or delete the account.
+Visitors play as anonymous guests, and their rating is stored in that browser. On the profile page they can save the account with an email. That keeps the same account and rating, so they can sign in on another device. The profile page can also sign out or delete the account. Deleting removes the name, college, email and rating; the player's duels stay in their opponents' history as "Deleted player", so nobody else loses results.
 
 ## Question bank
 
@@ -51,4 +52,4 @@ Quant and most reasoning questions are generated from templates with computed an
 
 ## CI
 
-`.github/workflows/ci.yml` runs lint, typecheck and a production build on every push to `main` and on every pull request.
+`.github/workflows/ci.yml` runs lint, typecheck, the unit tests and a production build on every push to `main` and on every pull request.

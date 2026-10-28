@@ -1181,6 +1181,41 @@ for (const [topic, difficulty, body, answer, wrong, explanation] of curatedPuzzl
   add(q, 'curated_puzzles');
 }
 
+// A numeric odd-one-out has two answers if another option also stands
+// out: the only even (or odd) number, or the only square, cube, prime or
+// multiple of 7. Those are dropped after generation, and replacements are
+// made last, so every other question keeps its exact wording.
+// Migration 0010_audit_fixes retires them in databases seeded earlier.
+const isSquare = (n: number) => Number.isInteger(Math.sqrt(n));
+const isCube = (n: number) => Math.round(Math.cbrt(n)) ** 3 === n;
+const isPrime = (n: number) => {
+  if (n < 2) return false;
+  for (let d = 2; d * d <= n; d++) if (n % d === 0) return false;
+  return true;
+};
+const STANDOUT: ((n: number) => boolean)[] = [(n) => n % 2 === 0, isSquare, isCube, isPrime, (n) => n % 7 === 0];
+
+function ambiguousOddOneOut(q: Draft) {
+  if (q.topic !== 'Odd One Out' || !q.options.every((o) => /^\d+$/.test(o))) return false;
+  const nums = q.options.map(Number);
+  const key = nums[q.correctIdx];
+  return STANDOUT.some((has) => {
+    const yes = nums.filter(has);
+    const no = nums.filter((n) => !has(n));
+    const lone = yes.length === 1 ? yes[0] : no.length === 1 ? no[0] : null;
+    return lone !== null && lone !== key;
+  });
+}
+
+const dropped = out.filter(ambiguousOddOneOut);
+for (const q of dropped) out.splice(out.indexOf(q), 1);
+let replaced = 0;
+for (let tries = 0; tries < 20000 && replaced < dropped.length; tries++) {
+  const q = reasoning.odd_one_out.make();
+  if (q && !ambiguousOddOneOut(q) && add(q, 'odd_one_out')) replaced++;
+}
+if (replaced < dropped.length) console.warn(`  odd_one_out: only ${replaced} of ${dropped.length} replacements`);
+
 // Which companies' aptitude tests cover each topic, going by their
 // published test patterns. It means "this kind of question is on that
 // test", never "this exact question was asked there".

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use, useEffect, useEffectEvent, useState } from "react";
 import { api, type Duel, type Player, type ReviewItem } from "@/lib/api";
+import { COMPANIES } from "@/lib/companies";
 import { challengeShareText, clock, signed, tierFor } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Close, Refresh, Shield, Trophy } from "@/components/icons";
 import { Figure } from "@/components/figure";
@@ -39,16 +40,21 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
   // busy flag when it hides so Back doesn't show a stuck "Starting…".
   useEffect(() => () => setBusy(null), []);
 
-  // Keep checking until the opponent has finished.
-  const loaded = duel !== null;
-  const settled = duel?.opponent?.finished === true;
+  // Keep checking while an opponent can still arrive or finish: a friend
+  // accepting your challenge, or a live opponent still playing. Daily and
+  // solo runs never get one, so they don't poll.
+  const waiting =
+    duel !== null &&
+    (duel.mode === "challenge"
+      ? duel.opponent?.finished !== true
+      : duel.opponent !== null && !duel.opponent.finished);
   useEffect(() => {
-    if (!loaded || settled) return;
+    if (!waiting) return;
     const timer = setInterval(() => {
       api.getDuel(id).then(onLoaded).catch(() => {});
     }, 8000);
     return () => clearInterval(timer);
-  }, [id, loaded, settled]);
+  }, [id, waiting]);
 
   async function makeShareCode() {
     setBusy("share");
@@ -66,6 +72,8 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
 
   const { me, opponent: opp } = duel;
   const shareCode = duel.is_creator ? duel.code : ownCode;
+  // After company practice, "play again" means the same company.
+  const rematch = COMPANIES.find((c) => c.name === duel.company) ?? null;
   const delta = me.rating_before !== null && me.rating_after !== null && !me.is_replay ? me.rating_after - me.rating_before : null;
 
   let outcome: Outcome | null = null;
@@ -97,7 +105,7 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
 
       {duel.review && <AnswerDots review={duel.review} />}
 
-      {/^Player \d{4}$/.test(me.name) && (
+      {/^Player \d{4}$/.test(me.name) && duel.mode !== "daily" && (
         <Link href="/profile" className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 hover:bg-raised">
           <span className="flex-1 text-sm">
             <span className="font-semibold">Add your name before you share</span>
@@ -108,7 +116,13 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
       )}
 
       <section className="mt-1 flex flex-col gap-2.5" aria-label="Share">
-        {shareCode ? (
+        {duel.mode === "daily" ? (
+          // Sharing the set would show friends today's answers before they play.
+          <p className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted">
+            Today&apos;s set stays private until it resets at midnight, so nobody sees the answers early. Want to
+            race a friend now? Start a challenge from home.
+          </p>
+        ) : shareCode ? (
           <SharePanel code={shareCode} text={challengeShareText(me.name, me.correct, me.total_ms, shareCode)} />
         ) : (
           <button
@@ -122,11 +136,11 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
         )}
         <div className="grid grid-cols-2 gap-2.5">
           <Link
-            href="/play"
+            href={rematch ? `/play/${rematch.slug}` : "/play"}
             className="flex h-[52px] items-center justify-center gap-2 rounded-2xl border border-line bg-surface text-[15px] font-semibold text-text hover:bg-raised hover:text-text"
           >
             <Refresh size={18} strokeWidth={2.2} />
-            Quick Match
+            {rematch ? `${rematch.name} again` : "Quick Match"}
           </Link>
           <button
             onClick={() => setShowReview((v) => !v)}

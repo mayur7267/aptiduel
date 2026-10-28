@@ -41,6 +41,7 @@ export type Duel = {
   id: string;
   code: string;
   mode: "challenge" | "quick" | "daily";
+  company?: string | null; // set on company practice duels (and challenges made from them)
   status: "open" | "complete";
   is_creator: boolean;
   me: Player;
@@ -103,6 +104,7 @@ export type Me = {
 export type DuelSummary = {
   id: string;
   mode: "challenge" | "quick" | "daily";
+  company?: string | null;
   status: string;
   created_at: string;
   code: string | null; // set on challenges you started
@@ -176,17 +178,27 @@ export function resetSession() {
   sessionReady = null;
 }
 
-async function rpc<T>(fn: string, args?: Record<string, unknown>): Promise<T> {
+async function rpc<T>(fn: string, args?: Record<string, unknown>, retried = false): Promise<T> {
   await ensureSession();
   const { data, error } = await supabase().rpc(fn, args);
+  // The account was deleted on another device: drop its session here
+  // too and carry on as a fresh guest.
+  if (error?.message === "This account was deleted." && !retried) {
+    await supabase().auth.signOut({ scope: "local" });
+    resetSession();
+    return rpc<T>(fn, args, true);
+  }
   if (error) throw new Error(error.message);
   return data as T;
 }
 
+// Starting a match can hand back an unfinished one instead.
+export type MatchStart = { duel_id: string; resumed?: boolean };
+
 export const api = {
   createChallenge: () => rpc<{ duel_id: string; code: string }>("create_challenge"),
-  quickMatch: () => rpc<{ duel_id: string }>("quick_match"),
-  companyMatch: (company: string) => rpc<{ duel_id: string }>("company_match", { p_company: company }),
+  quickMatch: () => rpc<MatchStart>("quick_match"),
+  companyMatch: (company: string) => rpc<MatchStart>("company_match", { p_company: company }),
   dailyChallenge: () => rpc<{ duel_id: string }>("daily_challenge"),
   leaderboard: (scope: "college" | "india", limit = 50) =>
     rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),

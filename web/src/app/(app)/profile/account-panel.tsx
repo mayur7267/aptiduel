@@ -203,7 +203,10 @@ function DeleteAccount() {
   return (
     <section className="flex flex-col gap-3">
       <h2 className="font-display text-lg font-bold">Delete account</h2>
-      <p className="text-sm text-muted">Erases your profile, rating and duel history. This can&apos;t be undone.</p>
+      <p className="text-sm text-muted">
+        Removes your name, college, email and rating, and signs you out for good. Duels you played stay in your
+        opponents&apos; history as &quot;Deleted player&quot;. This can&apos;t be undone.
+      </p>
       {error && <ErrorNote message={error} />}
       {!asking ? (
         <button onClick={() => setAsking(true)} className={`${secondary} self-start text-red-soft`}>

@@ -23,6 +23,8 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
   const [status, setStatus] = useState(0);
   const [count, setCount] = useState(3);
   const [attempt, setAttempt] = useState(0);
+  // An unfinished quick match comes back instead of a new one.
+  const [resumed, setResumed] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -33,8 +35,12 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
       .then((m) => active && setMe(m))
       .catch(() => {});
     const find = company ? api.companyMatch(company.name) : api.quickMatch();
-    Promise.all([find.then(({ duel_id }) => api.getDuel(duel_id)), minWait])
-      .then(([d]) => active && setDuel(d))
+    Promise.all([find.then(async (m) => ({ m, d: await api.getDuel(m.duel_id) })), minWait])
+      .then(([{ m, d }]) => {
+        if (!active) return;
+        setResumed(Boolean(m.resumed) || d.me.answered > 0);
+        setDuel(d);
+      })
       .catch((e: Error) => active && setError(e.message));
     const ticker = setInterval(() => setStatus((s) => (s + 1) % STATUS.length), 1100);
     return () => {
@@ -46,17 +52,26 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
       setError(null);
       setCount(3);
       setStatus(0);
+      setResumed(false);
     };
   }, [attempt, company]);
 
   useEffect(() => {
     if (!duel) return;
+    // A resumed match's clock is already running, so skip the countdown.
     const t = setTimeout(() => {
-      if (count <= 1) router.replace(`/duel/${duel.id}`);
+      if (resumed || count <= 1) router.replace(`/duel/${duel.id}`);
       else setCount((c) => c - 1);
-    }, 900);
+    }, resumed ? 1400 : 900);
     return () => clearTimeout(t);
-  }, [duel, count, router]);
+  }, [duel, count, resumed, router]);
+
+  const label =
+    duel && resumed
+      ? `Unfinished ${duel.company ? `${duel.company} practice` : "Quick Match"}`
+      : company
+        ? `${company.name} practice`
+        : "Quick Match";
 
   return (
     <main className="relative flex min-h-dvh flex-1 flex-col items-center overflow-hidden bg-[radial-gradient(560px_420px_at_50%_38%,rgba(200,241,53,0.09),transparent)] px-4 pt-5 pb-10">
@@ -68,7 +83,7 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
         >
           <Close size={18} strokeWidth={2.2} />
         </Link>
-        <span className="text-sm font-semibold text-muted">{company ? `${company.name} practice` : "Quick Match"}</span>
+        <span className="text-sm font-semibold text-muted">{label}</span>
         <span className="size-11" />
       </div>
 
@@ -81,7 +96,7 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
             </Link>
           </div>
         ) : duel ? (
-          <Reveal me={duel.me} opponent={duel.opponent} count={count} resuming={duel.me.answered > 0} />
+          <Reveal me={duel.me} opponent={duel.opponent} count={count} resuming={resumed} />
         ) : (
           <Searching me={me} status={(company ? companyStatus(company) : STATUS)[status]} />
         )}
@@ -159,7 +174,7 @@ function Reveal({
   return (
     <>
       <p className="text-xs font-bold tracking-[0.24em] text-lime uppercase motion-safe:animate-pop">
-        {resuming ? "Finish your match" : opponent ? "Opponent found" : "Ready"}
+        {resuming ? "Finish this match first" : opponent ? "Opponent found" : "Ready"}
       </p>
 
       <div className="grid w-full grid-cols-[1fr_auto_1fr] items-start gap-2 sm:gap-4">
@@ -188,12 +203,18 @@ function Reveal({
 
       {opponent?.tagline && <p className="max-w-xs text-center text-sm text-muted italic">“{opponent.tagline}”</p>}
 
-      <div className="flex flex-col items-center gap-1" aria-live="polite">
-        <span className="text-xs font-semibold tracking-wider text-muted uppercase">Starting in</span>
-        <span key={count} className="font-display text-6xl font-bold motion-safe:animate-pop">
-          {count}
-        </span>
-      </div>
+      {resuming ? (
+        <p className="max-w-xs text-center text-sm text-muted" aria-live="polite">
+          You left this match unfinished and its clock is still running. Taking you back…
+        </p>
+      ) : (
+        <div className="flex flex-col items-center gap-1" aria-live="polite">
+          <span className="text-xs font-semibold tracking-wider text-muted uppercase">Starting in</span>
+          <span key={count} className="font-display text-6xl font-bold motion-safe:animate-pop">
+            {count}
+          </span>
+        </div>
+      )}
     </>
   );
 }

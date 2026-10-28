@@ -1,26 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { api, type Board, type BoardRow } from "@/lib/api";
-import { batch, isoWeek, signed } from "@/lib/format";
+import { batch, signed } from "@/lib/format";
 import { Avatar, ErrorNote, Logo, Spinner } from "@/components/ui";
 
 type Scope = "college" | "india";
-
-const noSubscribe = () => () => {};
 
 export function LeaderboardClient() {
   const [scope, setScope] = useState<Scope>("college");
   const [boards, setBoards] = useState<Partial<Record<Scope, Board>>>({});
   const [error, setError] = useState<string | null>(null);
-  const week = useSyncExternalStore(noSubscribe, () => isoWeek(), () => null);
 
   useEffect(() => {
     let active = true;
     api
       .leaderboard(scope, 50)
-      .then((b) => active && setBoards((all) => ({ ...all, [scope]: b })))
+      .then((b) => {
+        if (!active) return;
+        setBoards((all) => ({ ...all, [scope]: b }));
+        setError(null);
+      })
       .catch((e: Error) => active && setError(e.message));
     return () => {
       active = false;
@@ -36,11 +37,9 @@ export function LeaderboardClient() {
       </div>
       <div className="flex items-center justify-between gap-3">
         <h1 className="font-display text-[clamp(22px,2.4vw,30px)] font-bold">Leaderboard</h1>
-        {week && (
-          <span className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
-            Week {week}
-          </span>
-        )}
+        <span className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
+          By rating
+        </span>
       </div>
 
       <div role="group" aria-label="Leaderboard" className="sticker grid grid-cols-2 rounded-2xl border-2 border-line bg-surface p-1">
@@ -48,7 +47,10 @@ export function LeaderboardClient() {
           <button
             key={s}
             aria-pressed={scope === s}
-            onClick={() => setScope(s)}
+            onClick={() => {
+              setScope(s);
+              setError(null);
+            }}
             className={`h-11 rounded-xl text-[15px] font-bold transition ${
               scope === s ? "bg-text text-ink" : "text-muted hover:text-text"
             }`}
@@ -88,7 +90,8 @@ function BoardView({ board }: { board: Board }) {
         <div className="flex flex-col gap-0.5">
           <span className="text-[17px] font-bold">{board.scope === "college" ? board.college : "All India"}</span>
           <span className="text-xs text-muted">
-            {board.players.toLocaleString("en-IN")} {board.players === 1 ? "player" : "players"} ranked
+            {board.players.toLocaleString("en-IN")} {board.players === 1 ? "player" : "players"} ranked by rating
+            · +/− is this week&apos;s change
           </span>
         </div>
         {me && (

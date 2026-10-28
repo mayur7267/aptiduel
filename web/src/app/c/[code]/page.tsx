@@ -48,7 +48,7 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
             <h2 className="font-display text-2xl font-bold sm:text-3xl">How a duel works</h2>
             <div className="grid gap-4 sm:grid-cols-3">
               {[
-                ["01", "Same 5 questions", "You get exactly the questions your friend played. Up to a minute each."],
+                ["01", "Same 5 questions", "You get exactly the questions your friend played. 25 to 75 seconds each."],
                 ["02", "Beat the score", "100 points for every correct answer, plus up to 50 for speed."],
                 ["03", "Earn your rating", "Win to climb from Fresher to Architect, and put your college on the board."],
               ].map(([n, title, body]) => (
