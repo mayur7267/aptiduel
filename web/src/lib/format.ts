@@ -58,6 +58,11 @@ export function siteUrl(path = "") {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") + path;
 }
 
+// For a challenge you haven't played yet: no score to beat.
+export function inviteShareText(name: string, code: string) {
+  return `${name} challenged you to an aptitude duel on Apticks. Same 5 placement questions for both of you, about 3 minutes, no sign-up: ${siteUrl(`/c/${code}`)}`;
+}
+
 export function challengeShareText(name: string, correct: number, ms: number, code: string) {
   return `${name} scored ${correct}/5 in ${clock(ms)} on Apticks. Think you can beat that? 5 placement aptitude questions, 3 minutes: ${siteUrl(`/c/${code}`)}`;
 }

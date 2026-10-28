@@ -15,6 +15,8 @@
 --    a day, so a second account can't be used to farm wins.
 --  * Two players finishing a live challenge at the same instant could
 --    deadlock. Answers in one duel are now handled one at a time.
+--  * A challenge link can be sent before playing; later friends are told
+--    to wait until the challenger has played.
 --  * Quick Match and company practice say when they resume an unfinished
 --    match, and duels remember their company.
 --  * New sets prefer questions the player hasn't answered yet.
@@ -159,7 +161,7 @@ begin
   end if;
   -- Names show on leaderboards and shared challenge cards: no links,
   -- staff-sounding names, invisible characters or abuse.
-  if n ~ '[[:cntrl:]​-‍⁠﻿]'
+  if n ~ '[[:cntrl:]\u200B-\u200D\u2060\uFEFF]'
      or n ~* '(https?://|www\.|\.(com|in|net|org|io|app)\M|@)'
      or n ~* '\m(admin|administrator|apticks|official|support|moderator|deleted player)\M'
      or n ~* '\m(fuck\w*|shit\w*|bitch\w*|bastard|asshole|dick|cunt|chutiya|madarchod|bhenchod|behenchod|bhosdi\w*|gandu|randi|lund|lavda|lauda)\M' then
@@ -598,7 +600,7 @@ begin
 
   select * into src from public.duel_players where duel_id = d.id and seat = 1;
   if src.finished_at is null then
-    raise exception 'The challenger is still playing. Try again in a minute.';
+    raise exception 'Your friend hasn''t played this challenge yet. Try again once they have.';
   end if;
 
   insert into public.duels (code, mode, set_id, created_by, parent_id, expires_at, company)

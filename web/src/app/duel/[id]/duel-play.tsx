@@ -295,7 +295,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
           ) : (
             <>
               <span className="text-sm font-semibold">Your friend</span>
-              <span className="text-xs text-muted">You set the score. Send the link after.</span>
+              <span className="text-xs text-muted">They get these same 5 questions from your link.</span>
             </>
           )}
         </div>

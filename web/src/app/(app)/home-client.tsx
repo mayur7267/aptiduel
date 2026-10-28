@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { api, type Board, type DuelSummary, type Me } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
-import { challengeShareText, clock, greeting, signed, tierFor, untilIstMidnight } from "@/lib/format";
+import { challengeShareText, clock, greeting, inviteShareText, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
@@ -59,8 +59,15 @@ export function HomeClient() {
     setBusy(action);
     setError(null);
     try {
-      const call = action === "daily" ? api.dailyChallenge : api.createChallenge;
-      const { duel_id } = await call();
+      if (action === "challenge") {
+        // Stay here: the card turns into the invite link, and you play
+        // your turn whenever you like, before or after your friend.
+        await api.createChallenge();
+        setDuels(await api.myDuels(8));
+        setBusy(null);
+        return;
+      }
+      const { duel_id } = await api.dailyChallenge();
       router.push(`/duel/${duel_id}`);
     } catch (e) {
       setError((e as Error).message);
@@ -88,7 +95,10 @@ export function HomeClient() {
   const tier = tierFor(me.rating);
   const hello = greeting(new Date(minute * 60_000));
   const isGuestName = /^Player \d{4}$/.test(me.name);
-  const latestChallenge = duels.find((d) => d.code);
+  // Your newest challenge link, while it can still be accepted (7 days).
+  const latestChallenge = duels.find(
+    (d) => d.code && minute * 60_000 - Date.parse(d.created_at) < 7 * 86_400_000,
+  );
 
   return (
     <div className="flex-1 bg-[radial-gradient(900px_320px_at_20%_-80px,rgba(200,241,53,0.07),transparent),radial-gradient(700px_300px_at_95%_-60px,rgba(165,148,255,0.08),transparent)]">
@@ -295,7 +305,6 @@ function ChallengeCard({
   busy: Action | null;
   onStart: () => void;
 }) {
-  const ready = latest?.finished && latest.code;
   const button =
     "pressable flex h-12 items-center justify-center gap-1.5 rounded-[14px] border border-orange/40 bg-orange-tint text-[15px] font-bold text-orange [--pop:#6b3415] hover:text-orange disabled:opacity-70";
   return (
@@ -310,28 +319,35 @@ function ChallengeCard({
       </div>
       <div className="flex flex-col gap-1">
         <h2 className="font-display text-[20px] leading-tight font-bold">Challenge a friend</h2>
-        <p className="text-sm text-muted">Play 5 questions, then send the link. They play the same set.</p>
+        <p className="text-sm text-muted">
+          Send a link. You both get the same 5 questions, and whoever plays second races the other&apos;s run.
+        </p>
       </div>
       <div className="mt-auto flex flex-col gap-2.5">
-        {ready ? (
+        {latest?.code ? (
           <>
             <SharePanel
               quiet
-              code={latest.code!}
-              text={challengeShareText(me.name, latest.correct, latest.total_ms, latest.code!)}
+              code={latest.code}
+              text={
+                latest.finished
+                  ? challengeShareText(me.name, latest.correct, latest.total_ms, latest.code)
+                  : inviteShareText(me.name, latest.code)
+              }
             />
+            {!latest.finished && (
+              <Link href={`/duel/${latest.id}`} className={button}>
+                Play your turn
+                <ChevronRight size={18} />
+              </Link>
+            )}
             <button onClick={onStart} disabled={busy !== null} className={`self-start disabled:opacity-60 ${LINK}`}>
               {busy === "challenge" ? "Setting up…" : "New challenge"}
             </button>
           </>
-        ) : latest && !latest.finished ? (
-          <Link href={`/duel/${latest.id}`} className={button}>
-            Finish your challenge
-            <ChevronRight size={18} />
-          </Link>
         ) : (
           <button onClick={onStart} disabled={busy !== null} className={button}>
-            {busy === "challenge" ? "Setting up…" : "Start a challenge"}
+            {busy === "challenge" ? "Making your link…" : "Invite a friend"}
           </button>
         )}
       </div>

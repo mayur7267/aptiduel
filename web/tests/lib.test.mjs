@@ -6,7 +6,16 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMPANIES, companyBySlug } from "../src/lib/companies.ts";
-import { batch, challengeShareText, clock, initials, signed, tierFor, untilIstMidnight } from "../src/lib/format.ts";
+import {
+  batch,
+  challengeShareText,
+  clock,
+  initials,
+  inviteShareText,
+  signed,
+  tierFor,
+  untilIstMidnight,
+} from "../src/lib/format.ts";
 
 test("tierFor names the tier and the gap to the next", () => {
   assert.deepEqual(
@@ -51,6 +60,10 @@ test("batch and share text", () => {
   const text = challengeShareText("Asha", 4, 95_000, "ABC123");
   assert.match(text, /^Asha scored 4\/5 in 1:35 on Apticks\./);
   assert.match(text, /\/c\/ABC123$/);
+  const invite = inviteShareText("Asha", "XYZ789");
+  assert.match(invite, /^Asha challenged you to an aptitude duel on Apticks\./);
+  assert.doesNotMatch(invite, /scored/);
+  assert.match(invite, /\/c\/XYZ789$/);
 });
 
 test("companies have unique slugs and resolve by slug", () => {
