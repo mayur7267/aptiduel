@@ -269,10 +269,12 @@ export function TikoTour() {
         role="dialog"
         aria-label="App tour"
         aria-live="polite"
-        className={`pointer-events-auto absolute top-0 left-0 rounded-2xl border-2 border-line bg-surface p-4 sticker transition-opacity duration-200 ${
+        className={`pointer-events-auto absolute rounded-2xl border-2 border-line bg-surface p-4 sticker transition-opacity duration-200 ${
           landed && bubble ? "opacity-100 motion-safe:animate-pop" : "invisible opacity-0"
         }`}
-        style={bubble ? { transform: `translate(${bubble.x}px, ${bubble.y}px)`, width: bubble.w } : { width: 300 }}
+        // Placed with left/top, not transform: the pop-in animation owns
+        // transform, and would otherwise wipe out the position.
+        style={bubble ? { left: bubble.x, top: bubble.y, width: bubble.w } : { left: 0, top: 0, width: 300 }}
         key={step}
       >
         <p className="font-display text-[15px] font-bold">{s.title}</p>
