@@ -13,7 +13,7 @@ All game logic runs in the database. Clients only call the functions granted at 
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. In the SQL editor, run each file in `supabase/migrations/` in order (`0001` → `0010`), then run `supabase/seed.sql`. Every migration after `0001` is safe to run more than once. Then run `supabase/record-migrations.sql`, so **Database → Migrations** lists them too (add a line to it for each new migration).
+2. In the SQL editor, run each file in `supabase/migrations/` in order (`0001` → `0011`), then run `supabase/seed.sql`. Every migration after `0001` is safe to run more than once. Then run `supabase/record-migrations.sql`, so **Database → Migrations** lists them too (add a line to it for each new migration).
 3. **Authentication → Sign In / Providers**: turn on **Allow anonymous sign-ins** (every visitor starts as a guest) and keep **Email** on.
 4. **Authentication → Emails → SMTP Settings**: turn on custom SMTP. Supabase's built-in sender only delivers to your own team's addresses, and the templates can't be edited without custom SMTP. Gmail works for testing: host `smtp.gmail.com`, port `465`, with your Gmail address as the username and sender, and a Google [app password](https://myaccount.google.com/apppasswords) as the password.
 5. **Authentication → Emails → Templates**: in both **Magic link or OTP** and **Change Email Address**, put `{{ .Token }}` in the body. Players save their account and sign in with that code, not a link.

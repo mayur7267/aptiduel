@@ -7,6 +7,7 @@ import { clock } from "@/lib/format";
 import { Bolt, Check } from "@/components/icons";
 import { Avatar, Logo, TierBadge } from "@/components/ui";
 import { AcceptButton } from "./accept-button";
+import { ViewerSwitch } from "./viewer-switch";
 
 export async function generateMetadata({ params }: PageProps<"/c/[code]">): Promise<Metadata> {
   const { code } = await params;
@@ -33,14 +34,17 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
 
       <main className="flex-1">
         <section className="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-4 py-12 sm:px-6 sm:py-16">
-          <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-            <Suspense fallback={<ChallengeSkeleton />}>
-              <ChallengeIntro params={params} />
-            </Suspense>
-          </div>
-          <div className="flex min-w-0 flex-[1_1_360px] justify-center">
-            <DuelPreview />
-          </div>
+          {/* Friends see the invite; the challenger sees their own side. */}
+          <ViewerSwitch>
+            <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+              <Suspense fallback={<ChallengeSkeleton />}>
+                <ChallengeIntro params={params} />
+              </Suspense>
+            </div>
+            <div className="flex min-w-0 flex-[1_1_360px] justify-center">
+              <DuelPreview />
+            </div>
+          </ViewerSwitch>
         </section>
 
         <section className="border-t border-[#1c2232] bg-[#0e121c]">

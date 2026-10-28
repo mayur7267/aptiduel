@@ -23,7 +23,8 @@ select m.version, m.name
     ('0007', '0007_stale_quick_match'),
     ('0008', '0008_company_tags'),
     ('0009', '0009_company_practice'),
-    ('0010', '0010_audit_fixes')
+    ('0010', '0010_audit_fixes'),
+    ('0011', '0011_challenge_owner_view')
   ) as m(version, name)
  where not exists (select 1 from supabase_migrations.schema_migrations s where s.name = m.name)
    and not exists (select 1 from supabase_migrations.schema_migrations s where s.version = m.version);

@@ -99,6 +99,12 @@ await play(c, joinC.duel_id, 2);
 const dC = await rpc(c, "get_duel", { p_duel_id: joinC.duel_id });
 check(dC.opponent?.is_replay === true && dC.opponent.score === dA.me.score, "they face the challenger's recorded run");
 check((await rpc(a, "get_me")).rating === ratingABeforeC, "replays don't change the challenger's rating");
+const own = await rpc(a, "challenge_status", { p_code: code });
+check(
+  own?.duel_id === duel_id && own.friends.length === 2 && own.friends.every((f) => f.finished),
+  "the challenger's own link shows who has played it",
+);
+check((await rpc(b, "challenge_status", { p_code: code })) === null, "nobody else gets the challenger's view");
 const share = await rpc(c, "challenge_from_duel", { p_duel_id: joinC.duel_id });
 check(/^[A-Z0-9]{6}$/.test(share.code) && share.code !== code, "an acceptor can share their own score as a new link");
 

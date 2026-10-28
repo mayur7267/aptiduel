@@ -154,6 +154,23 @@ export type Challenge = {
   accepted_count: number;
 };
 
+// The challenger's own view of their challenge link. null for anyone else.
+export type ChallengeStatus = {
+  duel_id: string;
+  code: string;
+  open: boolean;
+  me: { name: string; finished: boolean; score: number; correct: number; total_ms: number };
+  friends: {
+    duel_id: string; // their run: the original duel for the first friend, a copy for later ones
+    name: string;
+    college: string | null;
+    finished: boolean;
+    score: number;
+    correct: number;
+    total_ms: number;
+  }[];
+};
+
 let sessionReady: Promise<void> | null = null;
 
 // Every visitor plays as a guest first: an anonymous Supabase account
@@ -203,6 +220,7 @@ export const api = {
   leaderboard: (scope: "college" | "india", limit = 50) =>
     rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),
   joinChallenge: (code: string) => rpc<{ duel_id: string }>("join_challenge", { p_code: code }),
+  challengeStatus: (code: string) => rpc<ChallengeStatus | null>("challenge_status", { p_code: code }),
   shareCode: (duelId: string) => rpc<{ code: string }>("challenge_from_duel", { p_duel_id: duelId }),
   nextQuestion: (duelId: string) => rpc<QuestionView>("next_question", { p_duel_id: duelId }),
   submitAnswer: (duelId: string, qIndex: number, choice: number | null) =>
