@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // Tiko, the Apticks mascot: a little lime alien whose antenna is the
 // stopwatch button. Drawn as plain SVG so it stays sharp, matches the
@@ -169,13 +169,13 @@ function Drawing({ mood, size, still }: { mood: TikoMood; size: number; still: b
   );
 }
 
-type Reaction = "boing" | "flip" | "giggle";
+export type TikoMove = "boing" | "flip" | "giggle" | "droop";
 
 // Physics jumps for a tap: crouch, launch (slowing as it rises), fall
 // (speeding up), squash on landing, rebound.
 const RISE = "cubic-bezier(0.25, 0.46, 0.45, 0.94)";
 const FALL = "cubic-bezier(0.55, 0.085, 0.68, 0.53)";
-const MOVES: Record<Reaction, { frames: Keyframe[]; duration: number }> = {
+const MOVES: Record<TikoMove, { frames: Keyframe[]; duration: number }> = {
   boing: {
     duration: 820,
     frames: [
@@ -197,6 +197,18 @@ const MOVES: Record<Reaction, { frames: Keyframe[]; duration: number }> = {
       { transform: "translateY(0) rotate(-360deg) scale(0.94, 1.08)", offset: 0.72, easing: "ease-out" },
       { transform: "translateY(0) rotate(-360deg) scale(1.16, 0.84)", offset: 0.82, easing: "ease-out" },
       { transform: "translateY(0) rotate(-360deg) scale(1, 1)" },
+    ],
+  },
+  // A wrong answer: sag down, shake the head, perk back up.
+  droop: {
+    duration: 900,
+    frames: [
+      { transform: "translateY(0) rotate(0deg) scale(1, 1)", easing: "ease-out" },
+      { transform: "translateY(6%) rotate(0deg) scale(1.08, 0.88)", offset: 0.25 },
+      { transform: "translateY(4%) rotate(-6deg) scale(1.04, 0.92)", offset: 0.45 },
+      { transform: "translateY(4%) rotate(6deg) scale(1.04, 0.92)", offset: 0.65 },
+      { transform: "translateY(2%) rotate(-2deg) scale(1.02, 0.97)", offset: 0.82 },
+      { transform: "translateY(0) rotate(0deg) scale(1, 1)" },
     ],
   },
   giggle: {
@@ -228,6 +240,7 @@ export function Tiko({
   still = false,
   interactive = true,
   onTap,
+  play,
   className = "",
 }: {
   mood?: TikoMood;
@@ -235,6 +248,7 @@ export function Tiko({
   still?: boolean; // no idle motion, for when something else is moving Tiko
   interactive?: boolean; // false inside another button or link
   onTap?: () => void; // after Tiko reacts to a tap, e.g. to say something
+  play?: { move: TikoMove; key: number }; // a page asks for a move; a new key plays it again
   className?: string;
 }) {
   const body = useRef<HTMLSpanElement>(null);
@@ -253,7 +267,7 @@ export function Tiko({
     if (dizzy) taps.current = [];
 
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const pick: Reaction = dizzy ? "flip" : (["boing", "flip", "giggle"] as const)[Math.floor(Math.random() * 3)];
+    const pick: TikoMove = dizzy ? "flip" : (["boing", "flip", "giggle"] as const)[Math.floor(Math.random() * 3)];
     setFace(dizzy ? "confused" : "giggle");
     if (!reduce) setBurst((n) => n + 1);
     if ("vibrate" in navigator) navigator.vibrate?.(12);
@@ -269,6 +283,16 @@ export function Tiko({
     const move = MOVES[pick];
     body.current.animate(move.frames, { duration: move.duration }).onfinish = done;
   }
+
+  // Moves a page asks for, like a jump for a right answer.
+  const playKey = play?.key;
+  const playMove = play?.move;
+  useEffect(() => {
+    if (playKey === undefined || !playMove || !body.current) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const anim = body.current.animate(MOVES[playMove].frames, { duration: MOVES[playMove].duration });
+    return () => anim.cancel();
+  }, [playKey, playMove]);
 
   const shown = face ?? mood;
   const inner = (

@@ -7,7 +7,7 @@ import { api, type AnswerResult, type Duel, type QuestionView } from "@/lib/api"
 import { clock } from "@/lib/format";
 import { Check, Clock, Close } from "@/components/icons";
 import { Figure } from "@/components/figure";
-import { Tiko, type TikoMood } from "@/components/tiko";
+import { Tiko, type TikoMood, type TikoMove } from "@/components/tiko";
 import { BotTag, ErrorNote, Spinner } from "@/components/ui";
 
 type Question = Extract<QuestionView, { done: false }>;
@@ -159,10 +159,6 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   const opp = duel?.opponent ?? null;
   const fraction = q.time_limit_ms ? remaining / q.time_limit_ms : 0;
   const urgent = remaining < 10_000 && phase === "question";
-  // Your duel buddy: thinks with you, panics a little near the end,
-  // cheers a right answer and sulks at a wrong one.
-  const buddy: TikoMood =
-    phase === "reveal" && result ? (result.correct ? "cheer" : "sad") : urgent ? "confused" : "think";
 
   // Replay a finished opponent's run on the same question you're on. They
   // "answer" once your time on the question passes theirs, but whether
@@ -240,10 +236,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
           </span>
           <ProgressDots marks={marks} current={q.q_index} total={q.total} />
         </div>
-        <span className="flex flex-col items-center gap-0.5">
-          <Tiko mood={buddy} size={44} />
-          <span className="-rotate-6 rounded-md bg-raised px-1.5 py-0.5 font-display text-[10px] font-bold text-soft">VS</span>
-        </span>
+        <span className="-rotate-6 rounded-md bg-raised px-2 py-1 font-display text-[12px] font-bold text-soft">VS</span>
         <div className="flex min-w-0 flex-col items-end gap-2 text-right">
           {opp?.finished && duel?.opponent_timeline ? (
             <>
@@ -351,6 +344,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
 
       {/* Pinned to the bottom on phones for thumbs; right under the question on bigger screens. */}
       <div className="mt-auto flex flex-col gap-2.5 pt-2 sm:mt-4">
+        <DuelBuddy q={q} phase={phase} result={result} chosen={chosen} urgent={urgent} waitingFor={waitingFor} />
         <div className={q.option_figures ? "grid grid-cols-2 gap-2.5 sm:grid-cols-4" : "flex flex-col gap-2.5"}>
           {q.options.map((text, i) => (
             <OptionButton
@@ -365,7 +359,6 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
             />
           ))}
         </div>
-        <Feedback phase={phase} result={result} chosen={chosen} waitingFor={waitingFor} />
         <p className="hidden text-center text-xs text-faint sm:block">Tip: press 1–4 or A–D to answer</p>
       </div>
     </div>
@@ -444,33 +437,69 @@ function OptionButton({
   );
 }
 
-function Feedback({
+const PEP = [
+  "Read it carefully. You've got this.",
+  "Speed bonus: answer fast for up to +50.",
+  "Halfway there!",
+  "Trust your first instinct.",
+  "Last one, make it count!",
+];
+const CHEERS = ["Nice!", "Brilliant!", "Too easy!", "Nailed it!", "Yes!"];
+
+// Tiko reads along with you, gets nervous when time runs low, then jumps
+// for a right answer or droops at a wrong one.
+function DuelBuddy({
+  q,
   phase,
   result,
   chosen,
+  urgent,
   waitingFor,
 }: {
+  q: Question;
   phase: Phase;
   result: AnswerResult | null;
   chosen: number | null;
+  urgent: boolean;
   waitingFor: string | null;
 }) {
-  let text = "";
-  let tone = "text-muted";
-  if (phase === "reveal" && result) {
+  let mood: TikoMood = "think";
+  let line = PEP[q.q_index] ?? PEP[0];
+  let tone = "text-soft";
+  let play: { move: TikoMove; key: number } | undefined;
+  if (phase === "submitting") {
+    line = "Checking…";
+  } else if (phase === "reveal" && result) {
+    const right = KEYS[result.correct_idx];
     if (result.correct) {
-      text = `+${result.points} points`;
+      mood = "cheer";
+      line = `+${result.points} points! ${CHEERS[q.q_index % CHEERS.length]}`;
       tone = "text-lime";
+      play = { move: "boing", key: q.q_index };
     } else {
-      text = chosen === null ? "Time's up" : "Not quite";
+      mood = "sad";
+      line = chosen === null ? `Time's up! It was ${right}.` : `Not quite. It's ${right}.`;
       tone = "text-red-soft";
+      play = { move: "droop", key: q.q_index };
     }
+  } else if (urgent) {
+    mood = "confused";
+    line = "Quick! Pick your best guess.";
+    tone = "text-orange-soft";
   }
+
   return (
-    <p aria-live="polite" className={`flex h-6 items-center justify-center gap-2 text-sm font-bold ${tone}`}>
-      {text}
-      {waitingFor && <span className="font-medium text-muted">· Waiting for {waitingFor}…</span>}
-    </p>
+    <div className="flex items-end gap-2.5" aria-live="polite">
+      <Tiko mood={mood} size={68} play={play} className="shrink-0" />
+      <div className="relative mb-2 min-w-0 flex-1 rounded-2xl border-2 border-line bg-surface px-3.5 py-2 sticker">
+        <span
+          aria-hidden="true"
+          className="absolute bottom-3 -left-[8px] size-3.5 rotate-45 border-b-2 border-l-2 border-line bg-surface"
+        />
+        <p className={`text-sm font-bold ${tone}`}>{line}</p>
+        {waitingFor && <p className="text-xs text-muted">Waiting for {waitingFor}…</p>}
+      </div>
+    </div>
   );
 }
 
