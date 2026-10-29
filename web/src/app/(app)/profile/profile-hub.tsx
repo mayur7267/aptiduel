@@ -158,12 +158,16 @@ function Heading({ children, aside }: { children: ReactNode; aside?: ReactNode }
 }
 
 // Your player card on a lanyard. It swings as a damped pendulum: a tap
-// flicks it, a drag pushes it, and on phones that report it, tilting
-// moves where it hangs. The holographic seal and a sheen move with it.
+// flicks it, a drag pushes it, scrolling jostles it and a light breeze
+// keeps it moving. On phones it also hangs towards real "down" as you
+// tilt (iPhones ask permission on the first tap). The holographic seal
+// and a sheen move with it.
 function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => void }) {
   const card = useRef<HTMLDivElement>(null);
-  const physics = useRef({ theta: 0.3, omega: 0, rest: 0, held: null as number | null, heldV: 0 });
+  const physics = useRef({ theta: 0.3, omega: 0, tilt: 0, held: null as number | null, heldV: 0 });
   const press = useRef<{ x: number; t: number; moved: boolean } | null>(null);
+  const listenTilt = useRef<(() => void) | null>(null);
+  const [tiltAsk, setTiltAsk] = useState(false); // iPhone: tilt needs a tap to ask first
 
   useEffect(() => {
     const el = card.current;
@@ -174,9 +178,12 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
     const tick = (now: number) => {
       const dt = Math.min(1 / 30, (now - last) / 1000);
       last = now;
+      // Where it hangs: towards the tilt, nudged by a slow breeze.
+      const t = now / 1000;
+      const rest = p.tilt + 0.04 * Math.sin(t * 0.9) + 0.015 * Math.sin(t * 2.3 + 1);
       if (p.held === null) {
         for (let i = 0; i < 4; i++) {
-          p.omega += (-16 * Math.sin(p.theta - p.rest) - 0.9 * p.omega) * (dt / 4);
+          p.omega += (-16 * Math.sin(p.theta - rest) - 0.9 * p.omega) * (dt / 4);
           p.theta += p.omega * (dt / 4);
         }
       } else {
@@ -187,16 +194,46 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
-    // Tilt, where the browser gives it without asking (most Android phones).
-    const tilt = (e: DeviceOrientationEvent) => {
-      if (e.gamma !== null) p.rest = Math.max(-0.4, Math.min(0.4, -(e.gamma / 90) * 0.6));
+
+    // Scrolling the page jostles the card.
+    let lastY = window.scrollY;
+    const scroll = () => {
+      const dy = window.scrollY - lastY;
+      lastY = window.scrollY;
+      p.omega += Math.max(-0.5, Math.min(0.5, dy * 0.006));
     };
-    const D = window.DeviceOrientationEvent as unknown as { requestPermission?: unknown } | undefined;
-    const tiltable = D && typeof D.requestPermission !== "function";
-    if (tiltable) window.addEventListener("deviceorientation", tilt);
+    window.addEventListener("scroll", scroll, { passive: true });
+
+    const tilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma !== null) p.tilt = Math.max(-0.4, Math.min(0.4, -(e.gamma / 90) * 0.6));
+    };
+    const D = window.DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> } | undefined;
+    let listening = false;
+    const start = () => {
+      if (listening) return;
+      listening = true;
+      window.addEventListener("deviceorientation", tilt);
+    };
+    if (D && typeof D.requestPermission !== "function") {
+      start(); // Android and desktop: no permission needed.
+    } else if (D?.requestPermission && "ontouchstart" in window) {
+      // iPhone and iPad: ask on the first tap of the card.
+      listenTilt.current = () => {
+        listenTilt.current = null;
+        D.requestPermission!().then((r) => r === "granted" && start(), () => {});
+      };
+      const ask = window.setTimeout(() => setTiltAsk(true), 0);
+      return () => {
+        window.clearTimeout(ask);
+        cancelAnimationFrame(frame);
+        window.removeEventListener("scroll", scroll);
+        window.removeEventListener("deviceorientation", tilt);
+      };
+    }
     return () => {
       cancelAnimationFrame(frame);
-      if (tiltable) window.removeEventListener("deviceorientation", tilt);
+      window.removeEventListener("scroll", scroll);
+      window.removeEventListener("deviceorientation", tilt);
     };
   }, []);
 
@@ -219,6 +256,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
     p.held = angle;
   }
 
+  // A tap flicks the card (and, on iPhone, asks to use tilt once).
   function up() {
     const pr = press.current;
     press.current = null;
@@ -228,15 +266,19 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
       p.held = null;
       return;
     }
-    p.omega += (p.theta >= 0 ? 1 : -1) * 2.4;
-    onEdit();
+    p.omega += (p.theta >= 0 ? 1 : -1) * 3;
+    navigator.vibrate?.(10);
+    if (listenTilt.current) {
+      listenTilt.current();
+      setTiltAsk(false);
+    }
   }
 
   const tier = tierFor(me.rating);
   const guest = /^Player \d{4}$/.test(me.name);
   const number = me.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   return (
-    <section aria-label="Your player card" className="relative mt-7 h-[330px] select-none lg:mt-2">
+    <section aria-label="Your player card" className="relative mt-7 h-[352px] select-none lg:mt-2">
       {/* The lanyard. */}
       <svg aria-hidden="true" className="absolute inset-x-0 -top-6 mx-auto h-[80px] w-[220px] overflow-visible" viewBox="0 0 220 80">
         {[-1, 1].map((s) => (
@@ -252,8 +294,10 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
           ref={card}
           role="button"
           tabIndex={0}
-          aria-label={`Player card: ${me.name}, ${tier.name}, rating ${me.rating}. Open to edit your profile.`}
-          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onEdit()}
+          aria-label={`Player card: ${me.name}, ${tier.name}, rating ${me.rating}. Tap to swing it.`}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") physics.current.omega += 3;
+          }}
           onPointerDown={down}
           onPointerMove={move}
           onPointerUp={up}
@@ -324,6 +368,15 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
             <span className="h-[5px] w-6 rounded-full bg-ink/55" />
           </span>
         </div>
+      </div>
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-3">
+        <button
+          onClick={onEdit}
+          className="flex h-9 items-center gap-1.5 rounded-full border border-line bg-surface px-4 text-[13px] font-bold text-text hover:bg-raised active:scale-95"
+        >
+          ✎ Edit profile
+        </button>
+        {tiltAsk && <RedPen className="text-base">tap the card to turn on tilt</RedPen>}
       </div>
     </section>
   );
