@@ -1,26 +1,26 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode, type Ref } from "react";
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { account, type Account } from "@/lib/account";
 import { api, type DuelSummary, type Me } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
 import { openFeedback } from "@/lib/feedback";
-import { batch, signed } from "@/lib/format";
+import { signed, tierFor, TIERS } from "@/lib/format";
 import { ratingHistory, weekChange } from "@/lib/rating-history";
-import { Bolt, Flame } from "@/components/icons";
+import { ChevronRight } from "@/components/icons";
 import { Modal } from "@/components/modal";
 import { Tiko } from "@/components/tiko";
-import { Avatar, ErrorNote, Logo, Spinner, TierBadge } from "@/components/ui";
+import { Avatar, ErrorNote, Logo, Mark, Spinner } from "@/components/ui";
 import { AccountPanel } from "./account-panel";
 import { ProfileForm } from "./profile-form";
 import { TikoSettings } from "./tiko-settings";
 
-// The profile page: a grid of tiles, each showing something real and
-// opening something. Editing, the account and Tiko's settings open in
-// dialogs. Matches the iPhone app's Profile tab.
+// The profile page, as a page from a placement student's folder: your
+// player card swinging on a lanyard, your rating on graph paper, a
+// report card, a sticker book and sticky notes. Matches the iPhone app.
 
-type Sheet = "edit" | "account" | "tiko";
+type Sheet = "edit" | "account" | "tiko" | "practice";
 
 export function ProfileHub() {
   const [me, setMe] = useState<Me | null>(null);
@@ -50,14 +50,16 @@ export function ProfileHub() {
   useEffect(() => () => setSheet(null), []);
 
   const close = () => setSheet(null);
+  const saved = acct?.guest === false;
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-2 flex items-center justify-between gap-3">
         <span className="lg:hidden">
           <Logo />
         </span>
-        <h1 className="font-poster text-[34px] leading-none uppercase lg:text-[40px]">You</h1>
+        <h1 className="sr-only">Your profile</h1>
+        <RedPen className="ml-auto text-[17px]">tap or drag your card</RedPen>
       </div>
 
       {!me ? (
@@ -67,32 +69,40 @@ export function ProfileHub() {
           <Spinner label="Loading your profile" />
         )
       ) : (
-        <div className="grid grid-cols-2 gap-3">
-          <PlayerCard me={me} onEdit={() => setSheet("edit")} />
-          <TiltTile href="/leaderboard" className="row-span-2 min-h-[312px] bg-violet" delay={60} label="Insights: your rating">
-            <Insights me={me} duels={duels} />
-          </TiltTile>
-          <TiltTile href="/daily" className="min-h-[150px] bg-orange" delay={100} label={`Streak: ${me.streak} days`}>
-            <Streak me={me} />
-          </TiltTile>
-          <TiltTile onClick={() => setSheet("tiko")} className="min-h-[150px] bg-[#5ce1e6]" delay={140} label="Tiko settings">
-            <TikoTile />
-          </TiltTile>
-          <div className="col-span-2 grid grid-cols-[1fr_0.62fr] gap-3">
-            <TiltTile href="/play" className="min-h-[150px] bg-lime" delay={180} label="Compete: find a Quick Match">
-              <Compete />
-            </TiltTile>
-            <Practice />
+        <div className="flex flex-col gap-4">
+          <IdBadge me={me} saved={saved} onEdit={() => setSheet("edit")} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Progress me={me} duels={duels} />
+            <ReportCard me={me} />
           </div>
-          <Help />
-          <TiltTile
-            onClick={() => setSheet("account")}
-            className={`min-h-[150px] border-[1.5px] bg-surface ${acct?.guest === false ? "border-line" : "border-lime/50"}`}
-            delay={300}
-            label="Account"
-          >
-            <AccountTile acct={acct} />
-          </TiltTile>
+          <StickerBook me={me} saved={saved} />
+          <div className="grid grid-cols-2 gap-4 pt-2">
+            <StickyNote
+              tone="bg-lime"
+              tilt={-3}
+              title="Found a bug?"
+              line="Tell us what broke"
+              onClick={() => openFeedback("bug", { from: "profile" })}
+            />
+            <StickyNote
+              tone="bg-violet"
+              tilt={2.5}
+              title="Got an idea?"
+              line="We read every one"
+              onClick={() => openFeedback("idea", { from: "profile" })}
+            />
+          </div>
+          <div className="divide-y divide-line overflow-hidden rounded-[20px] border border-line bg-surface">
+            <Row icon="☺" title="Tiko & the tour" detail="Replay the tour, show or hide Tiko" onClick={() => setSheet("tiko")} />
+            <Row
+              icon={saved ? "✓" : "🔓"}
+              accent={!saved}
+              title={saved ? "Account" : "Save your progress"}
+              detail={saved ? (acct?.email ?? "Saved") : "Keep your rating on any device"}
+              onClick={() => setSheet("account")}
+            />
+            <Row icon="🏢" title="Practise for a company" detail="TCS NQT, Infosys, Accenture, Wipro" onClick={() => setSheet("practice")} />
+          </div>
         </div>
       )}
 
@@ -110,318 +120,464 @@ export function ProfileHub() {
       <Modal open={sheet === "tiko"} onClose={close} title="Tiko">
         <TikoSettings bare />
       </Modal>
+      <Modal open={sheet === "practice"} onClose={close} title="Practise for…">
+        <p className="-mt-2 text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
+        <div className="flex flex-col gap-2.5">
+          {COMPANIES.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/play/${c.slug}`}
+              onClick={close}
+              className="flex items-center justify-between rounded-2xl border border-line bg-raised px-4 py-3.5 text-text hover:border-lime/60 hover:text-text"
+            >
+              <span>
+                <span className="block font-bold">{c.name}</span>
+                <span className="block text-xs text-muted">{c.blurb}</span>
+              </span>
+              <ChevronRight size={18} className="text-muted" />
+            </Link>
+          ))}
+        </div>
+      </Modal>
     </>
   );
 }
 
-// A tile that leans towards the pointer and gives under a press.
-function TiltTile({
-  href,
-  onClick,
-  className,
-  delay,
-  label,
-  children,
-}: {
-  href?: string;
-  onClick?: () => void;
-  className: string;
-  delay: number;
-  label: string;
-  children: ReactNode;
-}) {
-  const ref = useRef<HTMLElement>(null);
+function RedPen({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <span className={`inline-block -rotate-2 font-hand font-bold text-red-soft ${className}`}>{children}</span>;
+}
 
-  function lean(e: PointerEvent<HTMLElement>) {
-    if (e.pointerType !== "mouse" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const el = ref.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const x = (e.clientX - r.left) / r.width - 0.5;
-    const y = (e.clientY - r.top) / r.height - 0.5;
-    el.style.transform = `perspective(700px) rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 6).toFixed(2)}deg)`;
-  }
-
-  function settle() {
-    if (ref.current) ref.current.style.transform = "";
-  }
-
-  const cls = `group relative block overflow-hidden rounded-[26px] text-left text-ink transition-transform duration-200 ease-out active:scale-[0.97] motion-safe:animate-rise ${className}`;
-  const style: CSSProperties = { animationDelay: `${delay}ms` };
-  if (href) {
-    return (
-      <Link
-        ref={ref as Ref<HTMLAnchorElement>}
-        href={href}
-        aria-label={label}
-        onPointerMove={lean}
-        onPointerLeave={settle}
-        className={`${cls} hover:text-ink`}
-        style={style}
-      >
-        {children}
-      </Link>
-    );
-  }
+function Heading({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
-    <button
-      ref={ref as Ref<HTMLButtonElement>}
-      onClick={onClick}
-      aria-label={label}
-      onPointerMove={lean}
-      onPointerLeave={settle}
-      className={cls}
-      style={style}
-    >
-      {children}
-    </button>
+    <div className="flex items-baseline justify-between">
+      <h2 className="font-mono text-xs font-bold tracking-[0.2em] text-muted uppercase">{children}</h2>
+      {aside}
+    </div>
   );
 }
 
-function Poster({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <span className={`block truncate font-poster leading-[0.95] uppercase ${className}`}>{children}</span>;
-}
+// Your player card on a lanyard. It swings as a damped pendulum: a tap
+// flicks it, a drag pushes it, and on phones that report it, tilting
+// moves where it hangs. The holographic seal and a sheen move with it.
+function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => void }) {
+  const card = useRef<HTMLDivElement>(null);
+  const physics = useRef({ theta: 0.3, omega: 0, rest: 0, held: null as number | null, heldV: 0 });
+  const press = useRef<{ x: number; t: number; moved: boolean } | null>(null);
 
-// You: a drifting stripe banner with Tiko standing on it, your avatar in
-// your tier's ring, and your numbers.
-function PlayerCard({ me, onEdit }: { me: Me; onEdit: () => void }) {
-  const guestName = /^Player \d{4}$/.test(me.name);
-  const winRate = me.games_played > 0 ? `${Math.round((me.wins / me.games_played) * 100)}%` : "—";
-  const sub = [me.college, batch(me.grad_year)].filter(Boolean).join(" · ") || "Add your college to join its leaderboard";
+  useEffect(() => {
+    const el = card.current;
+    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const p = physics.current;
+    let frame = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(1 / 30, (now - last) / 1000);
+      last = now;
+      if (p.held === null) {
+        for (let i = 0; i < 4; i++) {
+          p.omega += (-16 * Math.sin(p.theta - p.rest) - 0.9 * p.omega) * (dt / 4);
+          p.theta += p.omega * (dt / 4);
+        }
+      } else {
+        p.theta += (p.held - p.theta) * 0.5;
+      }
+      el.style.setProperty("--swing", String(p.theta));
+      el.style.rotate = `${p.theta}rad`;
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    // Tilt, where the browser gives it without asking (most Android phones).
+    const tilt = (e: DeviceOrientationEvent) => {
+      if (e.gamma !== null) p.rest = Math.max(-0.4, Math.min(0.4, -(e.gamma / 90) * 0.6));
+    };
+    const D = window.DeviceOrientationEvent as unknown as { requestPermission?: unknown } | undefined;
+    const tiltable = D && typeof D.requestPermission !== "function";
+    if (tiltable) window.addEventListener("deviceorientation", tilt);
+    return () => {
+      cancelAnimationFrame(frame);
+      if (tiltable) window.removeEventListener("deviceorientation", tilt);
+    };
+  }, []);
+
+  function down(e: PointerEvent<HTMLDivElement>) {
+    press.current = { x: e.clientX, t: performance.now(), moved: false };
+    e.currentTarget.setPointerCapture(e.pointerId);
+  }
+
+  function move(e: PointerEvent<HTMLDivElement>) {
+    const pr = press.current;
+    if (!pr) return;
+    const dx = e.clientX - pr.x;
+    if (Math.abs(dx) > 6) pr.moved = true;
+    if (!pr.moved) return;
+    const p = physics.current;
+    const angle = Math.max(-0.9, Math.min(0.9, -dx / 220));
+    const now = performance.now();
+    if (p.held !== null) p.heldV = (angle - p.held) / Math.max(0.016, (now - pr.t) / 1000);
+    pr.t = now;
+    p.held = angle;
+  }
+
+  function up() {
+    const pr = press.current;
+    press.current = null;
+    const p = physics.current;
+    if (pr?.moved) {
+      p.omega = Math.max(-6, Math.min(6, p.heldV));
+      p.held = null;
+      return;
+    }
+    p.omega += (p.theta >= 0 ? 1 : -1) * 2.4;
+    onEdit();
+  }
+
+  const tier = tierFor(me.rating);
+  const guest = /^Player \d{4}$/.test(me.name);
+  const number = me.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   return (
-    <section className="relative col-span-2 overflow-hidden rounded-[28px] border-[1.5px] border-line bg-surface motion-safe:animate-rise">
-      <div
-        aria-hidden="true"
-        className="stripes-drift h-[92px] bg-lime"
-        style={{ backgroundImage: "repeating-linear-gradient(135deg, rgb(255 255 255 / 0.28) 0 11px, transparent 11px 34px)" }}
-      />
-      <div className="absolute top-[30px] right-[78px]">
-        <Tiko mood="wave" size={62} />
-      </div>
-      <div className="flex items-end justify-between px-5">
-        <span className="-mt-[42px] rounded-full bg-surface p-1 ring-[3px] ring-violet">
-          <Avatar name={me.name} size={84} />
-        </span>
-        <button
-          onClick={onEdit}
-          aria-label="Edit profile"
-          className="-mt-6 flex size-12 items-center justify-center rounded-full bg-lime text-ink transition hover:bg-lime-hover active:scale-95"
-        >
-          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 20h9" />
-            <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z" />
-          </svg>
-        </button>
-      </div>
-      <button onClick={onEdit} className="block w-full px-5 pt-3 text-left">
-        <span className={`block truncate font-display text-[22px] font-bold ${guestName ? "text-muted" : "text-text"}`}>
-          {guestName ? "Add your name" : me.name}
-        </span>
-        <span className="block truncate text-sm text-muted">{sub}</span>
-        <span className="mt-2 inline-block">
-          <TierBadge rating={me.rating} showRating />
-        </span>
-      </button>
-      <dl className="m-3.5 grid grid-cols-4 divide-x divide-line rounded-2xl bg-raised py-3 text-center">
-        {[
-          [String(me.games_played), "Duels"],
-          [String(me.wins), "Wins"],
-          [winRate, "Win rate"],
-          [String(me.streak_best), "Best streak"],
-        ].map(([value, label]) => (
-          <div key={label} className="flex flex-col-reverse gap-0.5">
-            <dt className="text-[11px] font-semibold text-muted">{label}</dt>
-            <dd className="font-mono text-[17px] font-bold">{value}</dd>
-          </div>
+    <section aria-label="Your player card" className="relative mt-7 h-[330px] select-none lg:mt-2">
+      {/* The lanyard. */}
+      <svg aria-hidden="true" className="absolute inset-x-0 -top-6 mx-auto h-[80px] w-[220px] overflow-visible" viewBox="0 0 220 80">
+        {[-1, 1].map((s) => (
+          <g key={s}>
+            <line x1={110 + s * 72} y1={0} x2={110 + s * 7} y2={68} stroke="#9fc41f" strokeWidth={11} strokeLinecap="round" />
+            <line x1={110 + s * 72} y1={0} x2={110 + s * 7} y2={68} stroke="rgb(11 14 23 / 0.35)" strokeWidth={1.5} strokeDasharray="5 5" />
+          </g>
         ))}
-      </dl>
+        <circle cx={110} cy={70} r={9} fill="#c3c9d6" stroke="rgb(11 14 23 / 0.5)" strokeWidth={2} />
+      </svg>
+      <div className="absolute top-[54px] left-1/2 w-[min(320px,calc(100%-40px))] -translate-x-1/2">
+        <div
+          ref={card}
+          role="button"
+          tabIndex={0}
+          aria-label={`Player card: ${me.name}, ${tier.name}, rating ${me.rating}. Open to edit your profile.`}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onEdit()}
+          onPointerDown={down}
+          onPointerMove={move}
+          onPointerUp={up}
+          onPointerCancel={() => (press.current = null)}
+          className="relative origin-top cursor-grab touch-pan-y active:cursor-grabbing"
+          style={{ rotate: "0.3rad" }}
+        >
+          {/* Tiko rides on top of the card. */}
+          <span className="absolute -top-[52px] right-6">
+            <Tiko mood="wave" size={54} interactive={false} />
+          </span>
+          <div className="relative h-[238px] overflow-hidden rounded-2xl bg-text text-ink shadow-[0_14px_36px_rgb(0_0_0/0.55)]">
+            <div className="flex h-9 items-center gap-2 bg-ink px-3.5 text-lime">
+              <Mark size={18} />
+              <span className="font-mono text-xs font-bold tracking-[0.2em]">APTICKS</span>
+              <span className="ml-auto font-mono text-[10px] font-semibold tracking-[0.14em] opacity-70">PLAYER CARD</span>
+            </div>
+            <div className="flex gap-3.5 px-3.5 pt-3.5">
+              <span className="relative flex h-[98px] w-20 shrink-0 items-center justify-center rounded-[10px] border border-ink/15 bg-raised">
+                <Avatar name={me.name} size={64} />
+                <span className="absolute bottom-1 font-mono text-[7px] font-bold tracking-[0.15em] text-muted">PHOTO</span>
+              </span>
+              <dl className="flex min-w-0 flex-col gap-1.5">
+                <Field label="Name" value={guest ? "—" : me.name} />
+                <Field label="College" value={me.college ?? "—"} />
+                <span className="flex gap-5">
+                  <Field label="Batch" value={me.grad_year ? `’${String(me.grad_year).slice(2)}` : "—"} />
+                  <Field label="Tier" value={tier.name} />
+                </span>
+                <Field label="Rating" value={me.rating.toLocaleString("en-IN")} big />
+              </dl>
+            </div>
+            <div className="absolute inset-x-3.5 bottom-3 flex items-end gap-2">
+              <Barcode seed={me.id} />
+              <span className="font-mono text-[10px] font-semibold text-ink/60">No. {number}</span>
+              {/* The holographic seal: its rainbow turns with the swing. */}
+              <span
+                aria-hidden="true"
+                className="ml-auto flex size-10 items-center justify-center rounded-full border-[1.5px] border-white/80"
+                style={{
+                  background:
+                    "radial-gradient(circle at 35% 30%, rgb(255 255 255 / 0.7), transparent 55%), conic-gradient(from calc(var(--swing, 0) * 3rad), #c8f135, #5ce1e6, #a594ff, #ff8f9b, #ff8a4c, #c8f135)",
+                }}
+              >
+                <Mark size={22} />
+              </span>
+            </div>
+            {/* A sheen sliding across the laminate. */}
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-y-0 left-1/3 w-2/5 rotate-[20deg] bg-gradient-to-r from-transparent via-white/45 to-transparent mix-blend-soft-light"
+              style={{ translate: "calc(var(--swing, 0) * 420px) 0" }}
+            />
+            <span
+              className={`absolute top-[58px] right-3 rounded-md border-[2.5px] px-2 py-0.5 font-display text-[13px] font-black tracking-[0.16em] opacity-85 outline outline-1 outline-offset-2 motion-safe:animate-stamp ${
+                saved ? "border-violet-strong text-violet-strong outline-violet-strong/70" : "border-red text-red outline-red/70"
+              }`}
+              style={{ ["--tilt" as string]: "-14deg", animationDelay: "0.6s" }}
+            >
+              {saved ? "VERIFIED" : "GUEST"}
+            </span>
+          </div>
+          {/* The metal clip. */}
+          <span
+            aria-hidden="true"
+            className="absolute -top-2.5 left-1/2 flex h-[22px] w-[46px] -translate-x-1/2 items-center justify-center rounded-[5px] border border-ink/35 bg-gradient-to-b from-[#e8ecf3] via-[#8b93a7] to-[#d5dae4]"
+          >
+            <span className="h-[5px] w-6 rounded-full bg-ink/55" />
+          </span>
+        </div>
+      </div>
     </section>
   );
 }
 
-// Rating over recent duels: a zigzag that draws itself, with a glowing
-// dot on today.
-function Insights({ me, duels }: { me: Me; duels: DuelSummary[] }) {
-  const history = ratingHistory(duels, me.rating);
-  const week = weekChange(duels);
-  const shown = history.length >= 2 ? history : [0, 3, 2, 5, 4, 7, 6, 9];
-  const lo = Math.min(...shown);
-  const hi = Math.max(Math.max(...shown), lo + 1);
-  const pts = shown.map((v, i) => [(i / (shown.length - 1)) * 94, 6 + 48 * (1 - (v - lo) / (hi - lo))] as const);
-  const line = pts.map(([x, y], i) => `${i ? "L" : "M"}${x.toFixed(2)} ${y.toFixed(2)}`).join(" ");
-  const last = pts[pts.length - 1];
+function Field({ label, value, big = false }: { label: string; value: string; big?: boolean }) {
   return (
-    <div className="flex h-full flex-col p-[18px]">
-      <Poster className="text-[clamp(30px,10vw,42px)]">Insights</Poster>
-      <span
-        className={`mt-2 inline-flex items-center gap-1.5 self-start rounded-full bg-ink px-3 py-1.5 text-[13px] font-black ${week >= 0 ? "text-lime" : "text-red-soft"}`}
-      >
-        {week >= 0 ? "▲" : "▼"} {history.length >= 2 ? `${signed(week)} this week` : "Rating"}
-      </span>
-      <div className={`relative mt-3 flex-1 ${history.length >= 2 ? "" : "opacity-45"}`}>
-        <svg aria-hidden="true" viewBox="0 0 100 60" preserveAspectRatio="none" className="absolute inset-0 h-full w-full overflow-visible">
-          <path className="chart-fill" d={`${line} L${last[0]} 60 L0 60 Z`} fill="rgb(11 14 23 / 0.16)" />
-          <path
-            className="chart-draw"
-            pathLength={1}
-            d={line}
-            fill="none"
-            stroke="#0b0e17"
-            strokeWidth={3.2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-            vectorEffect="non-scaling-stroke"
-          />
-        </svg>
-        <span
-          aria-hidden="true"
-          className="absolute size-[15px] -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-ink bg-lime motion-safe:animate-pop"
-          style={{ left: `${last[0]}%`, top: `${(last[1] / 60) * 100}%`, animationDelay: "1.3s" }}
-        >
-          <span className="absolute -inset-1.5 rounded-full bg-lime/50 motion-safe:animate-ping" />
-        </span>
-      </div>
-      <span className="mt-3 font-mono text-[26px] leading-none font-bold">{me.rating.toLocaleString("en-IN")}</span>
-      <span className="mt-1 text-xs font-semibold text-ink/60">
-        {history.length > 2
-          ? `Last ${history.length - 1} rated duels`
-          : history.length === 2
-            ? "Your last rated duel"
-            : "Play a duel to start your chart"}
-      </span>
-    </div>
-  );
-}
-
-// The streak, burning.
-function Streak({ me }: { me: Me }) {
-  return (
-    <div className="flex h-full flex-col p-4">
-      <Poster className="text-[32px]">Streak</Poster>
-      <span className="mt-auto flex items-end gap-1.5">
-        <Flame size={30} strokeWidth={2.4} className="flame-flicker mb-1 fill-[#ffe066]" />
-        <span className="font-poster text-[44px] leading-none">{me.streak}</span>
-        <span className="mb-1 text-[13px] font-black text-ink/70">{me.streak === 1 ? "day" : "days"}</span>
-      </span>
-      <span className="mt-2 flex gap-1" aria-hidden="true">
-        {me.daily_week.map((done, i) => (
-          <span
-            key={i}
-            className={`size-[13px] rounded-full ${done ? "bg-ink" : "bg-ink/20"} ${i === me.today_idx ? "ring-2 ring-ink ring-offset-1 ring-offset-orange" : ""}`}
-          />
-        ))}
-      </span>
-    </div>
-  );
-}
-
-function TikoTile() {
-  return (
-    <div className="flex h-full flex-col p-4">
-      <Poster className="text-[32px]">Tiko</Poster>
-      <span className="mt-0.5 text-xs leading-tight font-black text-ink/65">
-        Tour, intro
-        <br />& more
-      </span>
-      <span className="absolute right-2.5 -bottom-1.5">
-        <Tiko mood="happy" size={72} interactive={false} />
-      </span>
-    </div>
-  );
-}
-
-// Every way to play, scrolling by.
-function Compete() {
-  const items: [string, string][] = [
-    ["Quick Match", "text-lime"],
-    ["Daily Challenge", "text-orange"],
-    ["Challenge a friend", "text-violet"],
-    ["Company practice", "text-[#5ce1e6]"],
-  ];
-  const strip = (hidden: boolean) => (
-    <span aria-hidden={hidden || undefined} className="flex shrink-0 items-center gap-3.5 pr-3.5">
-      {items.map(([text, tone]) => (
-        <span key={text} className="flex items-center gap-3.5">
-          <span className={`font-poster text-[24px] whitespace-nowrap uppercase ${tone}`}>{text}</span>
-          <span className="size-[7px] rounded-full bg-text/85" />
-        </span>
-      ))}
+    <span className="flex min-w-0 flex-col">
+      <dt className="font-mono text-[8px] font-bold tracking-[0.16em] text-ink/45 uppercase">{label}</dt>
+      <dd className={`truncate ${big ? "font-mono text-xl font-bold" : "text-sm font-bold"}`}>{value}</dd>
     </span>
   );
+}
+
+// Bars from the player id, like the code on a hall ticket.
+function Barcode({ seed }: { seed: string }) {
+  const bars: { x: number; w: number }[] = [];
+  let h = 2166136261;
+  let x = 0;
+  for (let i = 0; x < 118; i++) {
+    h = Math.imul(h ^ seed.charCodeAt(i % seed.length), 16777619) >>> 0;
+    const w = 1 + (h % 3);
+    if (h % 5 !== 0) bars.push({ x, w });
+    x += w + 1 + ((h >>> 7) % 2);
+  }
   return (
-    <div className="flex h-full flex-col">
-      <Bolt size={24} strokeWidth={2.6} className="absolute top-3.5 right-3.5 rotate-12 fill-ink" />
-      <Poster className="px-[18px] pt-3.5 pr-11 text-[clamp(32px,10vw,44px)]">Compete</Poster>
-      <span className="mt-auto mb-3.5 flex overflow-hidden bg-ink py-2">
-        <span className="marquee-track flex w-max">
-          {strip(false)}
-          {strip(true)}
+    <svg aria-hidden="true" width="120" height="26" viewBox="0 0 120 26">
+      {bars.map((b, i) => (
+        <rect key={i} x={b.x} y={0} width={b.w} height={26} fill="#0b0e17" />
+      ))}
+    </svg>
+  );
+}
+
+// Your rating on graph paper: a pencil line, dashed tier lines (your next
+// tier in lime), and today's point circled in red pen.
+function Progress({ me, duels }: { me: Me; duels: DuelSummary[] }) {
+  const history = ratingHistory(duels, me.rating);
+  const week = weekChange(duels);
+  const tier = tierFor(me.rating);
+  const has = history.length >= 2;
+  const series = has ? history : [me.rating, me.rating];
+  const W = 320;
+  const H = 170;
+  let lo = Math.min(...series) - 40;
+  let hi = Math.max(Math.max(...series), tier.next?.min ?? me.rating) + 30;
+  if (hi - lo < 120) hi = lo + 120;
+  if (!has) lo = me.rating - 80;
+  const y = (v: number) => 12 + (H - 22) * (1 - (v - lo) / (hi - lo));
+  const pts = series.map((v, i) => [8 + ((W - 34) * i) / Math.max(1, series.length - 1), y(v) + (((i * 37) % 7) - 3) * 0.6] as const);
+  const shown = has ? pts : pts.slice(0, 1);
+  const line = shown.map(([px, py], i) => `${i ? "L" : "M"}${px.toFixed(1)} ${py.toFixed(1)}`).join(" ");
+  const [cx, cy] = shown[shown.length - 1];
+  const loop = Array.from({ length: 41 }, (_, i) => {
+    const t = (i / 40) * 2.15 * Math.PI - 0.6;
+    const r = 15 + 2.5 * Math.sin(t * 1.7);
+    return `${i ? "L" : "M"}${(cx + Math.cos(t) * r * 1.25).toFixed(1)} ${(cy + Math.sin(t) * r).toFixed(1)}`;
+  }).join(" ");
+  const tierLines = TIERS.filter((t) => t.min > lo && t.min < hi);
+  return (
+    <section className="flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-4">
+      <Heading aside={<span className="font-mono text-[22px] font-bold">{me.rating.toLocaleString("en-IN")}</span>}>Progress</Heading>
+      <div className="relative">
+        <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${me.rating}`}>
+          <defs>
+            <pattern id="graph-paper" width="14" height="14" patternUnits="userSpaceOnUse">
+              <path d="M14 0H0V14" fill="none" stroke="rgb(200 241 53 / 0.08)" strokeWidth="0.6" />
+            </pattern>
+          </defs>
+          <rect width={W} height={H} fill="url(#graph-paper)" />
+          {tierLines.map((t) => {
+            const next = t.name === tier.next?.name;
+            return (
+              <g key={t.name}>
+                <line
+                  x1={0}
+                  x2={W}
+                  y1={y(t.min)}
+                  y2={y(t.min)}
+                  stroke={next ? "rgb(200 241 53 / 0.7)" : "#3a4256"}
+                  strokeWidth={next ? 1.5 : 1}
+                  strokeDasharray="5 4"
+                />
+                <text x={W - 2} y={y(t.min) - 5} textAnchor="end" className={`font-mono text-[9px] font-bold ${next ? "fill-lime" : "fill-faint"}`}>
+                  {t.name.toUpperCase()} {t.min.toLocaleString("en-IN")}
+                </text>
+              </g>
+            );
+          })}
+          <path className="pencil-draw" pathLength={1} d={line} fill="none" stroke="#f2f4f8" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+          {shown.map(([px, py], i) => (
+            <circle key={i} cx={px} cy={py} r={2.5} fill="#f2f4f8" />
+          ))}
+          <path className="pen-loop" pathLength={1} d={loop} fill="none" stroke="#ff8f9b" strokeWidth={2.2} strokeLinecap="round" />
+        </svg>
+        <span
+          className="pen-note absolute font-hand text-lg font-bold whitespace-nowrap text-red-soft"
+          style={{ left: `${Math.max(2, ((cx - 130) / W) * 100)}%`, top: `${Math.max(0, ((cy - 44) / H) * 100)}%`, rotate: "-3deg" }}
+        >
+          {has ? `${signed(week)} this week!` : "your first duel goes here"}
         </span>
-      </span>
-    </div>
+      </div>
+      {tier.next && (
+        <p className="text-[13px] font-semibold text-muted">
+          {tier.toNext} to go for {tier.next.name}
+        </p>
+      )}
+    </section>
   );
 }
 
-// Company practice: the four test patterns, each a shortcut.
-function Practice() {
-  const tones = ["bg-lime", "bg-violet", "bg-orange", "bg-[#5ce1e6]"];
-  const short = ["TCS", "INF", "ACN", "WIP"];
+// Your stats as a mark sheet, the week as OMR bubbles, and Tiko's remark.
+function ReportCard({ me }: { me: Me }) {
+  const winRate = me.games_played > 0 ? Math.round((me.wins / me.games_played) * 100) : null;
+  const remark =
+    me.games_played === 0
+      ? "Yet to appear. All the best!"
+      : winRate !== null && winRate >= 60
+        ? "Outstanding! Keep it up."
+        : me.streak >= 3
+          ? "Great streak. Don't break it!"
+          : winRate !== null && winRate >= 40
+            ? "Good work. Practise daily."
+            : "Needs practice. You've got this!";
+  const rows: [string, string][] = [
+    ["Duels played", String(me.games_played)],
+    ["Wins", String(me.wins)],
+    ["Win rate", winRate === null ? "—" : `${winRate}%`],
+    ["Best streak", `${me.streak_best} ${me.streak_best === 1 ? "day" : "days"}`],
+  ];
   return (
-    <div
-      className="flex min-h-[150px] flex-col rounded-[26px] border-[1.5px] border-line bg-raised p-4 motion-safe:animate-rise"
-      style={{ animationDelay: "220ms" }}
-    >
-      <Poster className="text-[30px] text-text">Practice</Poster>
-      <span className="text-xs font-black text-muted">By company</span>
-      <span className="mt-auto flex -space-x-2.5">
-        {COMPANIES.map((c, i) => (
-          <Link
-            key={c.slug}
-            href={`/play/${c.slug}`}
-            title={`${c.name} practice`}
-            aria-label={`${c.name} practice`}
-            className={`badge-bob flex size-9 items-center justify-center rounded-[11px] border-[2.5px] border-ink text-[10px] font-black text-ink transition hover:z-10 hover:scale-110 hover:text-ink ${tones[i]}`}
-            style={{ rotate: `${(i - 1.5) * 6}deg`, animationDelay: `${i * 0.3}s`, zIndex: 4 - i }}
-          >
-            {short[i]}
-          </Link>
+    <section className="flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-4">
+      <Heading aside={<span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-faint">SEASON 1</span>}>Report card</Heading>
+      <dl className="flex flex-col gap-2">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline gap-1.5">
+            <dt className="text-sm font-semibold text-soft">{label}</dt>
+            <span aria-hidden="true" className="flex-1 border-b-2 border-dotted border-line-strong" />
+            <dd className="font-mono text-[15px] font-bold">{value}</dd>
+          </div>
         ))}
-      </span>
-    </div>
+      </dl>
+      <div className="h-px bg-line" />
+      <div className="flex items-center justify-between">
+        <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-faint">ATTENDANCE</span>
+        <span className="text-xs font-bold text-orange">🔥 {me.streak}-day streak</span>
+      </div>
+      <ol className="grid grid-cols-7" aria-label="Daily challenges this week">
+        {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => (
+          <li key={i} className="flex flex-col items-center gap-1">
+            <span
+              className={`flex size-[26px] items-center justify-center rounded-full border-[1.5px] ${i === me.today_idx ? "border-lime" : "border-line-strong"}`}
+            >
+              {me.daily_week[i] && <span className="size-4 rounded-full bg-text" />}
+            </span>
+            <span className="font-mono text-[10px] font-bold text-faint">{d}</span>
+          </li>
+        ))}
+      </ol>
+      <div className="flex items-end justify-between gap-3">
+        <span>
+          <span className="block font-mono text-[10px] font-bold tracking-[0.16em] text-faint">REMARKS</span>
+          <RedPen className="text-xl">{remark}</RedPen>
+        </span>
+        <RedPen className="shrink-0 -rotate-6 text-base">— Tiko</RedPen>
+      </div>
+    </section>
   );
 }
 
-// Report a problem or suggest an idea.
-function Help() {
-  const pill = "flex h-9 items-center justify-center gap-2 rounded-full bg-raised text-[13px] font-bold text-text transition hover:bg-line active:scale-[0.97]";
+// Achievements as die-cut stickers: earned ones peel up when clicked.
+function StickerBook({ me, saved }: { me: Me; saved: boolean }) {
+  const stickers = [
+    { id: "first", title: "First duel", icon: "⚡", tone: "bg-lime", earned: me.games_played >= 1 },
+    { id: "win", title: "First win", icon: "🏆", tone: "bg-orange", earned: me.wins >= 1 },
+    { id: "streak3", title: "3-day streak", icon: "🔥", tone: "bg-red-soft", earned: me.streak_best >= 3 },
+    { id: "analyst", title: "Analyst", icon: "🛡️", tone: "bg-violet", earned: me.rating >= 1100 },
+    { id: "college", title: "College top 3", icon: "🏛️", tone: "bg-[#5ce1e6]", earned: (me.college_rank ?? Infinity) <= 3 },
+    { id: "week", title: "7-day streak", icon: "📅", tone: "bg-lime", earned: me.streak_best >= 7 },
+    { id: "saved", title: "Account saved", icon: "🔒", tone: "bg-violet-soft", earned: saved },
+    { id: "consultant", title: "Consultant", icon: "⭐", tone: "bg-orange", earned: me.rating >= 1300 },
+  ];
+  const earned = stickers.filter((s) => s.earned).length;
   return (
-    <div
-      className="flex min-h-[150px] flex-col gap-2 rounded-[26px] border-[1.5px] border-line bg-surface p-3.5 motion-safe:animate-rise"
-      style={{ animationDelay: "260ms" }}
+    <section className="flex flex-col gap-2 rounded-[20px] border border-line bg-surface p-4">
+      <Heading aside={<span className="font-mono text-xs font-bold text-faint">{earned}/{stickers.length}</span>}>Sticker book</Heading>
+      <ul className="-mx-1 flex gap-3.5 overflow-x-auto px-1 py-2.5 [scrollbar-width:none]">
+        {stickers.map((s, i) => (
+          <Sticker key={s.id} {...s} tilt={((i * 5) % 11) - 5} />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function Sticker({ title, icon, tone, earned, tilt }: { title: string; icon: string; tone: string; earned: boolean; tilt: number }) {
+  const [peel, setPeel] = useState(0);
+  return (
+    <li className="flex shrink-0 flex-col items-center gap-1.5">
+      <button
+        disabled={!earned}
+        onClick={() => setPeel((n) => n + 1)}
+        aria-label={`${title}: ${earned ? "earned" : "not earned yet"}`}
+        style={{ rotate: `${tilt}deg` }}
+        className="rounded-full disabled:cursor-default"
+      >
+        <span
+          key={peel}
+          className={`flex size-16 items-center justify-center rounded-full text-[26px] ${
+            earned
+              ? `border-4 border-white ${tone} drop-shadow-[2px_2px_2px_rgb(0_0_0/0.35)] ${peel ? "sticker-peel" : ""}`
+              : "border-2 border-dashed border-line-strong text-lg text-faint"
+          }`}
+          style={{ transformOrigin: "100% 100%" }}
+        >
+          {earned ? icon : "?"}
+        </span>
+      </button>
+      <span className={`text-[11px] font-bold whitespace-nowrap ${earned ? "text-soft" : "text-faint"}`}>{title}</span>
+    </li>
+  );
+}
+
+// A sticky note, taped on.
+function StickyNote({ tone, tilt, title, line, onClick }: { tone: string; tilt: number; title: string; line: string; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{ rotate: `${tilt}deg` }}
+      className={`relative flex min-h-28 flex-col rounded-[3px] rounded-br-[14px] p-3.5 text-left text-ink shadow-[3px_5px_12px_rgb(0_0_0/0.35)] transition-transform hover:-translate-y-0.5 active:scale-[0.97] ${tone}`}
     >
-      <Poster className="text-[30px] text-text">Help us</Poster>
-      <button onClick={() => openFeedback("bug", { from: "profile" })} className={`mt-auto ${pill}`}>
-        🐞 Report a problem
-      </button>
-      <button onClick={() => openFeedback("idea", { from: "profile" })} className={pill}>
-        💡 Suggest an idea
-      </button>
-    </div>
+      <span aria-hidden="true" className="absolute -top-2.5 left-1/2 h-[18px] w-14 -translate-x-1/2 bg-white/35" style={{ rotate: `${-tilt * 1.5}deg` }} />
+      <span className="font-hand text-2xl leading-none font-bold">{title}</span>
+      <span className="mt-1.5 text-xs font-semibold text-ink/70">{line}</span>
+      <span aria-hidden="true" className="mt-auto self-end text-lg font-black">
+        →
+      </span>
+    </button>
   );
 }
 
-// Whether this browser's progress is saved, and where.
-function AccountTile({ acct }: { acct: Account | null }) {
-  const guest = acct?.guest ?? true;
+function Row({ icon, title, detail, accent = false, onClick }: { icon: string; title: string; detail: string; accent?: boolean; onClick: () => void }) {
   return (
-    <div className="flex h-full flex-col p-4 text-text">
-      <Poster className="text-[30px]">Account</Poster>
-      <span className="mt-auto text-2xl" aria-hidden="true">
-        {guest ? "🔓" : "🛡️"}
+    <button onClick={onClick} className="flex min-h-[62px] w-full items-center gap-3.5 px-3.5 text-left transition hover:bg-raised">
+      <span
+        aria-hidden="true"
+        className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] text-base ${accent ? "bg-lime text-ink" : "bg-lime-tint text-lime"}`}
+      >
+        {icon}
       </span>
-      <span className={`mt-1 truncate text-[13px] font-bold ${guest ? "text-lime" : "text-soft"}`}>
-        {guest ? "Save your progress" : acct?.email ?? "Saved"}
+      <span className="min-w-0 flex-1">
+        <span className="block text-[15px] font-semibold">{title}</span>
+        <span className="block truncate text-xs text-muted">{detail}</span>
       </span>
-    </div>
+      <ChevronRight size={16} className="shrink-0 text-faint" />
+    </button>
   );
 }
