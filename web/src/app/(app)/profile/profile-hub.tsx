@@ -71,11 +71,12 @@ export function ProfileHub() {
       ) : (
         <div className="flex flex-col gap-4">
           <IdBadge me={me} saved={saved} onEdit={() => setSheet("edit")} />
+          {/* Phones: progress, stickers, report card. Wider: stickers across the top, then the two side by side. */}
           <div className="grid gap-4 md:grid-cols-2">
-            <Progress me={me} duels={duels} />
-            <ReportCard me={me} />
+            <Progress me={me} duels={duels} className="md:order-2" />
+            <StickerBook me={me} saved={saved} className="md:order-1 md:col-span-2" />
+            <ReportCard me={me} className="md:order-3" />
           </div>
-          <StickerBook me={me} saved={saved} />
           <div className="grid grid-cols-2 gap-4 pt-2">
             <StickyNote
               tone="bg-lime"
@@ -359,7 +360,7 @@ function Barcode({ seed }: { seed: string }) {
 
 // Your rating on graph paper: a pencil line, dashed tier lines (your next
 // tier in lime), and today's point circled in red pen.
-function Progress({ me, duels }: { me: Me; duels: DuelSummary[] }) {
+function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[]; className?: string }) {
   const history = ratingHistory(duels, me.rating);
   const week = weekChange(duels);
   const tier = tierFor(me.rating);
@@ -383,7 +384,7 @@ function Progress({ me, duels }: { me: Me; duels: DuelSummary[] }) {
   }).join(" ");
   const tierLines = TIERS.filter((t) => t.min > lo && t.min < hi);
   return (
-    <section className="flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-4">
+    <section className={`flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-4 ${className}`}>
       <Heading aside={<span className="font-mono text-[22px] font-bold">{me.rating.toLocaleString("en-IN")}</span>}>Progress</Heading>
       <div className="relative">
         <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${me.rating}`}>
@@ -435,7 +436,7 @@ function Progress({ me, duels }: { me: Me; duels: DuelSummary[] }) {
 }
 
 // Your stats as a mark sheet, the week as OMR bubbles, and Tiko's remark.
-function ReportCard({ me }: { me: Me }) {
+function ReportCard({ me, className = "" }: { me: Me; className?: string }) {
   const winRate = me.games_played > 0 ? Math.round((me.wins / me.games_played) * 100) : null;
   const remark =
     me.games_played === 0
@@ -454,7 +455,7 @@ function ReportCard({ me }: { me: Me }) {
     ["Best streak", `${me.streak_best} ${me.streak_best === 1 ? "day" : "days"}`],
   ];
   return (
-    <section className="flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-4">
+    <section className={`flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-4 ${className}`}>
       <Heading aside={<span className="font-mono text-[10px] font-semibold tracking-[0.14em] text-faint">SEASON 1</span>}>Report card</Heading>
       <dl className="flex flex-col gap-2">
         {rows.map(([label, value]) => (
@@ -494,7 +495,7 @@ function ReportCard({ me }: { me: Me }) {
 }
 
 // Achievements as die-cut stickers: earned ones peel up when clicked.
-function StickerBook({ me, saved }: { me: Me; saved: boolean }) {
+function StickerBook({ me, saved, className = "" }: { me: Me; saved: boolean; className?: string }) {
   const stickers = [
     { id: "first", title: "First duel", icon: "⚡", tone: "bg-lime", earned: me.games_played >= 1 },
     { id: "win", title: "First win", icon: "🏆", tone: "bg-orange", earned: me.wins >= 1 },
@@ -507,7 +508,7 @@ function StickerBook({ me, saved }: { me: Me; saved: boolean }) {
   ];
   const earned = stickers.filter((s) => s.earned).length;
   return (
-    <section className="flex flex-col gap-2 rounded-[20px] border border-line bg-surface p-4">
+    <section className={`flex min-w-0 flex-col gap-2 rounded-[20px] border border-line bg-surface p-4 ${className}`}>
       <Heading aside={<span className="font-mono text-xs font-bold text-faint">{earned}/{stickers.length}</span>}>Sticker book</Heading>
       <ul className="-mx-1 flex gap-3.5 overflow-x-auto px-1 py-2.5 [scrollbar-width:none]">
         {stickers.map((s, i) => (
