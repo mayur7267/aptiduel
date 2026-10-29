@@ -164,15 +164,19 @@ function Heading({ children, aside }: { children: ReactNode; aside?: ReactNode }
 // and a sheen move with it.
 function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => void }) {
   const card = useRef<HTMLDivElement>(null);
-  const physics = useRef({ theta: 0.3, omega: 0, tilt: 0, held: null as number | null, heldV: 0 });
+  const physics = useRef({ theta: 0.3, omega: 0, tilt: 0, held: null as number | null, heldV: 0, calm: false });
   const press = useRef<{ x: number; t: number; moved: boolean } | null>(null);
   const listenTilt = useRef<(() => void) | null>(null);
   const [tiltAsk, setTiltAsk] = useState(false); // iPhone: tilt needs a tap to ask first
 
   useEffect(() => {
     const el = card.current;
-    if (!el || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!el) return;
     const p = physics.current;
+    // With Reduce Motion on, the card hangs straight and only swings when
+    // tapped or dragged: no breeze, scroll or tilt, and it settles quickly.
+    p.calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (p.calm) p.theta = 0;
     let frame = 0;
     let last = performance.now();
     const tick = (now: number) => {
@@ -180,10 +184,11 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
       last = now;
       // Where it hangs: towards the tilt, nudged by a slow breeze.
       const t = now / 1000;
-      const rest = p.tilt + 0.04 * Math.sin(t * 0.9) + 0.015 * Math.sin(t * 2.3 + 1);
+      const rest = p.calm ? 0 : p.tilt + 0.04 * Math.sin(t * 0.9) + 0.015 * Math.sin(t * 2.3 + 1);
+      const damping = p.calm ? 3 : 0.9;
       if (p.held === null) {
         for (let i = 0; i < 4; i++) {
-          p.omega += (-16 * Math.sin(p.theta - rest) - 0.9 * p.omega) * (dt / 4);
+          p.omega += (-16 * Math.sin(p.theta - rest) - damping * p.omega) * (dt / 4);
           p.theta += p.omega * (dt / 4);
         }
       } else {
@@ -194,6 +199,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
       frame = requestAnimationFrame(tick);
     };
     frame = requestAnimationFrame(tick);
+    if (p.calm) return () => cancelAnimationFrame(frame);
 
     // Scrolling the page jostles the card.
     let lastY = window.scrollY;
@@ -266,7 +272,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
       p.held = null;
       return;
     }
-    p.omega += (p.theta >= 0 ? 1 : -1) * 3;
+    p.omega += (p.theta >= 0 ? 1 : -1) * (p.calm ? 2 : 3);
     navigator.vibrate?.(10);
     if (listenTilt.current) {
       listenTilt.current();
