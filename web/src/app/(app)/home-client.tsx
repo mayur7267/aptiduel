@@ -9,6 +9,7 @@ import { challengeShareText, clock, greeting, inviteShareText, signed, tierFor, 
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
 import { useCompanionPage, type CompanionPage } from "@/lib/companion";
+import { openFeedback } from "@/lib/feedback";
 import { TikoTour } from "@/components/tiko-tour";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
 
@@ -195,6 +196,13 @@ export function HomeClient() {
             <QuestsCard me={me} busy={busy} onAction={start} />
           </div>
         </div>
+
+        <p className="pt-2 text-center text-sm text-muted">
+          Found a bug or have an idea?{" "}
+          <button onClick={() => openFeedback("idea", { from: "home" })} className={LINK}>
+            Tell us
+          </button>
+        </p>
       </main>
     </div>
   );

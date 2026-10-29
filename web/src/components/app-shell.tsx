@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
-import { Bars, Calendar, Home, User } from "./icons";
+import { openFeedback } from "@/lib/feedback";
+import { Bars, Calendar, Home, Message, User } from "./icons";
 import { Logo } from "./ui";
 
 const NAV = [
@@ -43,6 +44,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        <button
+          onClick={() => openFeedback("idea", { from: "sidebar" })}
+          className="mt-auto flex h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-[15px] font-semibold text-muted transition hover:bg-surface/60 hover:text-text"
+        >
+          <Message size={20} />
+          Send feedback
+        </button>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">{children}</div>

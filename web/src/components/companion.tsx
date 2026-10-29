@@ -16,7 +16,8 @@ import { Tiko, type TikoMood } from "./tiko";
 // end, so the hand-over is seamless.
 export const DOCK = { right: 20, bottomPhone: 92, bottomWide: 24, sizePhone: 64, sizeWide: 76 };
 
-const ROUTE_MOOD: Record<string, TikoMood> = { "/": "happy", "/leaderboard": "point", "/profile": "wave" };
+// Profile has Tiko on its banner and its own tile, so the companion sits that one out.
+const ROUTE_MOOD: Record<string, TikoMood> = { "/": "happy", "/leaderboard": "point" };
 
 const TIPS = [
   "Right answers score 100, plus up to 50 for speed.",

@@ -5,10 +5,11 @@ import { useSyncExternalStore } from "react";
 import { companionStore, setTikoOff } from "@/lib/companion";
 
 // Replay the home tour, or switch Tiko the companion off and on.
-export function TikoSettings() {
+// `bare` drops the section rule above it, for use inside a dialog.
+export function TikoSettings({ bare = false }: { bare?: boolean }) {
   const { off } = useSyncExternalStore(companionStore.subscribe, companionStore.get, companionStore.serverGet);
   return (
-    <section className="mt-10 flex flex-col gap-3 border-t border-line pt-8">
+    <section className={`flex flex-col gap-3 ${bare ? "" : "mt-10 border-t border-line pt-8"}`}>
       <h2 className="font-display text-lg font-bold">Tiko</h2>
       <p className="text-sm text-muted">Your little buddy in the corner. Tap Tiko for a tip.</p>
       <div className="flex flex-wrap gap-3">

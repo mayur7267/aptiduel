@@ -8,7 +8,8 @@ import { ErrorNote, Spinner } from "@/components/ui";
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031];
 const field = "h-12 w-full rounded-xl border border-line bg-surface px-3.5 text-[15px] text-text";
 
-export function ProfileForm() {
+// In a dialog, onSaved is called instead of leaving the page.
+export function ProfileForm({ onSaved }: { onSaved?: () => void } = {}) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [colleges, setColleges] = useState<{ id: number; name: string }[]>([]);
@@ -41,7 +42,10 @@ export function ProfileForm() {
     setError(null);
     try {
       await api.updateProfile(name, collegeId ? Number(collegeId) : null, gradYear ? Number(gradYear) : null);
-      if (window.history.length > 1) router.back();
+      if (onSaved) {
+        setSaving(false);
+        onSaved();
+      } else if (window.history.length > 1) router.back();
       else router.push("/");
     } catch (err) {
       setError((err as Error).message);

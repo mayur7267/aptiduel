@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, JetBrains_Mono, Unbounded } from "next/font/google";
+import { Anton, Inter, JetBrains_Mono, Unbounded } from "next/font/google";
 import { Suspense } from "react";
 import { Companion } from "@/components/companion";
+import { FeedbackDialog } from "@/components/feedback-dialog";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -12,6 +13,8 @@ const unbounded = Unbounded({
 });
 // Scoreboard numbers: timers, scores and ratings.
 const jetbrains = JetBrains_Mono({ variable: "--font-jetbrains", subsets: ["latin"], weight: ["500", "700"] });
+// Big tile titles on the profile page: tall and condensed.
+const anton = Anton({ variable: "--font-anton", subsets: ["latin"], weight: "400" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -26,13 +29,14 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${unbounded.variable} ${jetbrains.variable} h-full antialiased`}>
+    <html lang="en" className={`${inter.variable} ${unbounded.variable} ${jetbrains.variable} ${anton.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col font-sans">
         {children}
         {/* Tiko stays with the player across pages (it reads the URL, hence Suspense). */}
         <Suspense fallback={null}>
           <Companion />
         </Suspense>
+        <FeedbackDialog />
       </body>
     </html>
   );

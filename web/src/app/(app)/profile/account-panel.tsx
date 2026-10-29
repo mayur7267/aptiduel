@@ -15,7 +15,8 @@ function useGoHome() {
   return () => router.push("/");
 }
 
-export function AccountPanel() {
+// `bare` drops the section rule above it, for use inside a dialog.
+export function AccountPanel({ bare = false }: { bare?: boolean }) {
   const [acct, setAcct] = useState<Account | null>(null);
 
   // Next keeps this page mounted (hidden) after you leave, and the account
@@ -33,7 +34,7 @@ export function AccountPanel() {
   if (!acct) return null;
 
   return (
-    <div className="mt-10 flex flex-col gap-10 border-t border-line pt-8">
+    <div className={`flex flex-col gap-10 ${bare ? "" : "mt-10 border-t border-line pt-8"}`}>
       {acct.guest ? <SaveAccount /> : <SignedIn email={acct.email} />}
       <DeleteAccount />
     </div>

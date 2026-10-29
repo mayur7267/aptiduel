@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useEffectEvent, useState } from "react";
 import { api, type Duel, type Player, type ReviewItem } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
+import { openFeedback } from "@/lib/feedback";
 import { challengeShareText, clock, signed, tierFor } from "@/lib/format";
 import { Bolt, Check, ChevronRight, Close, Refresh, Shield, Trophy } from "@/components/icons";
 import { Figure } from "@/components/figure";
@@ -154,7 +155,7 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
         {error && <ErrorNote message={error} />}
       </section>
 
-      {showReview && duel.review && <Review items={duel.review} opponentName={opp?.finished ? opp.name : null} />}
+      {showReview && duel.review && <Review duelId={duel.id} items={duel.review} opponentName={opp?.finished ? opp.name : null} />}
     </div>
   );
 }
@@ -361,7 +362,7 @@ function AnswerDots({ review }: { review: ReviewItem[] }) {
   );
 }
 
-function Review({ items, opponentName }: { items: ReviewItem[]; opponentName: string | null }) {
+function Review({ duelId, items, opponentName }: { duelId: string; items: ReviewItem[]; opponentName: string | null }) {
   return (
     <section className="flex flex-col gap-3" aria-label="Answer review">
       {items.map((r) => (
@@ -407,11 +408,28 @@ function Review({ items, opponentName }: { items: ReviewItem[]; opponentName: st
             })}
           </ul>
           <p className="text-sm leading-relaxed text-soft">{r.explanation}</p>
-          {opponentName && r.opp_correct !== null && (
-            <p className="text-xs text-muted">
-              {opponentName}: {r.opp_correct ? "got it right" : "got it wrong"}
-            </p>
-          )}
+          <div className="flex items-center justify-between gap-3">
+            {opponentName && r.opp_correct !== null ? (
+              <p className="text-xs text-muted">
+                {opponentName}: {r.opp_correct ? "got it right" : "got it wrong"}
+              </p>
+            ) : (
+              <span />
+            )}
+            <button
+              onClick={() =>
+                openFeedback("question", {
+                  duel: duelId,
+                  question: r.q_index + 1,
+                  topic: r.topic,
+                  body: r.body.slice(0, 240),
+                })
+              }
+              className="shrink-0 text-xs font-semibold text-muted underline-offset-2 hover:text-text hover:underline"
+            >
+              Report this question
+            </button>
+          </div>
         </Card>
       ))}
     </section>

@@ -71,3 +71,16 @@ test("companies have unique slugs and resolve by slug", () => {
   assert.equal(companyBySlug("tcs-nqt")?.name, "TCS NQT");
   assert.equal(companyBySlug("nope"), null);
 });
+
+test("rating history runs oldest to newest and ends at today's rating", async () => {
+  const { ratingHistory, weekChange } = await import("../src/lib/rating-history.ts");
+  const now = Date.parse("2026-10-30T12:00:00Z");
+  const duels = [
+    { created_at: "2026-10-29T10:00:00Z", is_replay: false, rating_before: 1164, rating_after: 1180 },
+    { created_at: "2026-10-20T10:00:00Z", is_replay: false, rating_before: 1150, rating_after: 1164 },
+    { created_at: "2026-10-28T10:00:00Z", is_replay: true, rating_before: null, rating_after: null },
+  ];
+  assert.deepEqual(ratingHistory(duels, 1180), [1150, 1164, 1180]);
+  assert.deepEqual(ratingHistory([], 1000), [1000]);
+  assert.equal(weekChange(duels, now), 16);
+});

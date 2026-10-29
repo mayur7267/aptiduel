@@ -231,6 +231,9 @@ export const api = {
   updateProfile: (name: string, collegeId: number | null, gradYear: number | null) =>
     rpc<Me>("update_profile", { p_name: name, p_college_id: collegeId, p_grad_year: gradYear }),
   deleteMe: () => rpc<void>("delete_me"),
+  // Emailed to the team (supabase/functions/feedback-mail).
+  submitFeedback: (kind: "bug" | "idea" | "question", message: string, email: string | null, context: Record<string, unknown>) =>
+    rpc<void>("submit_feedback", { p_kind: kind, p_message: message, p_email: email, p_platform: "web", p_context: context }),
   colleges: async () => {
     const { data, error } = await supabase().from("colleges").select("id, name").order("name");
     if (error) throw new Error(error.message);
