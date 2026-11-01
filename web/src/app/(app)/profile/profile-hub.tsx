@@ -102,7 +102,7 @@ export function ProfileHub() {
               detail={saved ? (acct?.email ?? "Saved") : "Keep your rating on any device"}
               onClick={() => setSheet("account")}
             />
-            <Row icon="🏢" title="Practise for a company" detail="TCS NQT, Infosys, Accenture, Wipro" onClick={() => setSheet("practice")} />
+            <Row icon="🏢" title="Practise for a company" detail="11 companies · TCS, Infosys, Cognizant, etc." onClick={() => setSheet("practice")} />
           </div>
         </div>
       )}
@@ -123,21 +123,48 @@ export function ProfileHub() {
       </Modal>
       <Modal open={sheet === "practice"} onClose={close} title="Practise for…">
         <p className="-mt-2 text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
-        <div className="flex flex-col gap-2.5">
-          {COMPANIES.map((c) => (
-            <Link
-              key={c.slug}
-              href={`/play/${c.slug}`}
-              onClick={close}
-              className="flex items-center justify-between rounded-2xl border border-line bg-raised px-4 py-3.5 text-text hover:border-lime/60 hover:text-text"
-            >
-              <span>
-                <span className="block font-bold">{c.name}</span>
-                <span className="block text-xs text-muted">{c.blurb}</span>
-              </span>
-              <ChevronRight size={18} className="text-muted" />
-            </Link>
-          ))}
+        <div className="flex flex-col gap-2.5 max-h-[60vh] overflow-y-auto pr-1">
+          {COMPANIES.map((c) => {
+            const isComingSoon = "comingSoon" in c && Boolean(c.comingSoon);
+            const itemContent = (
+              <div
+                className={`flex items-center justify-between rounded-2xl border px-4 py-3 text-text transition ${
+                  isComingSoon
+                    ? "border-line bg-surface/50 opacity-60 cursor-not-allowed"
+                    : "border-line bg-raised hover:border-lime/60 hover:text-text cursor-pointer"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <span
+                    className="flex size-10 shrink-0 items-center justify-center rounded-xl text-base shadow-sm"
+                    style={{ backgroundColor: `${c.color}25`, border: `1.5px solid ${c.color}55` }}
+                  >
+                    {c.emoji}
+                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">{c.name}</span>
+                      {isComingSoon && (
+                        <span className="rounded-md border border-faint/30 bg-ink px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted uppercase">
+                          Coming Soon
+                        </span>
+                      )}
+                    </div>
+                    <span className="block text-xs text-muted">{c.blurb}</span>
+                  </div>
+                </div>
+                {!isComingSoon && <ChevronRight size={18} className="text-muted" />}
+              </div>
+            );
+
+            return isComingSoon ? (
+              <div key={c.slug}>{itemContent}</div>
+            ) : (
+              <Link key={c.slug} href={`/play/${c.slug}`} onClick={close}>
+                {itemContent}
+              </Link>
+            );
+          })}
         </div>
       </Modal>
     </>
@@ -417,16 +444,86 @@ function Barcode({ seed }: { seed: string }) {
   );
 }
 
-// Your rating on graph paper: a pencil line, dashed tier lines (your next
-// tier in lime), and today's point circled in red pen.
+function getTierTheme(name: string) {
+  switch (name) {
+    case "Fresher":
+      return {
+        badgeBg: "bg-[#a6aec0]/15",
+        badgeBorder: "border-[#a6aec0]/40",
+        badgeText: "text-[#d3d8e3]",
+        accent: "#a6aec0",
+        barGradient: "from-[#8089a0] to-[#d3d8e3]",
+        glow: "shadow-[0_0_20px_rgba(166,174,192,0.15)]",
+      };
+    case "Trainee":
+      return {
+        badgeBg: "bg-[#5ce1e6]/15",
+        badgeBorder: "border-[#5ce1e6]/40",
+        badgeText: "text-[#5ce1e6]",
+        accent: "#5ce1e6",
+        barGradient: "from-[#5ce1e6] to-[#a594ff]",
+        glow: "shadow-[0_0_20px_rgba(92,225,230,0.2)]",
+      };
+    case "Analyst":
+      return {
+        badgeBg: "bg-lime/15",
+        badgeBorder: "border-lime/40",
+        badgeText: "text-lime",
+        accent: "#c8f135",
+        barGradient: "from-lime to-[#5ce1e6]",
+        glow: "shadow-[0_0_20px_rgba(200,241,53,0.22)]",
+      };
+    case "Consultant":
+      return {
+        badgeBg: "bg-violet/15",
+        badgeBorder: "border-violet/40",
+        badgeText: "text-violet",
+        accent: "#a594ff",
+        barGradient: "from-violet to-orange",
+        glow: "shadow-[0_0_20px_rgba(165,148,255,0.22)]",
+      };
+    case "Lead":
+      return {
+        badgeBg: "bg-orange/15",
+        badgeBorder: "border-orange/40",
+        badgeText: "text-orange",
+        accent: "#ff8a4c",
+        barGradient: "from-orange to-[#ffd700]",
+        glow: "shadow-[0_0_20px_rgba(255,138,76,0.22)]",
+      };
+    case "Architect":
+      return {
+        badgeBg: "bg-[#ffd700]/15",
+        badgeBorder: "border-[#ffd700]/40",
+        badgeText: "text-[#ffd700]",
+        accent: "#ffd700",
+        barGradient: "from-[#ffd700] via-orange to-lime",
+        glow: "shadow-[0_0_25px_rgba(255,215,0,0.3)]",
+      };
+    default:
+      return {
+        badgeBg: "bg-lime/15",
+        badgeBorder: "border-lime/40",
+        badgeText: "text-lime",
+        accent: "#c8f135",
+        barGradient: "from-lime to-[#5ce1e6]",
+        glow: "shadow-[0_0_20px_rgba(200,241,53,0.2)]",
+      };
+  }
+}
+
+// Gaming-style XP Progress Card: Tier badge with glow, thick animated XP bar,
+// 4 arcade stat capsules, and rating history on graph paper.
 function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[]; className?: string }) {
   const history = ratingHistory(duels, me.rating);
   const week = weekChange(duels);
   const tier = tierFor(me.rating);
+  const theme = getTierTheme(tier.name);
+  const winRate = me.games_played > 0 ? Math.round((me.wins / me.games_played) * 100) : null;
   const has = history.length >= 2;
   const series = has ? history : [me.rating, me.rating];
   const W = 320;
-  const H = 170;
+  const H = 145;
   let lo = Math.min(...series) - 40;
   let hi = Math.max(Math.max(...series), tier.next?.min ?? me.rating) + 30;
   if (hi - lo < 120) hi = lo + 120;
@@ -442,54 +539,161 @@ function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[];
     return `${i ? "L" : "M"}${(cx + Math.cos(t) * r * 1.25).toFixed(1)} ${(cy + Math.sin(t) * r).toFixed(1)}`;
   }).join(" ");
   const tierLines = TIERS.filter((t) => t.min > lo && t.min < hi);
+  const xpPercent = Math.min(100, Math.max(0, Math.round(tier.progress * 100)));
+
   return (
-    <section className={`flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-4 ${className}`}>
-      <Heading aside={<span className="font-mono text-[22px] font-bold">{me.rating.toLocaleString("en-IN")}</span>}>Progress</Heading>
-      <div className="relative">
-        <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${me.rating}`}>
-          <defs>
-            <pattern id="graph-paper" width="14" height="14" patternUnits="userSpaceOnUse">
-              <path d="M14 0H0V14" fill="none" stroke="rgb(200 241 53 / 0.08)" strokeWidth="0.6" />
-            </pattern>
-          </defs>
-          <rect width={W} height={H} fill="url(#graph-paper)" />
-          {tierLines.map((t) => {
-            const next = t.name === tier.next?.name;
-            return (
-              <g key={t.name}>
-                <line
-                  x1={0}
-                  x2={W}
-                  y1={y(t.min)}
-                  y2={y(t.min)}
-                  stroke={next ? "rgb(200 241 53 / 0.7)" : "#3a4256"}
-                  strokeWidth={next ? 1.5 : 1}
-                  strokeDasharray="5 4"
-                />
-                <text x={W - 2} y={y(t.min) - 5} textAnchor="end" className={`font-mono text-[9px] font-bold ${next ? "fill-lime" : "fill-faint"}`}>
-                  {t.name.toUpperCase()} {t.min.toLocaleString("en-IN")}
-                </text>
-              </g>
-            );
-          })}
-          <path className="pencil-draw" pathLength={1} d={line} fill="none" stroke="#f2f4f8" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
-          {shown.map(([px, py], i) => (
-            <circle key={i} cx={px} cy={py} r={2.5} fill="#f2f4f8" />
-          ))}
-          <path className="pen-loop" pathLength={1} d={loop} fill="none" stroke="#ff8f9b" strokeWidth={2.2} strokeLinecap="round" />
-        </svg>
-        <span
-          className="pen-note absolute font-hand text-lg font-bold whitespace-nowrap text-red-soft"
-          style={{ left: `${Math.max(2, ((cx - 130) / W) * 100)}%`, top: `${Math.max(0, ((cy - 44) / H) * 100)}%`, rotate: "-3deg" }}
-        >
-          {has ? `${signed(week)} this week!` : "your first duel goes here"}
-        </span>
+    <section
+      className={`relative flex flex-col gap-4 overflow-hidden rounded-[22px] border border-line bg-gradient-to-b from-[#181f30] via-surface to-[#111622] p-4 sm:p-5 shadow-[0_12px_32px_rgba(0,0,0,0.5)] ${theme.glow} ${className}`}
+    >
+      {/* Top tier colour accent line */}
+      <div
+        className="absolute top-0 inset-x-0 h-1 opacity-90"
+        style={{
+          background: `linear-gradient(90deg, transparent, ${theme.accent}, transparent)`,
+        }}
+      />
+
+      {/* Header: Tier Level Emblem & Rating */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-muted uppercase">XP TIER</span>
+            <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[11px] font-extrabold tracking-wider uppercase ${theme.badgeBg} ${theme.badgeBorder} ${theme.badgeText}`}>
+              <span className="size-1.5 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
+              {tier.name}
+            </span>
+          </div>
+          <span className="font-display text-2xl font-black tracking-tight text-text">
+            {me.rating.toLocaleString("en-IN")}{" "}
+            <span className="font-mono text-xs font-semibold text-muted">XP</span>
+          </span>
+        </div>
+
+        <div className="flex flex-col items-end gap-1">
+          {week !== 0 && (
+            <span className={`rounded-full px-2 py-0.5 font-mono text-xs font-bold ${week > 0 ? "bg-lime-tint text-lime border border-lime/30" : "bg-red-tint text-red-soft border border-red/30"}`}>
+              {signed(week)} this week
+            </span>
+          )}
+          {me.college_rank && (
+            <span className="font-mono text-[11px] font-semibold text-muted">
+              #{me.college_rank} in college
+            </span>
+          )}
+        </div>
       </div>
-      {tier.next && (
-        <p className="text-[13px] font-semibold text-muted">
-          {tier.toNext} to go for {tier.next.name}
-        </p>
-      )}
+
+      {/* Game XP Gauge / Progress Bar */}
+      <div className="flex flex-col gap-1.5 rounded-2xl border border-line/70 bg-ink/50 p-3">
+        <div className="flex items-center justify-between text-xs font-bold">
+          <span className="font-mono text-[10px] tracking-wider text-muted uppercase">Level Progress</span>
+          <span className="font-mono text-[12px] text-text">
+            {tier.next ? (
+              <>
+                <span className="text-lime">{xpPercent}%</span>{" "}
+                <span className="text-muted font-normal">({tier.toNext} to {tier.next.name})</span>
+              </>
+            ) : (
+              <span className="text-lime">MAX TIER REACHED 🏆</span>
+            )}
+          </span>
+        </div>
+
+        {/* The gaming XP bar */}
+        <div className="relative h-3.5 w-full overflow-hidden rounded-full border border-line-strong/80 bg-ink p-0.5 shadow-inner">
+          <div
+            className={`h-full rounded-full bg-gradient-to-r ${theme.barGradient} relative overflow-hidden transition-all duration-1000 ease-out`}
+            style={{ width: `${xpPercent}%` }}
+          >
+            {/* Shimmer light effect running across */}
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent motion-safe:animate-xp-shimmer" />
+          </div>
+        </div>
+
+        {/* Floor and next tier markers */}
+        <div className="flex justify-between font-mono text-[10px] text-faint">
+          <span>{tier.name} · {tier.min.toLocaleString("en-IN")}</span>
+          {tier.next ? (
+            <span>{tier.next.name} · {tier.next.min.toLocaleString("en-IN")}</span>
+          ) : (
+            <span>Top Tier</span>
+          )}
+        </div>
+      </div>
+
+      {/* 4 Arcade Stat Badges */}
+      <div className="grid grid-cols-4 gap-2">
+        <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 bg-ink/40 p-2 text-center transition hover:border-lime/40">
+          <span className="text-xs">⚔️</span>
+          <span className="font-mono text-sm font-bold text-text">{me.games_played}</span>
+          <span className="font-mono text-[8px] font-bold tracking-wider text-faint uppercase">DUELS</span>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 bg-ink/40 p-2 text-center transition hover:border-lime/40">
+          <span className="text-xs">🏆</span>
+          <span className="font-mono text-sm font-bold text-lime">{me.wins}</span>
+          <span className="font-mono text-[8px] font-bold tracking-wider text-faint uppercase">WINS</span>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 bg-ink/40 p-2 text-center transition hover:border-lime/40">
+          <span className="text-xs">🎯</span>
+          <span className="font-mono text-sm font-bold text-text">{winRate !== null ? `${winRate}%` : "—"}</span>
+          <span className="font-mono text-[8px] font-bold tracking-wider text-faint uppercase">WIN %</span>
+        </div>
+        <div className="flex flex-col items-center justify-center rounded-xl border border-line/70 bg-ink/40 p-2 text-center transition hover:border-orange/40">
+          <span className="text-xs">🔥</span>
+          <span className="font-mono text-sm font-bold text-orange">{me.streak}d</span>
+          <span className="font-mono text-[8px] font-bold tracking-wider text-faint uppercase">STREAK</span>
+        </div>
+      </div>
+
+      {/* Rating Graph on Graph Paper */}
+      <div className="flex flex-col gap-1.5 pt-1">
+        <div className="flex items-center justify-between">
+          <span className="font-mono text-[10px] font-bold tracking-[0.16em] text-muted uppercase">Rating History</span>
+          <span className="font-mono text-[10px] text-faint">
+            {has ? `last ${history.length - 1} ${history.length === 2 ? "duel" : "duels"}` : "no duels yet"}
+          </span>
+        </div>
+        <div className="relative overflow-hidden rounded-xl border border-line/80 bg-ink/60 p-1">
+          <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${me.rating}`}>
+            <defs>
+              <pattern id="graph-paper" width="14" height="14" patternUnits="userSpaceOnUse">
+                <path d="M14 0H0V14" fill="none" stroke="rgb(200 241 53 / 0.08)" strokeWidth="0.6" />
+              </pattern>
+            </defs>
+            <rect width={W} height={H} fill="url(#graph-paper)" />
+            {tierLines.map((t) => {
+              const next = t.name === tier.next?.name;
+              return (
+                <g key={t.name}>
+                  <line
+                    x1={0}
+                    x2={W}
+                    y1={y(t.min)}
+                    y2={y(t.min)}
+                    stroke={next ? "rgb(200 241 53 / 0.7)" : "#3a4256"}
+                    strokeWidth={next ? 1.5 : 1}
+                    strokeDasharray="5 4"
+                  />
+                  <text x={W - 2} y={y(t.min) - 5} textAnchor="end" className={`font-mono text-[9px] font-bold ${next ? "fill-lime" : "fill-faint"}`}>
+                    {t.name.toUpperCase()} {t.min.toLocaleString("en-IN")}
+                  </text>
+                </g>
+              );
+            })}
+            <path className="pencil-draw" pathLength={1} d={line} fill="none" stroke="#f2f4f8" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
+            {shown.map(([px, py], i) => (
+              <circle key={i} cx={px} cy={py} r={2.5} fill="#f2f4f8" />
+            ))}
+            <path className="pen-loop" pathLength={1} d={loop} fill="none" stroke="#ff8f9b" strokeWidth={2.2} strokeLinecap="round" />
+          </svg>
+          <span
+            className="pen-note absolute font-hand text-lg font-bold whitespace-nowrap text-red-soft"
+            style={{ left: `${Math.max(2, ((cx - 130) / W) * 100)}%`, top: `${Math.max(0, ((cy - 44) / H) * 100)}%`, rotate: "-3deg" }}
+          >
+            {has ? `${signed(week)} this week!` : "your first duel goes here"}
+          </span>
+        </div>
+      </div>
     </section>
   );
 }

@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useEffectEvent, useRef, useState } from "react";
-import { api, type AnswerResult, type Duel, type QuestionView } from "@/lib/api";
-import { clock } from "@/lib/format";
+import { use, useEffect, useEffectEvent, useRef, useState, type ReactNode } from "react";
+import { api, type AnswerResult, type Duel, type LivePlayer, type QuestionView } from "@/lib/api";
+import { clock, companyList } from "@/lib/format";
+import { useLiveState } from "@/lib/live";
 import { Check, Clock, Close } from "@/components/icons";
 import { Figure } from "@/components/figure";
 import { Tiko, type TikoMood, type TikoMove } from "@/components/tiko";
 import { BotTag, ErrorNote, Spinner } from "@/components/ui";
 
 type Question = Extract<QuestionView, { done: false }>;
-type Mark = "right" | "wrong" | "unknown";
-type Phase = "loading" | "question" | "submitting" | "reveal";
+export type Mark = "right" | "wrong" | "unknown";
+export type Phase = "loading" | "question" | "submitting" | "reveal";
 
 const KEYS = ["A", "B", "C", "D"];
 const SECTION_LABEL: Record<string, string> = { quant: "Quant", reasoning: "Reasoning", verbal: "Verbal" };
@@ -69,6 +70,12 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
     }
   }
 
+  // A live duel opened before its countdown ended goes back to it.
+  const failed = useEffectEvent((e: Error) => {
+    if (e.message === "The duel hasn't started yet.") router.replace(`/live/${id}`);
+    else setError(e.message);
+  });
+
   const onLoaded = useEffectEvent((d: Duel, next: QuestionView) => {
     setDuel(d);
     // Restore right/wrong dots for questions answered before a refresh.
@@ -81,7 +88,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
     visible.current = true;
     Promise.all([api.getDuel(id), api.nextQuestion(id)])
       .then(([d, next]) => active && onLoaded(d, next))
-      .catch((e: Error) => active && setError(e.message));
+      .catch((e: Error) => active && failed(e));
     return () => {
       active = false;
       visible.current = false;
@@ -90,6 +97,13 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
       setLeaving(false);
     };
   }, [id]);
+
+  // A live duel is a race: the friend's progress shows as it happens
+  // (and polling keeps you marked as present). Other duels replay a
+  // finished opponent's run.
+  const live = duel?.mode === "live";
+  const race = useLiveState(live ? id : null, 1500).state;
+  const timeline = live ? null : (duel?.opponent_timeline ?? null);
 
   async function submit(choice: number | null) {
     if (!q || phase !== "question" || answered.current === q.q_index) return;
@@ -106,7 +120,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
       setPhase("reveal");
       // If you beat the opponent to it, they answer a moment later rather
       // than at the same instant, which would look rigged.
-      const step = duel?.opponent_timeline?.find((s) => s.q_index === q.q_index);
+      const step = timeline?.find((s) => s.q_index === q.q_index);
       const wait = step && step.ms > myMs ? Math.min(step.ms - myMs, 1200 + Math.random() * 2000) : 0;
       const index = q.q_index;
       later(() => setOppRevealed(index), wait);
@@ -168,7 +182,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   const oppMarks: Mark[] = [];
   let oppScore = 0;
   let oppAnsweredHere = false;
-  for (const step of duel?.opponent_timeline ?? []) {
+  for (const step of timeline ?? []) {
     if (step.q_index < q.q_index || (step.q_index === q.q_index && revealedHere)) {
       oppScore += step.points;
       oppMarks.push(step.correct ? "right" : "wrong");
@@ -179,7 +193,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   }
   const oppStatus = revealedHere ? "" : oppAnsweredHere ? "Answered" : "Thinking";
   const waitingFor =
-    phase === "reveal" && !revealedHere && opp && duel?.opponent_timeline ? opp.name : null;
+    phase === "reveal" && !revealedHere && opp && timeline ? opp.name : null;
 
   return (
     <div className="flex flex-1 flex-col gap-4">
@@ -238,7 +252,9 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <span className="-rotate-6 rounded-md bg-raised px-2 py-1 font-display text-[12px] font-bold text-soft">VS</span>
         <div className="flex min-w-0 flex-col items-end gap-2 text-right">
-          {opp?.finished && duel?.opponent_timeline ? (
+          {live && race?.opponent ? (
+            <LiveOpponent player={race.opponent} total={q.total} />
+          ) : opp?.finished && timeline ? (
             <>
               <span className="flex max-w-full items-center gap-1.5 text-sm font-semibold">
                 <span className="truncate">{opp.name}</span>
@@ -324,10 +340,10 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
         <span className="rounded-lg bg-raised px-2.5 py-1 text-xs font-semibold text-soft">{SECTION_LABEL[q.section] ?? q.section}</span>
         {q.companies?.length > 0 && (
           <span
-            title="This topic is part of these companies' aptitude tests"
+            title={`This topic is on these companies' aptitude tests: ${q.companies.join(", ")}`}
             className="rounded-lg bg-violet-tint px-2.5 py-1 text-xs font-semibold text-violet"
           >
-            {q.companies.join(" · ")} pattern
+            {companyList(q.companies)} pattern
           </span>
         )}
       </div>
@@ -365,7 +381,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   );
 }
 
-function OptionButton({
+export function OptionButton({
   index,
   text,
   figure,
@@ -373,14 +389,16 @@ function OptionButton({
   chosen,
   result,
   onPick,
+  badge,
 }: {
   index: number;
   text: string;
   figure?: string; // picture option
   phase: Phase;
   chosen: number | null;
-  result: AnswerResult | null;
+  result: Pick<AnswerResult, "correct" | "correct_idx"> | null;
   onPick: () => void;
+  badge?: ReactNode; // live duels: who picked this option
 }) {
   const revealed = phase === "reveal" && result;
   const isCorrect = revealed && result.correct_idx === index;
@@ -420,6 +438,7 @@ function OptionButton({
         className={`group pressable relative flex aspect-square items-center justify-center rounded-2xl border-2 disabled:cursor-default ${look}`}
       >
         <span className="absolute top-2 left-2">{mark}</span>
+        {badge && <span className="absolute top-2 right-2">{badge}</span>}
         <Figure svg={figure} className="size-[72%] text-text" />
       </button>
     );
@@ -432,7 +451,8 @@ function OptionButton({
       className={`group pressable flex min-h-[60px] items-center gap-3.5 rounded-2xl border-2 px-4 text-left text-base font-semibold disabled:cursor-default ${look}`}
     >
       {mark}
-      <span>{text}</span>
+      <span className="flex-1">{text}</span>
+      {badge}
     </button>
   );
 }
@@ -503,7 +523,7 @@ function DuelBuddy({
   );
 }
 
-function ProgressDots({
+export function ProgressDots({
   marks,
   current,
   total,
@@ -535,5 +555,39 @@ function ProgressDots({
         return <span key={i} className="size-5 rounded-full bg-line" />;
       })}
     </div>
+  );
+}
+
+// Your friend in a live race: their score and dots as they go, and where
+// they are.
+function LiveOpponent({ player, total }: { player: LivePlayer; total: number }) {
+  const marks: Mark[] = player.marks.map((m) => (m ? "right" : "wrong"));
+  return (
+    <>
+      <span className="max-w-full truncate text-sm font-semibold">{player.name}</span>
+      <span key={player.score} className="font-mono text-[28px] leading-none font-bold text-orange motion-safe:animate-pop">
+        {player.score}
+      </span>
+      <ProgressDots marks={marks} current={player.finished ? -1 : player.answered} total={total} ring="border-orange" />
+      <span className="flex h-4 items-center gap-1 text-xs font-semibold text-muted" aria-live="polite">
+        {player.finished ? (
+          <>
+            <Check size={12} strokeWidth={3} className="text-orange" />
+            Finished
+          </>
+        ) : !player.present ? (
+          "Connection lost…"
+        ) : (
+          <>
+            <span aria-hidden="true" className="flex gap-0.5">
+              {[0, 150, 300].map((d) => (
+                <span key={d} className="size-1 rounded-full bg-orange motion-safe:animate-dot" style={{ animationDelay: `${d}ms` }} />
+              ))}
+            </span>
+            On question {Math.min(player.answered + 1, total)}
+          </>
+        )}
+      </span>
+    </>
   );
 }

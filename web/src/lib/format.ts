@@ -54,6 +54,12 @@ export function batch(gradYear: number | null) {
   return gradYear ? `Batch ’${String(gradYear).slice(2)}` : null;
 }
 
+// "TCS NQT · Infosys · Wipro +4": a topic can be on many companies' tests.
+export function companyList(companies: string[], shown = 3) {
+  const more = companies.length - shown;
+  return companies.slice(0, shown).join(" · ") + (more > 0 ? ` +${more}` : "");
+}
+
 export function siteUrl(path = "") {
   return (process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000") + path;
 }
@@ -61,6 +67,11 @@ export function siteUrl(path = "") {
 // For a challenge you haven't played yet: no score to beat.
 export function inviteShareText(name: string, code: string) {
   return `${name} challenged you to an aptitude duel on Apticks. Same 5 placement questions for both of you, about 3 minutes, no sign-up: ${siteUrl(`/c/${code}`)}`;
+}
+
+// For a live room: the friend joins and you play at the same time.
+export function liveInviteText(name: string, code: string) {
+  return `${name} wants to duel you live on Apticks: the same 5 placement aptitude questions at the same time, about 3 minutes. Join here: ${siteUrl(`/c/${code}`)}`;
 }
 
 export function challengeShareText(name: string, correct: number, ms: number, code: string) {

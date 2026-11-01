@@ -19,7 +19,9 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
   const [duel, setDuel] = useState<Duel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ownCode, setOwnCode] = useState<string | null>(null);
-  const [busy, setBusy] = useState<"share" | null>(null);
+  const [busy, setBusy] = useState<"share" | "rematch" | null>(null);
+  // A live duel's rematch room, once either player has asked for one.
+  const [rematchId, setRematchId] = useState<string | null>(null);
   const [showReview, setShowReview] = useState(false);
 
   const onLoaded = useEffectEvent((d: Duel) => {
@@ -50,13 +52,37 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
     (duel.mode === "challenge"
       ? duel.opponent?.finished !== true
       : duel.opponent !== null && !duel.opponent.finished);
+  // A live race updates every couple of seconds; others every 8.
+  const every = duel?.mode === "live" ? 2000 : 8000;
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(() => {
       api.getDuel(id).then(onLoaded).catch(() => {});
-    }, 8000);
+    }, every);
     return () => clearInterval(timer);
-  }, [id, waiting]);
+  }, [id, waiting, every]);
+
+  // Live duels: see when the other player asks for a rematch.
+  const live = duel?.mode === "live";
+  useEffect(() => {
+    if (!live) return;
+    const check = () => api.liveState(id).then((s) => setRematchId(s.rematch_id), () => {});
+    check();
+    const timer = setInterval(check, 2500);
+    return () => clearInterval(timer);
+  }, [id, live]);
+
+  // Asking again just returns the room the other player made.
+  async function rematchLive() {
+    setBusy("rematch");
+    try {
+      const { code } = await api.liveRematch(id);
+      router.push(`/c/${code}`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(null);
+    }
+  }
 
   async function makeShareCode() {
     setBusy("share");
@@ -103,6 +129,22 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
 
       {delta !== null && me.rating_before !== null && me.rating_after !== null && (
         <RatingCard before={me.rating_before} after={me.rating_after} delta={delta} />
+      )}
+      {live && delta === 0 && (
+        <p className="-mt-2 text-[13px] text-muted">
+          Friends move each other&apos;s rating once a day, so this one was just for fun.
+        </p>
+      )}
+
+      {live && opp?.finished && (
+        <button
+          onClick={rematchLive}
+          disabled={busy !== null}
+          className="pressable flex h-14 items-center justify-center gap-2.5 rounded-2xl bg-orange text-base font-bold text-ink [--pop:#6b3415] disabled:opacity-70"
+        >
+          <Refresh size={20} strokeWidth={2.4} />
+          {busy === "rematch" ? "Opening the room…" : rematchId ? `${opp.name} is ready: join the rematch` : `Rematch ${opp.name}`}
+        </button>
       )}
 
       {duel.review && <AnswerDots review={duel.review} />}
@@ -213,6 +255,10 @@ function Hero({ duel, outcome }: { duel: Duel; outcome: Outcome | null }) {
       title = "It's a draw";
       line = "Same points, same time";
     }
+  } else if (opp && duel.mode === "live") {
+    title = `Waiting for ${opp.name}`;
+    line = `${summary}. ${opp.name} is on question ${Math.min(opp.answered + 1, 5)} of 5 with ${opp.score} points.`;
+    mood = "think";
   } else if (opp) {
     title = `Waiting for ${opp.name}`;
     line = `${summary}. This page updates when they finish.`;
@@ -281,7 +327,13 @@ function ScoreSide({ player, label, outcome }: { player: Player; label?: string;
       {outcome === "draw" && <Stamp text="TIE" tone="border-soft text-soft" tilt="8deg" />}
       <PlayerAvatar name={player.name} bot={player.is_bot} size={52} />
       <span className="mt-1 max-w-full truncate text-sm font-semibold">
-        {label ?? player.name}
+        {!label && player.id && !player.is_bot ? (
+          <Link href={`/u/${player.id}`} className="text-text underline decoration-line-strong underline-offset-4 hover:text-lime">
+            {player.name}
+          </Link>
+        ) : (
+          (label ?? player.name)
+        )}
         {player.is_bot && <BotTag />}
       </span>
       <span className={`font-mono text-[40px] leading-none font-bold ${won ? "text-lime" : "text-text"}`}>

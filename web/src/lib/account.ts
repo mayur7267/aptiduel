@@ -31,6 +31,8 @@ export const account = {
   confirmSaveCode: async (email: string, token: string) => {
     const { error } = await supabase().auth.verifyOtp({ email, token, type: "email_change" });
     fail(error);
+    // A fresh token, so the server sees a saved account (friend duels).
+    fail((await supabase().auth.refreshSession()).error);
   },
 
   // Sign in to an account saved on another device. Only existing accounts.

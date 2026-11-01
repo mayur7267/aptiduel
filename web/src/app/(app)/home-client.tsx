@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { api, type Board, type DuelSummary, type Me } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
-import { challengeShareText, clock, greeting, inviteShareText, signed, tierFor, untilIstMidnight } from "@/lib/format";
+import { account } from "@/lib/account";
+import { clock, greeting, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
-import { SharePanel } from "@/components/share-panel";
+import { DuelSignIn } from "@/components/sign-in-form";
+import { DriveCard } from "./drive-card";
 import { useCompanionPage, type CompanionPage } from "@/lib/companion";
 import { openFeedback } from "@/lib/feedback";
 import { TikoTour } from "@/components/tiko-tour";
@@ -32,6 +34,7 @@ export function HomeClient() {
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState<Action | null>(null);
+  const [signIn, setSignIn] = useState(false);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
   useCompanionPage(homeNudge(me));
 
@@ -64,11 +67,13 @@ export function HomeClient() {
     setError(null);
     try {
       if (action === "challenge") {
-        // Stay here: the card turns into the invite link, and you play
-        // your turn whenever you like, before or after your friend.
-        await api.createChallenge();
-        setDuels(await api.myDuels(8));
-        setBusy(null);
+        // Friend duels are between saved accounts: guests sign in first.
+        if ((await account.get()).guest) {
+          setBusy(null);
+          setSignIn(true);
+          return;
+        }
+        await openRoom();
         return;
       }
       const { duel_id } = await api.dailyChallenge();
@@ -77,6 +82,21 @@ export function HomeClient() {
       setError((e as Error).message);
       setBusy(null);
     }
+  }
+
+  // A live room, then its lobby, where you share the link and wait.
+  async function openRoom() {
+    const { code } = await api.createRoom();
+    router.push(`/c/${code}`);
+  }
+
+  function signedIn() {
+    setSignIn(false);
+    setBusy("challenge");
+    openRoom().catch((e: Error) => {
+      setError(e.message);
+      setBusy(null);
+    });
   }
 
   if (!me) {
@@ -176,6 +196,7 @@ export function HomeClient() {
         <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
           <QuickMatchCard />
           <ChallengeCard me={me} latest={latestChallenge} busy={busy} onStart={() => start("challenge")} />
+          <DuelSignIn open={signIn} onClose={() => setSignIn(false)} onDone={signedIn} />
           <DailyCard
             me={me}
             now={new Date(minute * 60_000)}
@@ -184,6 +205,8 @@ export function HomeClient() {
             onPlay={() => start("daily")}
           />
         </div>
+
+        <DriveCard />
 
         <CompanyCard />
 
@@ -284,24 +307,53 @@ function QuickMatchCard() {
 function CompanyCard() {
   return (
     <Card data-tour="company" style={{ animationDelay: "200ms" }} className="flex flex-col gap-4 p-[22px] motion-safe:animate-rise">
-      <div className="flex flex-col gap-1">
-        <h2 className="text-[17px] font-bold">Practise for a company</h2>
-        <p className="text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
+      <div className="flex items-baseline justify-between gap-2">
+        <div className="flex flex-col gap-1">
+          <h2 className="text-[17px] font-bold">Practise for a company</h2>
+          <p className="text-sm text-muted">A rated duel using only the topics on that company&apos;s aptitude test.</p>
+        </div>
+        <span className="font-mono text-xs text-faint shrink-0">{COMPANIES.length} companies</span>
       </div>
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(200px,1fr))] gap-3">
-        {COMPANIES.map((c) => (
-          <Link
-            key={c.slug}
-            href={`/play/${c.slug}`}
-            className="group flex items-center gap-3 rounded-2xl border border-line bg-raised px-4 py-3.5 text-text hover:border-violet/60 hover:text-text"
-          >
-            <span className="min-w-0 flex-1">
-              <span className="block font-bold">{c.name}</span>
-              <span className="block text-xs text-muted">{c.blurb}</span>
-            </span>
-            <ChevronRight size={18} className="shrink-0 text-muted group-hover:text-violet" />
-          </Link>
-        ))}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(210px,1fr))] gap-3">
+        {COMPANIES.map((c) => {
+          const isComingSoon = "comingSoon" in c && Boolean(c.comingSoon);
+          const inner = (
+            <div
+              className={`group flex items-center gap-3 rounded-2xl border px-3.5 py-3 transition-colors ${
+                isComingSoon
+                  ? "border-line bg-surface/50 opacity-60 cursor-not-allowed"
+                  : "border-line bg-raised hover:border-violet/60 hover:text-text cursor-pointer"
+              }`}
+            >
+              <span
+                className="flex size-9 shrink-0 items-center justify-center rounded-xl text-base shadow-sm"
+                style={{ backgroundColor: `${c.color}25`, border: `1.5px solid ${c.color}50` }}
+              >
+                {c.emoji}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="flex items-center gap-1.5 font-bold text-sm">
+                  <span className="truncate">{c.name}</span>
+                  {isComingSoon && (
+                    <span className="rounded border border-faint/30 bg-ink px-1.5 py-0.5 font-mono text-[9px] font-bold text-muted uppercase">
+                      Soon
+                    </span>
+                  )}
+                </span>
+                <span className="block truncate text-xs text-muted">{c.blurb}</span>
+              </span>
+              {!isComingSoon && <ChevronRight size={16} className="shrink-0 text-muted group-hover:text-violet" />}
+            </div>
+          );
+
+          return isComingSoon ? (
+            <div key={c.slug}>{inner}</div>
+          ) : (
+            <Link key={c.slug} href={`/play/${c.slug}`} className="text-text hover:text-text">
+              {inner}
+            </Link>
+          );
+        })}
       </div>
     </Card>
   );
@@ -345,42 +397,27 @@ function ChallengeCard({
     >
       <div className="flex items-start justify-between">
         <VersusBadge name={me.name} />
-        <span className="rotate-3 rounded-md border border-orange/40 px-2 py-1 font-mono text-[11px] font-bold tracking-wider text-orange">
-          VIA LINK
+        <span className="flex rotate-3 items-center gap-1.5 rounded-md border border-orange/40 px-2 py-1 font-mono text-[11px] font-bold tracking-wider text-orange">
+          <span className="size-1.5 rounded-full bg-orange motion-safe:animate-pulse" />
+          LIVE
         </span>
       </div>
       <div className="flex flex-col gap-1">
-        <h2 className="font-display text-[20px] leading-tight font-bold">Challenge a friend</h2>
+        <h2 className="font-display text-[20px] leading-tight font-bold">Duel a friend</h2>
         <p className="text-sm text-muted">
-          Send a link. You both get the same 5 questions, and whoever plays second races the other&apos;s run.
+          Send a link. When your friend joins, you race through the same 5 questions, starting together, and see
+          each other&apos;s progress live.
         </p>
       </div>
       <div className="mt-auto flex flex-col gap-2.5">
-        {latest?.code ? (
-          <>
-            <SharePanel
-              quiet
-              code={latest.code}
-              text={
-                latest.finished
-                  ? challengeShareText(me.name, latest.correct, latest.total_ms, latest.code)
-                  : inviteShareText(me.name, latest.code)
-              }
-            />
-            {!latest.finished && (
-              <Link href={`/duel/${latest.id}`} className={button}>
-                Play your turn
-                <ChevronRight size={18} />
-              </Link>
-            )}
-            <button onClick={onStart} disabled={busy !== null} className={`self-start disabled:opacity-60 ${LINK}`}>
-              {busy === "challenge" ? "Setting up…" : "New challenge"}
-            </button>
-          </>
-        ) : (
-          <button onClick={onStart} disabled={busy !== null} className={button}>
-            {busy === "challenge" ? "Making your link…" : "Invite a friend"}
-          </button>
+        <button onClick={onStart} disabled={busy !== null} className={button}>
+          {busy === "challenge" ? "Opening a room…" : "Start a live duel"}
+        </button>
+        {/* A challenge from before, or one a friend didn't join live. */}
+        {latest && !latest.finished && (
+          <Link href={`/duel/${latest.id}`} className={`self-start ${LINK}`}>
+            Play your turn in your last challenge
+          </Link>
         )}
       </div>
     </div>

@@ -1,0 +1,27 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "H22HNLMF3Z.com.apticks.app",
+        "paths": ["/c/*", "/play/*", "/duel/*"],
+        "components": [
+          {
+            "/": "/c/*"
+          },
+          {
+            "/": "/play/*"
+          },
+          {
+            "/": "/duel/*"
+          }
+        ]
+      }
+    ]
+  },
+  "webcredentials": {
+    "apps": [
+      "H22HNLMF3Z.com.apticks.app"
+    ]
+  }
+}

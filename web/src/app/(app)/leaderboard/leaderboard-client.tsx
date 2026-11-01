@@ -153,7 +153,17 @@ function Podium({ rows }: { rows: BoardRow[] }) {
           <span className={`rounded-full border-[3px] ${styles[i].ring}`}>
             <Avatar name={r.name} size={styles[i].size} />
           </span>
-          <span className="max-w-full truncate text-sm font-semibold">{r.is_me ? "You" : r.name}</span>
+          <span className="max-w-full truncate text-sm font-semibold">
+            {r.is_me ? (
+              "You"
+            ) : r.id ? (
+              <Link href={`/u/${r.id}`} className="text-text hover:text-lime">
+                {r.name}
+              </Link>
+            ) : (
+              r.name
+            )}
+          </span>
           <span className="font-mono text-xs text-muted">{r.rating.toLocaleString("en-IN")}</span>
           <span
             className={`sticker flex w-full items-center justify-center rounded-t-2xl rounded-b-md font-display text-2xl font-bold ${styles[i].block}`}
@@ -178,7 +188,13 @@ function Row({ row, scope, pinned = false }: { row: BoardRow; scope: Scope; pinn
       <Avatar name={row.name} size={36} />
       <span className="flex min-w-0 flex-1 flex-col">
         <span className="truncate text-sm font-semibold">
-          {row.name}
+          {row.id && !row.is_me ? (
+            <Link href={`/u/${row.id}`} className="text-text hover:text-lime">
+              {row.name}
+            </Link>
+          ) : (
+            row.name
+          )}
           {row.is_me && " (You)"}
         </span>
         {meta && <span className="truncate text-xs text-muted">{meta}</span>}

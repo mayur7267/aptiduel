@@ -7,13 +7,20 @@ import { clock } from "@/lib/format";
 import { Bolt, Check } from "@/components/icons";
 import { Avatar, Logo, TierBadge } from "@/components/ui";
 import { Tiko } from "@/components/tiko";
+import type { Challenge } from "@/lib/api";
 import { AcceptButton } from "./accept-button";
+import { LiveRoom } from "./live-room";
 import { ViewerSwitch } from "./viewer-switch";
 
 export async function generateMetadata({ params }: PageProps<"/c/[code]">): Promise<Metadata> {
   const { code } = await params;
   const ch = await getChallenge(code);
   if (!ch) return { title: "Challenge not found" };
+  if (ch.live) {
+    const title = `${ch.challenger.name} wants to duel you live`;
+    const description = "Join and answer the same 5 placement aptitude questions at the same time. About 3 minutes.";
+    return { title, description, openGraph: { title, description }, robots: { index: false } };
+  }
   const title = `${ch.challenger.name} challenged you to an aptitude duel`;
   const description = ch.challenger_finished
     ? `Score to beat: ${ch.correct}/5 in ${clock(ch.total_ms)}. 5 placement-style questions, about 3 minutes. No sign-up.`
@@ -34,42 +41,15 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
       </header>
 
       <main className="flex-1">
-        <section className="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-4 py-12 sm:px-6 sm:py-16">
-          {/* Friends see the invite; the challenger sees their own side. */}
-          <ViewerSwitch>
-            <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
-              <Suspense fallback={<ChallengeSkeleton />}>
-                <ChallengeIntro params={params} />
-              </Suspense>
-            </div>
-            <div className="flex min-w-0 flex-[1_1_360px] justify-center pt-10">
-              {/* Tiko perches on the preview, waving the friend in. */}
-              <div className="relative w-full max-w-[420px]">
-                <DuelPreview />
-                <Tiko mood="wave" size={84} className="absolute -top-[72px] -left-3 z-10" />
-              </div>
-            </div>
-          </ViewerSwitch>
-        </section>
-
-        <section className="border-t border-[#1c2232] bg-[#0e121c]">
-          <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6">
-            <h2 className="font-display text-2xl font-bold sm:text-3xl">How a duel works</h2>
-            <div className="grid gap-4 sm:grid-cols-3">
-              {[
-                ["01", "Same 5 questions", "You get exactly the questions your friend played. 25 to 75 seconds each."],
-                ["02", "Beat the score", "100 points for every correct answer, plus up to 50 for speed."],
-                ["03", "Earn your rating", "Win to climb from Fresher to Architect, and put your college on the board."],
-              ].map(([n, title, body]) => (
-                <div key={n} className="flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-5">
-                  <span className="font-display text-2xl font-bold text-lime">{n}</span>
-                  <span className="text-[17px] font-bold">{title}</span>
-                  <span className="text-[15px] leading-relaxed text-muted">{body}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        <Suspense
+          fallback={
+            <section className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
+              <ChallengeSkeleton />
+            </section>
+          }
+        >
+          <ChallengeBody params={params} />
+        </Suspense>
       </main>
 
       <footer className="border-t border-[#1c2232]">
@@ -81,10 +61,66 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
   );
 }
 
-async function ChallengeIntro({ params }: { params: Promise<{ code: string }> }) {
+const STEPS = {
+  live: [
+    ["01", "Start together", "You and your friend get the same 5 questions at the same moment, then go at your own pace."],
+    ["02", "Fast and right wins", "100 points for every correct answer, plus up to 50 for speed. Watch each other's score as you play."],
+    ["03", "Earn your rating", "Win to climb from Fresher to Architect, and put your college on the board."],
+  ],
+  recorded: [
+    ["01", "Same 5 questions", "You get exactly the questions your friend played. 25 to 75 seconds each."],
+    ["02", "Beat the score", "100 points for every correct answer, plus up to 50 for speed."],
+    ["03", "Earn your rating", "Win to climb from Fresher to Architect, and put your college on the board."],
+  ],
+};
+
+// A live room shows its lobby. A recorded challenge shows the invite to
+// friends, and the challenger's own side to the challenger.
+async function ChallengeBody({ params }: { params: Promise<{ code: string }> }) {
   const { code } = await params;
   const ch = await getChallenge(code);
   if (!ch) notFound();
+
+  return (
+    <>
+      <section className="mx-auto flex max-w-6xl flex-wrap items-center gap-12 px-4 py-12 sm:px-6 sm:py-16">
+        {ch.live ? (
+          <LiveRoom challenge={ch} />
+        ) : (
+          <ViewerSwitch>
+            <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
+              <ChallengeIntro ch={ch} />
+            </div>
+            <div className="flex min-w-0 flex-[1_1_360px] justify-center pt-10">
+              {/* Tiko perches on the preview, waving the friend in. */}
+              <div className="relative w-full max-w-[420px]">
+                <DuelPreview />
+                <Tiko mood="wave" size={84} className="absolute -top-[72px] -left-3 z-10" />
+              </div>
+            </div>
+          </ViewerSwitch>
+        )}
+      </section>
+
+      <section className="border-t border-[#1c2232] bg-[#0e121c]">
+        <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-14 sm:px-6">
+          <h2 className="font-display text-2xl font-bold sm:text-3xl">How a duel works</h2>
+          <div className="grid gap-4 sm:grid-cols-3">
+            {STEPS[ch.live ? "live" : "recorded"].map(([n, title, body]) => (
+                <div key={n} className="flex flex-col gap-2.5 rounded-[20px] border border-line bg-surface p-5">
+                  <span className="font-display text-2xl font-bold text-lime">{n}</span>
+                  <span className="text-[17px] font-bold">{title}</span>
+                  <span className="text-[15px] leading-relaxed text-muted">{body}</span>
+                </div>
+              ))}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+}
+
+function ChallengeIntro({ ch }: { ch: Challenge }) {
   const { challenger } = ch;
 
   return (
