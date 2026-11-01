@@ -38,6 +38,10 @@ node scripts/smoke.mjs   # end-to-end game rules, against a test project
 
 The smoke test plays real duels between guest players, then checks scoring, ratings, the daily rules and the anti-cheat rules. It writes real data, so point `.env.local` at a separate test project (a second free Supabase project works) or a local `supabase start`. Against a hosted project it refuses to run unless you set `SMOKE_ALLOW_REMOTE=1`.
 
+### 4. iPhone app
+
+`ios/` holds the native SwiftUI app. It uses the same database functions, so accounts, ratings and challenge links work across the app and the website. Open `ios/Apticks.xcodeproj` in Xcode and press Run. [ios/README.md](ios/README.md) covers the module layout, tests and universal links.
+
 ## Accounts
 
 Visitors play as anonymous guests, and their rating is stored in that browser. On the profile page they can save the account with an email. That keeps the same account and rating, so they can sign in on another device. The profile page can also sign out or delete the account. Deleting removes the name, college, email and rating; the player's duels stay in their opponents' history as "Deleted player", so nobody else loses results.

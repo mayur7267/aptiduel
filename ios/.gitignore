@@ -1,0 +1,7 @@
+# Xcode
+xcuserdata/
+DerivedData/
+*.xcresult
+# Swift Package Manager
+.build/
+.swiftpm/

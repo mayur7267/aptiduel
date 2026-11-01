@@ -1,0 +1,7 @@
+// Build settings shared by Debug and Release.
+//
+// The backend the app talks to. Both values are public by design (the
+// website ships the same ones); what each player can do is enforced by
+// the database functions. Point these at another project for staging.
+SUPABASE_HOST = wqkmpltgbtmgrxfdczmi.supabase.co
+SUPABASE_KEY = sb_publishable_MXLPdUlhZFICqi5FrMV6lg_ZZ-I3QTE

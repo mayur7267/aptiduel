@@ -1,0 +1,12 @@
+// Generated from supabase/seed.sql (a Figure Series question), so the
+// fake backend exercises the real SVG renderer.
+
+enum SeedFigures {
+    static let series = #"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 540 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="94" height="94" rx="12" stroke-width="2" opacity=".35"/><g transform="translate(0 0)"><g transform="translate(50 50) rotate(180)"><path d="M-22-26H22V26H0"/></g></g><rect x="113" y="3" width="94" height="94" rx="12" stroke-width="2" opacity=".35"/><g transform="translate(110 0)"><g transform="translate(50 50) rotate(45)"><path d="M-22-26H22V26H0"/></g></g><rect x="223" y="3" width="94" height="94" rx="12" stroke-width="2" opacity=".35"/><g transform="translate(220 0)"><g transform="translate(50 50) rotate(270)"><path d="M-22-26H22V26H0"/></g></g><rect x="333" y="3" width="94" height="94" rx="12" stroke-width="2" opacity=".35"/><g transform="translate(330 0)"><g transform="translate(50 50) rotate(135)"><path d="M-22-26H22V26H0"/></g></g><rect x="443" y="3" width="94" height="94" rx="12" stroke-width="2" opacity=".35" stroke-dasharray="6 6"/><text x="490" y="50" font-size="44" font-weight="700" font-family="system-ui, sans-serif" fill="currentColor" stroke="none" text-anchor="middle" dominant-baseline="central">?</text></svg>"#
+    static let options = [
+        #"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(50 50) rotate(0)"><path d="M-22-26H22V26H0"/></g></svg>"#,
+        #"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(50 50) rotate(135)"><path d="M-22-26H22V26H0"/></g></svg>"#,
+        #"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(50 50) rotate(225)"><path d="M-22-26H22V26H0"/></g></svg>"#,
+        #"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(50 50) rotate(180)"><path d="M-22-26H22V26H0"/></g></svg>"#,
+    ]
+}
