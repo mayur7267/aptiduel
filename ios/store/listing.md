@@ -107,10 +107,19 @@ search history, purchases, advertising identifier.
 ## Screenshots
 
 Upload the iPhone 6.9" set (1320 x 2868) in this order. The first three are
-what shoppers see in search results. The 4K masters (2160 x 4693) are for the
-website and social; App Store Connect only accepts its own sizes, so they can't
-be uploaded. The iPad 13" set (2064 x 2752) can only be used once the app runs
-natively on iPad.
+what shoppers see in search results.
+
+Other sets, all from the same shots:
+
+- **4K masters** (2160 x 4693): for the website and social. App Store Connect
+  only accepts its own sizes, so these can't be uploaded.
+- **iPad 13"** (2064 x 2752): only usable once the app runs natively on iPad.
+- **Wide 16:9** (5244 x 2950): a landscape size some upload screens list.
+  Apple's public screenshot page doesn't list it, so confirm your Connect
+  screen accepts it before relying on it.
+- **App preview** (1200 x 1600 mp4, the iPad 13" portrait preview size): real
+  footage of one winning duel with captions. Like the iPad screenshots, it
+  needs native iPad support to upload. An iPhone preview would be 886 x 1920.
 
 1. Aptitude prep that's a game: the home screen
 2. Live 1v1 aptitude duels: a question mid-duel

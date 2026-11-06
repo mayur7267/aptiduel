@@ -83,6 +83,45 @@ final class StoreShotsUITests: XCTestCase {
         shot("10-review")
     }
 
+    // One winning duel at a human pace, for the App Store preview video. The
+    // marks (epoch seconds) say where each part starts in the screen recording.
+    @MainActor
+    func testPreview() {
+        start(tiko: true)
+        mark("home")
+        sleep(3) // the home screen, so the viewer sees where they are
+        app.buttons["Quick Match"].firstMatch.tap()
+        mark("quick-tapped")
+        // Right answers all the way; the picture question's options are labelled "Option A".
+        let answers = ["B: 25%", "Option A", "B: ₹2,100", "D: 71", "B: Plentiful"]
+        for (i, answer) in answers.enumerated() {
+            XCTAssertTrue(app.staticTexts["Question \(i + 1) of 5"].waitForExistence(timeout: 15))
+            mark("q\(i + 1)")
+            usleep(i == 0 ? 2_000_000 : 1_500_000) // time to read the question
+            app.buttons[answer].firstMatch.tap()
+            mark("a\(i + 1)")
+            usleep(900_000) // the answer lights up
+        }
+        XCTAssertTrue(app.buttons["Review answers"].waitForExistence(timeout: 15))
+        mark("result")
+        sleep(5)
+        mark("end")
+    }
+
+    private func mark(_ name: String) {
+        guard let dir = ProcessInfo.processInfo.environment["STORE_SHOTS_DIR"] else { return }
+        try? FileManager.default.createDirectory(atPath: dir, withIntermediateDirectories: true)
+        let url = URL(fileURLWithPath: dir).appendingPathComponent("preview-marks.txt")
+        let line = "\(name) \(Date().timeIntervalSince1970)\n"
+        if let handle = try? FileHandle(forWritingTo: url) {
+            handle.seekToEndOfFile()
+            handle.write(Data(line.utf8))
+            try? handle.close()
+        } else {
+            try? line.write(to: url, atomically: true, encoding: .utf8)
+        }
+    }
+
     @MainActor
     func testDaily() {
         start()

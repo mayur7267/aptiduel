@@ -1,7 +1,7 @@
 // Builds the App Store screenshots: a headline, the real app screen in a
 // phone, and a sticker or two.
 //
-//   node compose.mjs <raw screens dir> <output dir> [--device iphone|ipad] [--width N]
+//   node compose.mjs <raw screens dir> <output dir> [--device iphone|ipad|wide] [--width N]
 //
 //   iPhone (default)  as large as the raw screens themselves, which is an
 //                     Apple size when they come from an iPhone simulator:
@@ -11,6 +11,8 @@
 //                     the masters are for the website and social, not upload.
 //   --device ipad     the 13" iPad size, 2064 x 2752 (only usable once the
 //                     app runs natively on iPad).
+//   --device wide     a 16:9 landscape set, 5244 x 2950 (a size some App Store
+//                     Connect upload screens list; Apple's public docs don't).
 //
 // The raw screens come from ApticksUITests/StoreShotsUITests (see
 // README.md). Needs Playwright (npm i playwright) and a network
@@ -29,7 +31,7 @@ for (let i = 2; i < process.argv.length; i++) {
 }
 const [rawDir, outDir] = positional;
 if (!rawDir || !outDir) {
-  console.error("usage: node compose.mjs <raw screens dir> <output dir> [--device iphone|ipad] [--width N]");
+  console.error("usage: node compose.mjs <raw screens dir> <output dir> [--device iphone|ipad|wide] [--width N]");
   process.exit(1);
 }
 mkdirSync(outDir, { recursive: true });
@@ -44,9 +46,10 @@ const RAW_H = header.readUInt32BE(20);
 // canvas is the raw screen's pixel size; the 13" iPad canvas is 1290 x 1720,
 // which at 1.6x is 2064 x 2752.
 const IPAD = flags.device === "ipad";
-const W = IPAD ? 1290 : RAW_W;
-const H = IPAD ? 1720 : RAW_H;
-const SCALE = Number(flags.width ?? (IPAD ? 2064 : W)) / W;
+const WIDE = flags.device === "wide";
+const W = WIDE ? 2622 : IPAD ? 1290 : RAW_W;
+const H = WIDE ? 1475 : IPAD ? 1720 : RAW_H;
+const SCALE = Number(flags.width ?? (WIDE ? 5244 : IPAD ? 2064 : W)) / W; // wide: 2622 x 1475 at 2x = 5244 x 2950
 
 // ---- Brand ------------------------------------------------------------
 const INK = "#0b0e17";
@@ -110,12 +113,14 @@ const CHIP_TONES = {
 // top corners cover the status bar, the bottom ones the tab bar or the
 // least important options.
 const DY = IPAD ? -160 : 0; // the iPad's phone starts 160px higher
-const SPOTS = {
-  tr: { right: 26, top: 662 + DY, rot: 6 },
-  tl: { left: 26, top: 678 + DY, rot: -6 },
-  bl: { left: 26, top: 2590, rot: -5 },
-  br: { right: 26, top: 2570, rot: 5 },
-};
+const SPOTS = WIDE
+  ? { tr: { right: 130, top: 20, rot: 6 }, tl: { left: 1290, top: 40, rot: -6 }, bl: { left: 1290, top: 1330, rot: -5 }, br: { right: 130, top: 1350, rot: 5 } }
+  : {
+      tr: { right: 26, top: 662 + DY, rot: 6 },
+      tl: { left: 26, top: 678 + DY, rot: -6 },
+      bl: { left: 26, top: 2590, rot: -5 },
+      br: { right: 26, top: 2570, rot: 5 },
+    };
 const chip = ({ text, tone = "lime", ic, at, x, r, y, rot, size = 52 }) => {
   const sp = at ? SPOTS[at] : r !== undefined ? { right: r, top: y, rot: rot ?? 0 } : { left: x, top: y, rot: rot ?? 0 };
   const pos = ["left", "right", "top"].filter((k) => sp[k] !== undefined).map((k) => `${k}:${sp[k]}px`).join(";");
@@ -156,7 +161,13 @@ const SHOTS = [
     ...BASE, id: "01-aptitude-prep-game", raw: "01-home", theme: "lime", crop: 0.44, fade: true,
     l1: "APTITUDE PREP", l2: "THAT'S A GAME", sub: "Duel friends, climb your college, get placement-ready.",
     ry: -9, rz: -3, ipad: { pw: 860, crop: 0.36 },
-    extras: ({ ipad }) => ipad ? [
+    wide: { crop: 0.56, fade: true },
+    extras: ({ ipad, wide }) => wide ? [
+      snip({ raw: "01-home", rect: QUICK, x: 1470, y: 800, w: 960, rot: -3 }),
+      snip({ raw: "01-home", rect: FRIEND, x: 1560, y: 1130, w: 440, rot: 3 }),
+      chip({ text: "NO SIGN-UP TO START", tone: "ink", x: 150, y: 1130, rot: -3, size: 42 }),
+      `<div class="mascot" style="left:1380px;top:520px;transform:rotate(-8deg)">${tiko("wave", 230)}</div>`,
+    ] : ipad ? [
       snip({ raw: "01-home", rect: QUICK, x: 145, y: 1130, w: 1000, rot: -3 }),
       chip({ text: "NO SIGN-UP TO START", tone: "ink", x: 60, y: 1560, rot: -4, size: 38 }),
       `<div class="mascot" style="left:930px;top:1440px;transform:rotate(6deg)">${tiko("wave", 260)}</div>`,
@@ -177,7 +188,7 @@ const SHOTS = [
     ...BASE, id: "03-all-sections-real-puzzles", raw: "07-duel-figure", theme: "ink", crop: 1, fade: false,
     l1: "ALL 3 SECTIONS.", l2: "REAL PUZZLES.", sub: "Quant, reasoning and verbal, even picture puzzles.",
     ry: -8, rz: -3,
-    extras: ({ ipad }) => [chip({ text: "PICTURE PUZZLES", tone: "violet", at: "tl", size: 46 }), ...(ipad ? [] : [chip({ text: "QUANT · REASONING · VERBAL", tone: "lime", at: "br", size: 38 })])],
+    extras: ({ ipad, wide }) => [chip({ text: "PICTURE PUZZLES", tone: "violet", at: "tl", size: 46 }), ...(ipad || wide ? [] : [chip({ text: "QUANT · REASONING · VERBAL", tone: "lime", at: "br", size: 38 })])],
   },
   {
     ...BASE, id: "04-win-rank-up", raw: "09-result", theme: "violet", crop: 1, fade: false,
@@ -200,7 +211,12 @@ const SHOTS = [
   {
     ...BASE, id: "07-daily-goals", phone: false, theme: "ink",
     l1: "DAILY GOALS.", l2: "BUILD THE HABIT.", sub: "Three small goals a day keep your prep on track.",
-    extras: ({ ipad }) => ipad ? [
+    extras: ({ ipad, wide }) => wide ? [
+      snip({ raw: "02-goals", rect: DECK, x: 1510, y: 150, w: 980, rot: -3 }),
+      snip({ raw: "01-home", rect: DECK, x: 1470, y: 770, w: 980, rot: 2 }),
+      chip({ text: "3 SMALL GOALS", tone: "lime", ic: "check", at: "tr", size: 44 }),
+      `<div class="mascot" style="left:1330px;top:1130px;transform:rotate(-8deg)">${tiko("cheer", 240)}</div>`,
+    ] : ipad ? [
       snip({ raw: "02-goals", rect: DECK, x: 95, y: 580, w: 900, rot: -3 }),
       snip({ raw: "01-home", rect: DECK, x: 295, y: 1110, w: 900, rot: 2 }),
       chip({ text: "3 SMALL GOALS", tone: "lime", ic: "check", r: 26, y: 440, rot: 6, size: 42 }),
@@ -235,7 +251,12 @@ const SHOTS = [
 
 // The 13" iPad canvas is squarer, so the phone is smaller and cut off lower.
 const IPAD_PHONE = { pw: 900, y: 560, crop: 0.6, fade: true };
-const variant = (s) => (IPAD ? { ...s, ...(s.phone === false ? {} : IPAD_PHONE), ...(s.ipad ?? {}) } : s);
+// The wide canvas puts the whole phone at the right and the words at the left.
+const WIDE_PHONE = { pw: 640, y: 62, crop: 1, fade: false, cx: 1950 };
+const variant = (s) =>
+  WIDE ? { ...s, ...(s.phone === false ? {} : WIDE_PHONE), ...(s.wide ?? {}) }
+  : IPAD ? { ...s, ...(s.phone === false ? {} : IPAD_PHONE), ...(s.ipad ?? {}) }
+  : s;
 
 // ---- Page --------------------------------------------------------------------
 function page(s) {
@@ -252,13 +273,13 @@ function page(s) {
   html,body{margin:0;width:${W}px;height:${H}px;overflow:hidden}
   .stage{position:relative;width:${W}px;height:${H}px;overflow:hidden;background:${t.bg}}
   .grid{position:absolute;inset:0;background-image:linear-gradient(${t.grid} 2px,transparent 2px),linear-gradient(90deg,${t.grid} 2px,transparent 2px);background-size:86px 86px}
-  .glow{position:absolute;width:1700px;height:1700px;left:${(W - 1700) / 2}px;top:${s.y - 150}px;border-radius:50%;background:radial-gradient(closest-side,${t.glow},transparent)}
-  .head{position:absolute;left:0;right:0;top:${IPAD ? 100 : 140}px;padding:0 60px;text-align:center}
+  .glow{position:absolute;width:1700px;height:1700px;left:${(s.cx ?? W / 2) - 850}px;top:${WIDE ? -100 : s.y - 150}px;border-radius:50%;background:radial-gradient(closest-side,${t.glow},transparent)}
+  .head{position:absolute;${WIDE ? "left:150px;top:0;bottom:0;width:1240px;display:flex;flex-direction:column;justify-content:center;text-align:left" : `left:0;right:0;top:${IPAD ? 100 : 140}px;padding:0 60px;text-align:center`}}
   .l1,.l2{font-family:'Unbounded',sans-serif;font-weight:900;line-height:1.04;letter-spacing:-0.012em;word-spacing:0.14em;white-space:nowrap}
   .l1{color:${t.l1}}
   .l2{color:${t.l2};text-shadow:${t.l2shadow}}
-  .sub{margin:${IPAD ? 28 : 38}px auto 0;max-width:${IPAD ? 1200 : 1000}px;font:600 48px/1.28 'Inter',sans-serif;color:${t.sub};text-wrap:balance}
-  .phone{position:absolute;left:${(W - s.pw) / 2}px;top:${s.y}px;width:${s.pw}px;
+  .sub{margin:${WIDE ? "44px 0 0" : IPAD ? "28px auto 0" : "38px auto 0"};max-width:${WIDE ? 1080 : IPAD ? 1200 : 1000}px;font:600 48px/1.28 'Inter',sans-serif;color:${t.sub};text-wrap:balance}
+  .phone{position:absolute;left:${(s.cx ?? W / 2) - s.pw / 2}px;top:${s.y}px;width:${s.pw}px;
     transform:perspective(2600px) rotateY(${s.ry}deg) rotateZ(${s.rz}deg);transform-origin:50% 40%;
     filter:drop-shadow(0 60px 70px rgba(0,0,0,${s.theme === "ink" ? 0.6 : 0.38}))}
   .fade{${mask}}
@@ -276,14 +297,14 @@ function page(s) {
   <div class="grid"></div><div class="glow"></div>
   <div class="head"><div class="l1" data-fit>${s.l1}</div><div class="l2" data-fit>${s.l2}</div><div class="sub">${s.sub}</div></div>
   ${s.phone === false ? "" : `<div class="phone"><div class="fade"><div class="body"><div class="screen"><img src="file://${join(rawDir, s.raw)}.png"><div class="island"></div></div></div></div></div>`}
-  ${s.extras({ ipad: IPAD }).join("\n  ")}
+  ${s.extras({ ipad: IPAD, wide: WIDE }).join("\n  ")}
 </div>
 <script>
   // Each headline line is as large as fits the width, up to a cap.
   document.fonts.ready.then(() => {
     document.querySelectorAll('[data-fit]').forEach((el) => {
-      let size = ${IPAD ? 130 : 150}; el.style.fontSize = size + 'px';
-      while (el.scrollWidth > ${W - 120} && size > 60) { size -= 2; el.style.fontSize = size + 'px'; }
+      let size = ${WIDE ? 190 : IPAD ? 130 : 150}; el.style.fontSize = size + 'px';
+      while (el.scrollWidth > ${WIDE ? 1240 : W - 120} && size > 60) { size -= 2; el.style.fontSize = size + 'px'; }
     });
     document.body.dataset.ready = '1';
   });
