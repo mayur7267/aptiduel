@@ -2,8 +2,14 @@
 
 - `listing.md`: the name, subtitle, keywords, description and review notes for
   App Store Connect, with Apple's limits and the privacy-label answers.
-- `compose.mjs`: builds the screenshots (1290 x 2796, the 6.9" iPhone size)
-  from real app screens.
+- `compose.mjs`: builds the screenshots from real app screens, in the sizes
+  App Store Connect accepts plus a 4K master set.
+
+| Set | Size | Use |
+|---|---|---|
+| iPhone 6.9" | 1320 x 2868 | Upload to App Store Connect (the iPhone slot) |
+| 4K masters | 2160 x 4693 | Website, social, press. Not for upload: App Store Connect only takes its own sizes |
+| iPad 13" | 2064 x 2752 | Only once the app runs natively on iPad (it is iPhone-only today, so Connect shows no iPad slot) |
 
 ## Remaking the screenshots
 
@@ -18,11 +24,12 @@
 
    cd ios
    TEST_RUNNER_STORE_SHOTS_DIR=/tmp/raw xcodebuild test -project Apticks.xcodeproj \
-     -scheme Apticks -destination 'platform=iOS Simulator,name=iPhone 16 Plus' \
+     -scheme Apticks -destination 'platform=iOS Simulator,name=iPhone 18 Pro Max' \
      -only-testing:ApticksUITests/StoreShotsUITests
    ```
 
-   Any iPhone simulator works; the iPhone 16 Plus is 1290 x 2796 natively.
+   Use a Pro Max simulator: its screen is 1320 x 2868, Apple's 6.9" size, and
+   the iPhone canvas is made as large as the raw screens, so they stay sharp.
    The player comes from the `-FakeName`, `-FakeRating`, `-FakeCollege` and
    `-FakeGradYear` launch arguments (Debug builds only, see `AppContainer`).
 
@@ -30,7 +37,9 @@
    connection, for the same Google Fonts the website uses:
 
    ```sh
-   node store/compose.mjs /tmp/raw ~/Desktop/Apticks-App-Store/Screenshots
+   node store/compose.mjs /tmp/raw out/iphone-1320x2868
+   node store/compose.mjs /tmp/raw out/4k-2160x4693 --width 2160
+   node store/compose.mjs /tmp/raw out/ipad-2064x2752 --device ipad
    ```
 
 Edit the `SHOTS` list in `compose.mjs` to change a headline, a sticker or which

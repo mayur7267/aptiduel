@@ -104,16 +104,21 @@ below is collected, linked to the player's account, for App Functionality
 Not collected: location, contacts, photos, health, financial data, browsing or
 search history, purchases, advertising identifier.
 
-## Screenshots (1290 × 2796, in this order)
+## Screenshots
 
-The first three are what shoppers see in search results.
+Upload the iPhone 6.9" set (1320 x 2868) in this order. The first three are
+what shoppers see in search results. The 4K masters (2160 x 4693) are for the
+website and social; App Store Connect only accepts its own sizes, so they can't
+be uploaded. The iPad 13" set (2064 x 2752) can only be used once the app runs
+natively on iPad.
 
 1. Aptitude prep that's a game: the home screen
 2. Live 1v1 aptitude duels: a question mid-duel
-3. Quant, reasoning, verbal: a picture puzzle
+3. All 3 sections, real puzzles: a picture puzzle
 4. Win, rank up, repeat: the result screen
 5. Daily challenge, keep the streak: the calendar
 6. Beat your college, top India: the leaderboard
-7. Count down to your test day: the placement countdown
+7. Daily goals, build the habit: a collage of the Today cards
 8. Challenge a friend in one tap: a friend's challenge link
 9. Learn from every answer: the answer review
+10. Your player card, show it off: the profile
