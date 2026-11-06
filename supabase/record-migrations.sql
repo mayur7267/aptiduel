@@ -29,7 +29,9 @@ select m.version, m.name
     ('0013', '0013_live_duels'),
     ('0014', '0014_profiles'),
     ('0015', '0015_drives'),
-    ('0016', '0016_daily_calendar')
+    ('0016', '0016_daily_calendar'),
+    ('0017', '0017_metrics'),
+    ('0018', '0018_smarter_bots')
   ) as m(version, name)
  where not exists (select 1 from supabase_migrations.schema_migrations s where s.name = m.name)
    and not exists (select 1 from supabase_migrations.schema_migrations s where s.version = m.version);
