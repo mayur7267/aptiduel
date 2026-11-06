@@ -1,10 +1,13 @@
 import AppCore
 import DesignSystem
 import Domain
+import StoreKit
 import SwiftUI
 
 public struct DuelResultView: View {
     @State private var model: DuelResultViewModel
+    @Environment(\.requestReview) private var requestReview
+    @Environment(ReviewState.self) private var review: ReviewState?
 
     public init(model: DuelResultViewModel) {
         _model = State(initialValue: model)
@@ -28,7 +31,16 @@ public struct DuelResultView: View {
         .task { await model.load() }
         .task(id: model.isLive) { await model.watchRematch() }
         .task(id: model.duel?.awaitingOpponent == true) { await model.poll() }
+        .task(id: model.duel?.outcome) { await askForReview() }
         .animation(.snappy, value: model.duel)
+    }
+
+    // After a win, once the player has had a few: the system rating sheet,
+    // a couple of seconds in so the result lands first (see ReviewState).
+    private func askForReview() async {
+        guard let duel = model.duel, duel.outcome == .win, review?.recordWin(in: duel.id) == true else { return }
+        try? await Task.sleep(for: .seconds(2))
+        if !Task.isCancelled { requestReview() }
     }
 
     private func content(_ duel: Duel) -> some View {

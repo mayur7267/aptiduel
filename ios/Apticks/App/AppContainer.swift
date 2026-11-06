@@ -25,6 +25,7 @@ final class AppContainer {
     let onboarding = OnboardingState()
     let launch = LaunchState()
     let feedback = FeedbackState()
+    let review = ReviewState()
 
     // The tabs keep their view models, so switching tabs shows the last
     // data straight away while it refreshes.

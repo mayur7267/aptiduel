@@ -13,6 +13,7 @@ public struct ProfileView: View {
     let account: AccountViewModel
     @Environment(AppRouter.self) private var router
     @Environment(FeedbackState.self) private var feedback
+    @Environment(\.openURL) private var openURL
     @State private var sheet: ProfileSheet?
     @State private var tilt = Tilt()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -94,10 +95,23 @@ public struct ProfileView: View {
                     icon: saved ? "checkmark.shield" : "lock.open", accent: !saved) { sheet = .account }
                 Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 52)
                 row("Practise for a company", "11 companies · TCS, Infosys, Cognizant, etc.", icon: "building.2") { sheet = .practice }
+                // Shown once the app has an App Store ID (see AppStore).
+                if let url = AppStore.reviewURL {
+                    divider
+                    row("Rate Apticks", "Tell other students what you think", icon: "star") { openURL(url) }
+                }
+                divider
+                row("Help & contact", "Questions, bugs and ideas", icon: "questionmark.circle") { openURL(Links.support) }
+                divider
+                row("Privacy policy", "What we collect and why", icon: "hand.raised") { openURL(Links.privacyPolicy) }
             }
             .card(20)
             .rise(0.34)
         }
+    }
+
+    private var divider: some View {
+        Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 52)
     }
 
     private func row(_ title: String, _ detail: String, icon: String, accent: Bool = false, action: @escaping () -> Void) -> some View {

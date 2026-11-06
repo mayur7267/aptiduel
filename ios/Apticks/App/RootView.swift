@@ -51,6 +51,7 @@ struct RootView: View {
             FlowHost(flow: flow, container: container)
                 .feedbackSheet(container.feedback, active: true, model: container.feedbackModel)
                 .environment(container.feedback)
+                .environment(container.review)
                 .environment(router)
                 .environment(container.companion)
                 .environment(container.tour)
@@ -64,6 +65,7 @@ struct RootView: View {
         .environment(container.onboarding)
         .environment(container.launch)
         .environment(container.feedback)
+        .environment(container.review)
         // Shake the phone anywhere to report a problem.
         .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
             guard container.feedback.request == nil, !container.launch.splashing else { return }

@@ -6,6 +6,10 @@ public enum Links {
 
     public static func challenge(_ code: String) -> String { "\(site)/c/\(code)" }
 
+    // Pages the App Store listing and the app both point to.
+    public static let privacyPolicy = URL(string: "\(site)/privacy")!
+    public static let support = URL(string: "\(site)/support")!
+
     // The code in a challenge link: apticks://c/CODE or https://…/c/CODE.
     public static func challengeCode(from url: URL) -> String? {
         if case let .challenge(code) = route(from: url) { return code }
