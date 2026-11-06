@@ -52,7 +52,9 @@ const WIDE = flags.device === "wide";
 const CANVAS = flags.canvas ? flags.canvas.split("x").map(Number) : null;
 const W = WIDE ? 2622 : IPAD ? 1290 : CANVAS ? CANVAS[0] : RAW_W;
 const H = WIDE ? 1475 : IPAD ? 1720 : CANVAS ? CANVAS[1] : RAW_H;
-const K = H / 2868; // the collage was laid out for a 2868 tall canvas
+const K = H / 2868; // the layout was drawn for a 2868 tall canvas
+const KW = Math.min(1, W / 1320); // the collage cards were drawn for a 1320 wide canvas
+const PY = IPAD ? 560 : Math.round(720 - Math.max(0, 2868 - H) * 0.2); // where the phone's top edge sits
 const SCALE = Number(flags.width ?? (WIDE ? 5244 : IPAD ? 2064 : W)) / W; // wide: 2622 x 1475 at 2x = 5244 x 2950
 
 // ---- Brand ------------------------------------------------------------
@@ -116,12 +118,11 @@ const CHIP_TONES = {
 // Where a sticker sits. The corners keep clear of the app's own content: the
 // top corners cover the status bar, the bottom ones the tab bar or the
 // least important options.
-const DY = IPAD ? -160 : 0; // the iPad's phone starts 160px higher
 const SPOTS = WIDE
   ? { tr: { right: 130, top: 20, rot: 6 }, tl: { left: 1290, top: 40, rot: -6 }, bl: { left: 1290, top: 1330, rot: -5 }, br: { right: 130, top: 1350, rot: 5 } }
   : {
-      tr: { right: 26, top: 662 + DY, rot: 6 },
-      tl: { left: 26, top: 678 + DY, rot: -6 },
+      tr: { right: 26, top: PY - 58, rot: 6 },
+      tl: { left: 26, top: PY - 42, rot: -6 },
       bl: { left: 26, top: H - 278, rot: -5 },
       br: { right: 26, top: H - 298, rot: 5 },
     };
@@ -159,7 +160,7 @@ const FRIEND = rects.friend;
 // ---- The set ----------------------------------------------------------------
 // crop: how much of the screen to show (from the top); fade: dissolve the
 // cut edge into the panel. phone: false makes a collage of floating cards.
-const BASE = { y: 720, pw: 960 };
+const BASE = { y: PY, pw: 960 };
 const SHOTS = [
   {
     ...BASE, id: "01-aptitude-prep-game", raw: "01-home", theme: "lime", crop: 0.44, fade: true,
@@ -176,9 +177,9 @@ const SHOTS = [
       chip({ text: "NO SIGN-UP TO START", tone: "ink", x: 60, y: 1560, rot: -4, size: 38 }),
       `<div class="mascot" style="left:930px;top:1440px;transform:rotate(6deg)">${tiko("wave", 260)}</div>`,
     ] : [
-      snip({ raw: "01-home", rect: QUICK, x: 95, y: 1580, w: 1100, rot: -3 }),
-      snip({ raw: "01-home", rect: FRIEND, x: 60, y: 2040, w: 540, rot: 3 }),
-      chip({ text: "NO SIGN-UP TO START", tone: "ink", r: 28, y: 2130, rot: -4, size: 42 }),
+      snip({ raw: "01-home", rect: QUICK, x: 95, y: PY + 860, w: 1100, rot: -3 }),
+      snip({ raw: "01-home", rect: FRIEND, x: 60, y: PY + 1320, w: 540, rot: 3 }),
+      chip({ text: "NO SIGN-UP TO START", tone: "ink", r: 28, y: PY + 1410, rot: -4, size: 42 }),
       `<div class="mascot" style="left:860px;top:${Math.min(2380, H - 340)}px;transform:rotate(6deg)">${tiko("wave", 320)}</div>`,
     ],
   },
@@ -226,10 +227,10 @@ const SHOTS = [
       chip({ text: "3 SMALL GOALS", tone: "lime", ic: "check", r: 26, y: 440, rot: 6, size: 42 }),
       `<div class="mascot" style="left:40px;top:1360px;transform:rotate(-8deg)">${tiko("cheer", 250)}</div>`,
     ] : [
-      snip({ raw: "02-goals", rect: DECK, x: 70, y: Math.round(790 * K), w: 1150, rot: -3 }),
-      snip({ raw: "01-home", rect: DECK, x: 70, y: Math.round(1500 * K), w: 1150, rot: 2 }),
-      snip({ raw: "01-home", rect: QUICK, x: 70, y: Math.round(2200 * K), w: 1150, rot: -2 }),
-      chip({ text: "3 SMALL GOALS", tone: "lime", ic: "check", r: 26, y: Math.round(662 - (1 - K) * 1800 + 18 * (1 - K) / 0.063), rot: 6, size: 46 }),
+      snip({ raw: "02-goals", rect: DECK, x: Math.round(70 * KW), y: Math.round(790 * K), w: Math.round(1150 * KW), rot: -3 }),
+      snip({ raw: "01-home", rect: DECK, x: Math.round(70 * KW), y: Math.round(1500 * K), w: Math.round(1150 * KW), rot: 2 }),
+      snip({ raw: "01-home", rect: QUICK, x: Math.round(70 * KW), y: Math.round(2200 * K), w: Math.round(1150 * KW), rot: -2 }),
+      chip({ text: "3 SMALL GOALS", tone: "lime", ic: "check", r: 26, y: Math.round(662 - (1 - K) * 1360 + (K < 1 ? 26 : 0)), rot: 6, size: 46 }),
       `<div class="mascot" style="left:915px;top:${Math.min(2450, H - 300)}px;transform:rotate(8deg)">${tiko("cheer", 290)}</div>`,
     ],
   },

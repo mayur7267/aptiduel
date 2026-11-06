@@ -7,12 +7,14 @@
 
 | Set | Size | Use |
 |---|---|---|
-| iPhone 6.5" | 1242 x 2688 | Upload to App Store Connect (the iPhone slot) |
-| iPhone 6.9" | 1320 x 2868 | The same set at the 6.9" size, if Connect asks for that slot instead |
+| iPhone 6.3" | 1206 x 2622 | **Upload to App Store Connect.** This is the iPhone 6.1"/6.3" slot, which accepts only 1179 x 2556 and 1206 x 2622 (a 1242 x 2688 or 1320 x 2868 file is rejected there as "invalid dimensions") |
+| iPhone 6.5" | 1242 x 2688 | For a 6.5" slot, if Connect ever shows one |
+| iPhone 6.9" | 1320 x 2868 | For a 6.9" slot, if Connect ever shows one |
 | 4K masters | 2160 x 4693 | Website, social, press. Not for upload: App Store Connect only takes its own sizes |
 | iPad 13" | 2064 x 2752 | Only once the app runs natively on iPad (it is iPhone-only today, so Connect shows no iPad slot) |
 | Wide 16:9 | 5244 x 2950 | A landscape size some upload screens list. Apple's public screenshot page doesn't, so check your Connect screen accepts it; otherwise use the 1320 x 2868 set |
-| App preview | 1200 x 1600, 24 s, .mp4 | The iPad 13" portrait preview size (see "The app preview" below) |
+| App preview, iPhone | 886 x 1920, 24 s, .mp4 | **Upload to the iPhone 6.1"/6.3" slot** (it accepts 886 x 1920 or 1920 x 886) |
+| App preview, iPad | 1200 x 1600, 24 s, .mp4 | The iPad 13" portrait preview size (needs native iPad support) |
 
 ## Remaking the screenshots
 
@@ -40,6 +42,7 @@
    connection, for the same Google Fonts the website uses:
 
    ```sh
+   node store/compose.mjs /tmp/raw out/iphone-1206x2622 --canvas 1206x2622
    node store/compose.mjs /tmp/raw out/iphone-1242x2688 --canvas 1242x2688
    node store/compose.mjs /tmp/raw out/iphone-1320x2868
    node store/compose.mjs /tmp/raw out/4k-2160x4693 --width 2160
@@ -77,11 +80,10 @@ made from a screen recording, not from stills:
 
    ```sh
    swiftc -O preview/frames.swift -o frames && swiftc -O preview/encode.swift -o encode
-   ./frames raw.mov <start> <end> 30 660 /tmp/screen-frames
-   node preview/compose-preview.mjs /tmp/screen-frames /tmp/out-frames '{"quick":4,"q1":5,"result":20}'
-   ./encode /tmp/out-frames 30 1200 1600 preview.mp4
+   ./frames raw.mov <start> <end> 30 760 /tmp/screen-frames
+   node preview/compose-preview.mjs /tmp/screen-frames /tmp/out-frames '{"quick":2.2,"q1":2.7,"result":19.2}' 886x1920
+   ./encode /tmp/out-frames 30 886 1920 preview.mp4
    ```
 
 The preview is H.264, 30 fps, silent stereo AAC (Connect expects an audio
-track), under 30 seconds. iPad previews only upload once the app runs natively
-on iPad; an iPhone preview would be 886 x 1920 and needs its own composition.
+track), under 30 seconds. The same script makes the iPad version: pass 1200x1600 (the default).
