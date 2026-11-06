@@ -21,6 +21,19 @@ public final class FakeBackend: APIClient, AccountClient {
         self.now = now
     }
 
+    // Starts the pretend player off as someone in particular, for
+    // screenshots (see the -FakeName launch argument in AppContainer).
+    public func start(as name: String, rating: Int, collegeId: Int?, gradYear: Int?) {
+        self.name = name
+        self.rating = rating
+        self.collegeId = collegeId
+        self.gradYear = gradYear
+        // Someone with a saved account, not a guest.
+        meId = "7c2e9a41-5b08-4d36-9f1a-c3d8e2b60a17"
+        guest = false
+        email = "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@college.edu"
+    }
+
     // MARK: State
 
     struct Answer {
@@ -64,6 +77,8 @@ public final class FakeBackend: APIClient, AccountClient {
     private var gradYear: Int?
     private var rating = 1180
     private var guest = true
+    // The pretend player's id (the number on the Profile card is made from it).
+    private var meId = "fake-user"
     private var email: String?
     private var pendingEmail: String?
     private var ownChallengeCode: String?
@@ -181,7 +196,7 @@ public final class FakeBackend: APIClient, AccountClient {
         let dailyDone = runs.values.contains { $0.mode == .daily && $0.finished }
         let quickWins = runs.values.filter { $0.mode == .quick && $0.finished && ($0.ratingAfter ?? 0) > ($0.ratingBefore ?? 0) }.count
         return [
-            "id": "fake-user", "name": name, "rating": rating, "games_played": 6 + runs.count, "wins": 3,
+            "id": meId, "name": name, "rating": rating, "games_played": 6 + runs.count, "wins": 3,
             "streak": 2, "streak_best": 5, "played_today": runs.values.contains { $0.finished },
             "college_id": opt(collegeId), "college": opt(collegeName), "grad_year": opt(gradYear),
             "college_rank": collegeId == nil ? NSNull() : 4, "today_idx": today,
@@ -193,7 +208,7 @@ public final class FakeBackend: APIClient, AccountClient {
     private func playerJSON(name: String, rating: Int, college: String?, bot: Bool, answers: [(points: Int, correct: Bool, ms: Int)],
                             finished: Bool, before: Int?, after: Int?, seat: Int) -> [String: Any] {
         [
-            "id": bot ? NSNull() : (seat == 1 ? "fake-user" : "fake-friend"),
+            "id": bot ? NSNull() : (seat == 1 ? meId : "fake-friend"),
             "seat": seat, "name": name, "rating": rating, "college": opt(college), "is_bot": bot,
             "tagline": bot ? "I never skip leg day. Or quant day." : NSNull(),
             "score": answers.reduce(0) { $0 + $1.points }, "correct": answers.filter(\.correct).count,
@@ -588,7 +603,7 @@ extension FakeBackend {
         return [
             "id": room.id, "code": room.code, "status": status, "is_host": room.hostIsMe,
             "now_ms": ms(now()), "starts_at_ms": ms(room.startsAt),
-            "me": progressJSON(id: "fake-user", seat: room.hostIsMe ? 1 : 2, name: name, rating: rating, college: collegeName, answers: mine),
+            "me": progressJSON(id: meId, seat: room.hostIsMe ? 1 : 2, name: name, rating: rating, college: collegeName, answers: mine),
             "opponent": opponent, "rematch_id": opt(room.rematchId),
         ]
     }
@@ -650,7 +665,7 @@ extension FakeBackend {
     public func profile(_ id: String) async throws -> PublicProfile? {
         try await pause()
         if id == "missing" { return try decode(NSNull()) }
-        let mine = id == "fake-user"
+        let mine = id == meId
         return try decode([
             "id": id, "name": mine ? name : Self.friendName, "college": mine ? opt(collegeName) : "NIT Trichy",
             "grad_year": mine ? opt(gradYear) : 2026, "rating": mine ? rating : 1240, "games_played": 24, "wins": 15,

@@ -52,7 +52,8 @@
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
-		<!-- Duels, answers, scores, rating and streaks. -->
+		<!-- Duels, answers, scores, rating and streaks. Also counted, to see
+		     how many people play, come back and invite friends. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeGameplayContent</string>
@@ -63,6 +64,7 @@
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
 			</array>
 		</dict>
 		<!-- Feedback messages the player chooses to send. -->

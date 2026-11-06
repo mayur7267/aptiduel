@@ -52,6 +52,12 @@ final class AppContainer {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-FakeBackend") {
             let fake = FakeBackend()
+            // -FakeName Asha -FakeRating 1342 -FakeCollege 1 -FakeGradYear 2027
+            let args = UserDefaults.standard
+            if let name = args.string(forKey: "FakeName") {
+                fake.start(as: name, rating: args.integer(forKey: "FakeRating").nonZero ?? 1180,
+                           collegeId: args.integer(forKey: "FakeCollege").nonZero, gradYear: args.integer(forKey: "FakeGradYear").nonZero)
+            }
             return AppContainer(dependencies: Dependencies(api: fake, account: fake))
         }
         #endif
@@ -111,4 +117,8 @@ enum AppConfig {
         }
         return v
     }
+}
+
+private extension Int {
+    var nonZero: Int? { self == 0 ? nil : self }
 }
