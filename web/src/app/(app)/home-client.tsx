@@ -9,6 +9,7 @@ import { account } from "@/lib/account";
 import { clock, greeting, signed, tierFor, untilIstMidnight } from "@/lib/format";
 import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { DuelSignIn } from "@/components/sign-in-form";
+import { InstallCard } from "@/components/install-card";
 import { DriveCard } from "./drive-card";
 import { useCompanionPage, type CompanionPage } from "@/lib/companion";
 import { openFeedback } from "@/lib/feedback";
@@ -190,6 +191,8 @@ export function HomeClient() {
             <ChevronRight size={18} className="text-muted" />
           </Link>
         )}
+
+        <InstallCard ready={me.games_played > 0} />
 
         {error && <ErrorNote message={error} />}
 

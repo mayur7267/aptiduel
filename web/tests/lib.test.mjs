@@ -84,3 +84,21 @@ test("rating history runs oldest to newest and ends at today's rating", async ()
   assert.deepEqual(ratingHistory([], 1000), [1000]);
   assert.equal(weekChange(duels, now), 16);
 });
+
+// "Add to Home screen": stay quiet for two weeks after they say no.
+test("install prompt stays quiet for 14 days after a no", async () => {
+  const { recentlyDismissed, rememberDismissed } = await import("../src/lib/install.ts");
+  const store = new Map();
+  globalThis.localStorage = { getItem: (k) => store.get(k) ?? null, setItem: (k, v) => store.set(k, v) };
+  const day = 86_400_000;
+  const t0 = Date.UTC(2026, 10, 7);
+  assert.equal(recentlyDismissed(t0), false); // never asked
+  rememberDismissed(t0);
+  assert.equal(recentlyDismissed(t0 + 13 * day), true);
+  assert.equal(recentlyDismissed(t0 + 15 * day), false);
+  // Private windows can throw; it should just ask again, not crash.
+  globalThis.localStorage = { getItem() { throw new Error("blocked"); }, setItem() { throw new Error("blocked"); } };
+  assert.equal(recentlyDismissed(t0), false);
+  assert.doesNotThrow(() => rememberDismissed(t0));
+  delete globalThis.localStorage;
+});

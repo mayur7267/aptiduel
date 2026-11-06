@@ -3,6 +3,7 @@ import { Caveat, Inter, JetBrains_Mono, Unbounded } from "next/font/google";
 import { Suspense } from "react";
 import { Companion } from "@/components/companion";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { EARLY_CAPTURE } from "@/lib/install-early";
 import "./globals.css";
 
 const inter = Inter({ variable: "--font-inter", subsets: ["latin"] });
@@ -30,6 +31,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${inter.variable} ${unbounded.variable} ${jetbrains.variable} ${caveat.variable} h-full antialiased`}>
+      <head>
+        {/* Catches Chrome's one-time install prompt before React hydrates (see lib/install.ts). */}
+        <script dangerouslySetInnerHTML={{ __html: EARLY_CAPTURE }} />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         {children}
         {/* Tiko stays with the player across pages (it reads the URL, hence Suspense). */}
