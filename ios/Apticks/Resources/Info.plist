@@ -14,6 +14,10 @@
 			</array>
 		</dict>
 	</array>
+	<!-- The app only uses HTTPS and Apple's own encryption, which is exempt:
+	     no export-compliance question on every TestFlight upload. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UILaunchScreen</key>
 	<dict>
 		<key>UIColorName</key>
