@@ -51,6 +51,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           <Message size={20} />
           Send feedback
         </button>
+        <div className="flex gap-4 px-3 text-[13px] text-faint">
+          <Link href="/privacy" className="underline hover:text-text">Privacy</Link>
+          <Link href="/support" className="underline hover:text-text">Help</Link>
+        </div>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col pb-24 lg:pb-0">{children}</div>

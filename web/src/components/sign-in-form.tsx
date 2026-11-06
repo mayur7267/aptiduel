@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, type FormEvent } from "react";
 import { account } from "@/lib/account";
 import { Modal } from "./modal";
@@ -126,6 +127,11 @@ export function SignInForm({ variant = "save", onDone }: { variant?: keyof typeo
       )}
 
       {error && <ErrorNote message={error} />}
+
+      <p className="text-xs leading-relaxed text-faint">
+        We use your email only to sign you in. See our{" "}
+        <Link href="/privacy" className="underline hover:text-text">privacy policy</Link>.
+      </p>
 
       <button type="button" onClick={switchMode} className="self-start text-sm font-semibold text-lime hover:text-lime-hover">
         {mode === "save" ? copy.toSignIn : copy.toSave}

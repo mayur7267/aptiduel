@@ -103,6 +103,8 @@ export function ProfileHub() {
               onClick={() => setSheet("account")}
             />
             <Row icon="🏢" title="Practise for a company" detail="11 companies · TCS, Infosys, Cognizant, etc." onClick={() => setSheet("practice")} />
+            <Row icon="?" title="Help & contact" detail="Questions, bugs and ideas" href="/support" />
+            <Row icon="✋" title="Privacy policy" detail="What we collect and why" href="/privacy" />
           </div>
         </div>
       )}
@@ -828,9 +830,10 @@ function StickyNote({ tone, tilt, title, line, onClick }: { tone: string; tilt: 
   );
 }
 
-function Row({ icon, title, detail, accent = false, onClick }: { icon: string; title: string; detail: string; accent?: boolean; onClick: () => void }) {
-  return (
-    <button onClick={onClick} className="flex min-h-[62px] w-full items-center gap-3.5 px-3.5 text-left transition hover:bg-raised">
+function Row({ icon, title, detail, accent = false, onClick, href }: { icon: string; title: string; detail: string; accent?: boolean; onClick?: () => void; href?: string }) {
+  const style = "flex min-h-[62px] w-full items-center gap-3.5 px-3.5 text-left transition hover:bg-raised";
+  const body = (
+    <>
       <span
         aria-hidden="true"
         className={`flex size-9 shrink-0 items-center justify-center rounded-[10px] text-base ${accent ? "bg-lime text-ink" : "bg-lime-tint text-lime"}`}
@@ -842,6 +845,15 @@ function Row({ icon, title, detail, accent = false, onClick }: { icon: string; t
         <span className="block truncate text-xs text-muted">{detail}</span>
       </span>
       <ChevronRight size={16} className="shrink-0 text-faint" />
+    </>
+  );
+  return href ? (
+    <Link href={href} className={style}>
+      {body}
+    </Link>
+  ) : (
+    <button onClick={onClick} className={style}>
+      {body}
     </button>
   );
 }

@@ -225,6 +225,14 @@ export function HomeClient() {
           <button onClick={() => openFeedback("idea", { from: "home" })} className={LINK}>
             Tell us
           </button>
+          {" · "}
+          <Link href="/privacy" className={LINK}>
+            Privacy
+          </Link>
+          {" · "}
+          <Link href="/support" className={LINK}>
+            Help
+          </Link>
         </p>
       </main>
     </div>

@@ -54,7 +54,9 @@ export default function ChallengePage({ params }: PageProps<"/c/[code]">) {
 
       <footer className="border-t border-[#1c2232]">
         <div className="mx-auto max-w-6xl px-4 py-6 text-[13px] text-faint sm:px-6">
-          © 2026 Apticks · Questions are original, written in the style of placement aptitude tests.
+          © 2026 Apticks · Questions are original, written in the style of placement aptitude tests. ·{" "}
+          <Link href="/privacy" className="underline hover:text-text">Privacy</Link> ·{" "}
+          <Link href="/support" className="underline hover:text-text">Help</Link>
         </div>
       </footer>
     </div>
