@@ -163,7 +163,7 @@ final class ScreensUITests: XCTestCase {
         snap("70-challenge-friend")
         app.buttons["Back to home"].firstMatch.tap()
         tap("Home")
-        tap("Start a live duel")
+        tap("Duel a friend")
         XCTAssertTrue(app.buttons["Send code"].waitForExistence(timeout: 10))
         snap("71-live-sign-in")
     }
@@ -173,7 +173,7 @@ final class ScreensUITests: XCTestCase {
     @MainActor
     func testLiveDuel() {
         launch()
-        tap("Start a live duel")
+        tap("Duel a friend")
         let email = app.textFields["Email"].firstMatch
         XCTAssertTrue(email.waitForExistence(timeout: 10))
         snap("80-live-sign-in")
@@ -207,17 +207,86 @@ final class ScreensUITests: XCTestCase {
         snap("86-live-result")
     }
 
-    // The placement test countdown on home.
+    // The placement test countdown, on the last page of home's Today deck.
     @MainActor
     func testDriveCard() {
-        launch()
-        let prompt = app.staticTexts["When's your placement test?"]
-        var tries = 0
-        while !prompt.isHittable && tries < 6 { app.swipeUp(velocity: .slow); tries += 1 }
-        XCTAssertTrue(prompt.waitForExistence(timeout: 10))
-        snap("90-drive-form")
+        launch(tour: false)
+        tap("Placement test", timeout: 10)
+        XCTAssertTrue(app.staticTexts["When's your placement test?"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("90-drive-prompt")
+        tap("Set my test")
+        XCTAssertTrue(app.buttons["Start countdown"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("91-drive-form")
         tap("Start countdown")
         XCTAssertTrue(app.staticTexts["days to go"].waitForExistence(timeout: 10))
-        snap("91-drive-countdown")
+        sleep(1)
+        snap("92-drive-countdown")
+    }
+
+    // Today's Daily Challenge, then back home: today's bubble is filled,
+    // and the calendar shows every day done.
+    @MainActor
+    func testDailyFillsToday() {
+        launch(tour: false)
+        let today = app.otherElements.matching(NSPredicate(format: "label ENDSWITH ', today'")).firstMatch
+        XCTAssertTrue(today.waitForExistence(timeout: 10))
+        let day = String(today.label.prefix(3))
+        tap("Play today's set")
+        for i in 1...5 {
+            XCTAssertTrue(app.staticTexts["Question \(i) of 5"].waitForExistence(timeout: 15))
+            app.buttons.matching(NSPredicate(format: "label BEGINSWITH 'A: ' OR label BEGINSWITH 'Option A'")).firstMatch.tap()
+        }
+        let home = app.buttons["Back to home"].firstMatch
+        XCTAssertTrue(home.waitForExistence(timeout: 15))
+        home.tap()
+        // Home stays on the Daily page to show the day filling in.
+        XCTAssertTrue(app.otherElements["\(day), done"].waitForExistence(timeout: 10), "\(day) isn't filled in")
+        XCTAssertTrue(app.buttons["See today's rank"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("97-daily-done")
+        tap("View all days")
+        XCTAssertTrue(app.staticTexts["Daily calendar"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("98-daily-calendar")
+        app.buttons["Previous month"].tap()
+        sleep(1)
+        snap("99-daily-calendar-last-month")
+    }
+
+    // Today's Daily Challenge, started from the calendar sheet.
+    @MainActor
+    func testDailyFromCalendar() {
+        launch(tour: false)
+        tap("View all days", timeout: 10)
+        XCTAssertTrue(app.staticTexts["Daily calendar"].waitForExistence(timeout: 5))
+        tap("Play today's set")
+        XCTAssertTrue(app.staticTexts["Question 1 of 5"].waitForExistence(timeout: 15), "The Daily didn't open")
+        sleep(1)
+        snap("100-daily-from-calendar")
+    }
+
+    // Home on one screen: the deck's pages by swipe and by tab, then a
+    // company duel from the company sheet.
+    @MainActor
+    func testHomeDeckAndCompanies() {
+        launch(tour: false)
+        XCTAssertTrue(app.buttons["Quick Match"].waitForExistence(timeout: 10))
+        sleep(1)
+        snap("93-home")
+        app.buttons["Play today's set"].firstMatch.swipeLeft()
+        XCTAssertTrue(app.buttons["Win 2 Quick Matches"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("94-home-goals")
+        tap("Daily Challenge")
+        sleep(1)
+        tap("Company prep")
+        XCTAssertTrue(app.buttons["Cognizant"].waitForExistence(timeout: 5))
+        sleep(1)
+        snap("95-company-sheet")
+        tap("Cognizant")
+        XCTAssertTrue(app.staticTexts["Question 1 of 5"].waitForExistence(timeout: 15))
+        snap("96-company-duel")
     }
 }

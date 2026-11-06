@@ -123,7 +123,10 @@ public final class DuelPlayViewModel {
         while phase == .question, !Task.isCancelled {
             remainingMs = msLeft()
             if remainingMs == 0 {
-                await submit(nil)
+                // In a task of its own: answering stops the clock, and the
+                // view then cancels the clock's task, which would cancel
+                // the answer on its way and leave the duel stuck here.
+                await Task { await submit(nil) }.value
                 return
             }
             await sleep(.milliseconds(100))

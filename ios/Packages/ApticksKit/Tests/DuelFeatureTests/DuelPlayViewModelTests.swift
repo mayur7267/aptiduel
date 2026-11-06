@@ -79,7 +79,28 @@ struct DuelPlayViewModelTests {
         await model.load()
         await model.runClock()
         #expect(model.chosen == nil)
-        #expect(model.result?.correct == false)
+        // Marked wrong (the result itself clears once the next question shows).
+        #expect(model.marks == [.wrong])
+    }
+
+    // In the view the clock runs in `.task(id: clockKey)`, which SwiftUI
+    // cancels the moment the question stops running: as the answer goes.
+    // A timed-out answer must still arrive, or the duel is stuck on it.
+    @Test func runningOutOfTimeSurvivesTheClockStopping() async throws {
+        let backend = FakeBackend(latency: .milliseconds(30))
+        var now = Date()
+        let start = try await backend.quickMatch()
+        backend.now = { now }
+        let model = DuelPlayViewModel(duelId: start.duelId, api: backend, router: router, now: { now }, sleep: { _ in now += 41 })
+        await model.load()
+        let clock = Task { await model.runClock() }
+        while model.clockKey != -1 { await Task.yield() }
+        clock.cancel()
+        for _ in 0..<300 where model.result == nil && model.error == nil {
+            try await Task.sleep(for: .milliseconds(10))
+        }
+        #expect(model.error == nil)
+        // Marked wrong (the result itself clears once the next question shows).
         #expect(model.marks == [.wrong])
     }
 

@@ -38,6 +38,26 @@ public struct PressableStyle: ButtonStyle {
     }
 }
 
+// A whole card as one button: it pushes into its sticker shadow when tapped.
+public struct CardPressStyle: ButtonStyle {
+    var radius: CGFloat
+    var pop: Color
+
+    public init(radius: CGFloat = 22, pop: Color = Theme.pop) {
+        self.radius = radius
+        self.pop = pop
+    }
+
+    public func makeBody(configuration: Configuration) -> some View {
+        let pressed = configuration.isPressed
+        configuration.label
+            .offset(x: pressed ? 3 : 0, y: pressed ? 3 : 0)
+            .background(RoundedRectangle(cornerRadius: radius, style: .continuous).fill(pop).offset(x: 4, y: 4))
+            .animation(.easeOut(duration: 0.12), value: pressed)
+            .sensoryFeedback(.impact(weight: .light, intensity: 0.6), trigger: pressed) { _, now in now }
+    }
+}
+
 // Plain filled buttons, for actions that don't need the arcade press.
 public struct FilledStyle: ButtonStyle {
     var fill: Color

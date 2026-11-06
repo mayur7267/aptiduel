@@ -48,6 +48,10 @@ public protocol APIClient: AnyObject, Sendable {
     func setDrive(company: String?, on day: String?) async throws -> Drive
     func submitDriveResult(cleared: String, difficulty: String?) async throws -> Drive
 
+    // The days you finished the Daily Challenge: IST dates (yyyy-MM-dd),
+    // oldest first, over the last 400 days (0016_daily_calendar.sql).
+    func dailyDays() async throws -> [String]
+
     // Saved for the team and emailed to them.
     func sendFeedback(_ feedback: FeedbackDraft) async throws
 }

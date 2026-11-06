@@ -2,14 +2,26 @@ import DesignSystem
 import Domain
 import SwiftUI
 
+// The last few duels; three until you ask for more.
 struct RecentDuels: View {
     let duels: [DuelSummary]
     let onOpen: (DuelLine) -> Void
+    @State private var showAll = false
 
     var body: some View {
-        let rows = duels.map(DuelLine.init)
+        let all = duels.map(DuelLine.init)
+        let rows = showAll ? all : Array(all.prefix(3))
         VStack(alignment: .leading, spacing: 6) {
-            Text("Recent duels").font(.ui(17, .bold)).foregroundStyle(Theme.text).padding(.bottom, 8)
+            HStack {
+                Text("Recent duels").font(.ui(17, .bold)).foregroundStyle(Theme.text)
+                Spacer()
+                if all.count > 3 {
+                    Button(showAll ? "Show fewer" : "Show all \(all.count)") { withAnimation(.snappy) { showAll.toggle() } }
+                        .font(.ui(13, .semibold))
+                        .foregroundStyle(Theme.lime)
+                }
+            }
+            .padding(.bottom, 8)
             if rows.isEmpty {
                 Text("No duels yet. A Quick Match takes about 3 minutes.").font(.ui(14)).foregroundStyle(Theme.muted)
             }

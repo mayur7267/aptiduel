@@ -42,6 +42,18 @@ struct HomeViewModelTests {
         #expect(model.latestChallenge(now: Date().addingTimeInterval(8 * 86_400)) == nil)
     }
 
+    @Test func theTodayDeckOpensOnWhatsNext() async throws {
+        let model = HomeViewModel(api: backend, router: router)
+        await model.load()
+        // The fake player hasn't played today's Daily Challenge.
+        #expect(model.suggestedPage == .daily)
+        // A placement test today comes first.
+        _ = try await backend.setDrive(company: "TCS NQT", on: Drive.dayString(Date()))
+        await model.load()
+        #expect(model.drive.stage == .today)
+        #expect(model.suggestedPage == .test)
+    }
+
     @Test func aDriveCountsDownThenAsksHowItWent() async throws {
         var clock = Date(timeIntervalSince1970: 1_800_000_000)
         backend.now = { clock }

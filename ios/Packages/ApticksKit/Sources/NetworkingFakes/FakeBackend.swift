@@ -661,6 +661,29 @@ extension FakeBackend {
     }
 }
 
+// MARK: - Daily calendar
+
+extension FakeBackend {
+    // The week's pattern on the Daily card carried back six weeks, and
+    // today once its Daily is done. IST days, like the server.
+    public func dailyDays() async throws -> [String] {
+        try await pause()
+        var cal = Calendar(identifier: .iso8601)
+        cal.timeZone = TimeZone(identifier: "Asia/Kolkata")!
+        let format = ISO8601DateFormatter()
+        format.formatOptions = [.withFullDate]
+        format.timeZone = cal.timeZone
+        let today = cal.startOfDay(for: now())
+        let dailyDone = runs.values.contains { $0.mode == .daily && $0.finished }
+        return (0...42).reversed().compactMap { back in
+            guard let day = cal.date(byAdding: .day, value: -back, to: today) else { return nil }
+            let monday0 = (cal.component(.weekday, from: day) + 5) % 7
+            let done = back == 0 ? dailyDone : monday0 % 3 != 2
+            return done ? format.string(from: day) : nil
+        }
+    }
+}
+
 // MARK: - Drives
 
 extension FakeBackend {

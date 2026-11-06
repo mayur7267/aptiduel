@@ -132,6 +132,8 @@ public final class SupabaseBackend: APIClient, AccountClient {
         try await rpc("submit_drive_result", ["p_cleared": .string(cleared), "p_difficulty": difficulty.map { .string($0) } ?? .null])
     }
 
+    public func dailyDays() async throws -> [String] { try await rpc("daily_days") }
+
     public func sendFeedback(_ feedback: FeedbackDraft) async throws {
         _ = try await call("submit_feedback", [
             "p_kind": .string(feedback.kind.rawValue),

@@ -19,6 +19,11 @@ public final class HomeViewModel {
 
     // The placement test you're preparing for.
     public let drive: DriveViewModel
+    // Every day you finished the Daily Challenge.
+    public let calendar: DailyCalendarViewModel
+    // Today's Daily Challenge was done since the last load: home stays on
+    // its page to show the day filling in, rather than moving on.
+    public private(set) var dailyJustDone = false
 
     private let api: any APIClient
     let router: AppRouter
@@ -27,14 +32,20 @@ public final class HomeViewModel {
         self.api = api
         self.router = router
         drive = DriveViewModel(api: api, router: router)
+        calendar = DailyCalendarViewModel(api: api)
     }
 
+    // The test loads alongside the rest, so home first shows up with the
+    // Today deck already on the right page.
     public func load() async {
+        async let test: Void = drive.load()
+        async let m = api.me()
+        async let d = api.myDuels(limit: 8)
+        async let b = api.leaderboard(.college, limit: 5)
+        await test
         do {
-            async let m = api.me()
-            async let d = api.myDuels(limit: 8)
-            async let b = api.leaderboard(.college, limit: 5)
             let (me, duels, board) = try await (m, d, b)
+            dailyJustDone = self.me.map { $0.quests.daily == 0 && me.quests.daily > 0 } ?? false
             self.me = me
             self.duels = duels
             self.board = board
@@ -42,7 +53,19 @@ public final class HomeViewModel {
         } catch {
             self.error = error.localizedDescription
         }
-        await drive.load()
+    }
+
+    // The Today page worth opening on: a Daily Challenge just done, the
+    // placement test on its day or after it, then an unplayed Daily
+    // Challenge, then unfinished goals, then the countdown.
+    public var suggestedPage: TodayPage {
+        guard let me else { return .daily }
+        if dailyJustDone { return .daily }
+        if drive.stage == .today || drive.stage == .howDidItGo { return .test }
+        if me.quests.daily == 0 { return .daily }
+        if me.goalsDone < me.goals.count { return .goals }
+        if case .upcoming = drive.stage { return .test }
+        return .daily
     }
 
     // A live room, and its lobby to share the link from. Guests sign in
