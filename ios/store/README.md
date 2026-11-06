@@ -7,7 +7,8 @@
 
 | Set | Size | Use |
 |---|---|---|
-| iPhone 6.9" | 1320 x 2868 | Upload to App Store Connect (the iPhone slot) |
+| iPhone 6.5" | 1242 x 2688 | Upload to App Store Connect (the iPhone slot) |
+| iPhone 6.9" | 1320 x 2868 | The same set at the 6.9" size, if Connect asks for that slot instead |
 | 4K masters | 2160 x 4693 | Website, social, press. Not for upload: App Store Connect only takes its own sizes |
 | iPad 13" | 2064 x 2752 | Only once the app runs natively on iPad (it is iPhone-only today, so Connect shows no iPad slot) |
 | Wide 16:9 | 5244 x 2950 | A landscape size some upload screens list. Apple's public screenshot page doesn't, so check your Connect screen accepts it; otherwise use the 1320 x 2868 set |
@@ -39,6 +40,7 @@
    connection, for the same Google Fonts the website uses:
 
    ```sh
+   node store/compose.mjs /tmp/raw out/iphone-1242x2688 --canvas 1242x2688
    node store/compose.mjs /tmp/raw out/iphone-1320x2868
    node store/compose.mjs /tmp/raw out/4k-2160x4693 --width 2160
    node store/compose.mjs /tmp/raw out/ipad-2064x2752 --device ipad

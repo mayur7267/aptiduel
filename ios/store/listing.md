@@ -106,8 +106,9 @@ search history, purchases, advertising identifier.
 
 ## Screenshots
 
-Upload the iPhone 6.9" set (1320 x 2868) in this order. The first three are
-what shoppers see in search results.
+Upload the iPhone 6.5" set (1242 x 2688) in this order. The first three are
+what shoppers see in search results. The same shots at the 6.9" size
+(1320 x 2868) are there too, if Connect asks for that slot instead.
 
 Other sets, all from the same shots:
 
