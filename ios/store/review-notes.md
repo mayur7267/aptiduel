@@ -22,7 +22,7 @@ The app opens as a guest automatically, so no credentials or sample files are ne
 4. EXTERNAL SERVICES
 - Supabase: database, guest and email-code sign-in, and realtime for live duels.
 - Vercel: hosts the website and challenge links (aptiduel.vercel.app).
-- Gmail SMTP / Resend: sends sign-in codes and feedback emails.
+- Gmail (SMTP): sends the sign-in code emails. In-app feedback reaches us by email through Gmail or Resend.
 - Apple StoreKit: only to ask happy players for an App Store rating.
 There are no ads, no analytics or tracking SDKs, no AI services and no payment processor.
 
