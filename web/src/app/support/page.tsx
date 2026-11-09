@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Email, LegalPage, P, Section } from "@/components/legal";
+import { APP_STORE_URL } from "@/lib/app-store";
 import { CONTACT_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = {
@@ -9,6 +10,19 @@ export const metadata: Metadata = {
 };
 
 const FAQ: { q: string; a: React.ReactNode }[] = [
+  {
+    q: "Is there an iPhone app?",
+    a: (
+      <>
+        Yes,{" "}
+        <a href={APP_STORE_URL} className="font-semibold text-lime underline hover:text-lime-hover">
+          Apticks is on the App Store
+        </a>
+        . To keep the same rating on the app and the website, save your account with your email in Profile, then sign
+        in with that email on the other one.
+      </>
+    ),
+  },
   {
     q: "I lost my progress. Can I get it back?",
     a: "Without an email, your account lives only in that browser or on that iPhone, so clearing browser data or deleting the app removes it. Save your account in Profile with your email and you can sign in anywhere with a one-time code and keep your rating.",

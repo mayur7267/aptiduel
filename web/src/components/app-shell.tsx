@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { APP_STORE_URL } from "@/lib/app-store";
 import { openFeedback } from "@/lib/feedback";
-import { Bars, Calendar, Home, Message, User } from "./icons";
+import { Bars, Calendar, Home, Message, Phone, User } from "./icons";
 import { Logo } from "./ui";
 
 const NAV = [
@@ -13,6 +14,9 @@ const NAV = [
   { href: "/leaderboard", label: "Leaderboard", short: "Ranks", icon: Bars },
   { href: "/profile", label: "Profile", short: "Profile", icon: User },
 ];
+
+const SIDE_LINK =
+  "flex h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-[15px] font-semibold text-muted transition hover:bg-surface/60 hover:text-text";
 
 // Sidebar on laptops, bottom tab bar on phones.
 export function AppShell({ children }: { children: ReactNode }) {
@@ -44,13 +48,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <button
-          onClick={() => openFeedback("idea", { from: "sidebar" })}
-          className="mt-auto flex h-11 items-center gap-3 rounded-xl border border-transparent px-3 text-[15px] font-semibold text-muted transition hover:bg-surface/60 hover:text-text"
-        >
-          <Message size={20} />
-          Send feedback
-        </button>
+        <div className="mt-auto flex flex-col gap-1">
+          <a href={APP_STORE_URL} target="_blank" rel="noopener noreferrer" className={SIDE_LINK}>
+            <Phone size={20} />
+            Get the iPhone app
+          </a>
+          <button onClick={() => openFeedback("idea", { from: "sidebar" })} className={SIDE_LINK}>
+            <Message size={20} />
+            Send feedback
+          </button>
+        </div>
         <div className="flex gap-4 px-3 text-[13px] text-faint">
           <Link href="/privacy" className="underline hover:text-text">Privacy</Link>
           <Link href="/support" className="underline hover:text-text">Help</Link>

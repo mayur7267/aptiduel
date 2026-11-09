@@ -3,6 +3,7 @@ import { Caveat, Inter, JetBrains_Mono, Unbounded } from "next/font/google";
 import { Suspense } from "react";
 import { Companion } from "@/components/companion";
 import { FeedbackDialog } from "@/components/feedback-dialog";
+import { APP_STORE_ID } from "@/lib/app-store";
 import { EARLY_CAPTURE } from "@/lib/install-early";
 import "./globals.css";
 
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
   title: { default: "Apticks: aptitude duels for placements", template: "%s · Apticks" },
   description:
     "Beat your friends at placement aptitude. 5 quick questions, live rating, college leaderboards.",
+  // Safari on iPhone shows Apple's banner offering the app.
+  itunes: { appId: APP_STORE_ID },
 };
 
 export const viewport: Viewport = {

@@ -80,6 +80,9 @@ export const Swords = (p: IconProps) => (
 export const Bot = (p: IconProps) => (
   <Icon {...p}><path d="M12 8V4H8" /><rect x="4" y="8" width="16" height="12" rx="2" /><path d="M2 14h2" /><path d="M20 14h2" /><path d="M15 13v2" /><path d="M9 13v2" /></Icon>
 );
+export const Phone = (p: IconProps) => (
+  <Icon {...p}><rect x="6" y="2" width="12" height="20" rx="2.5" /><path d="M11 18h2" /></Icon>
+);
 export const User = (p: IconProps) => (
   <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></Icon>
 );
