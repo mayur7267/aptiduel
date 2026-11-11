@@ -11,6 +11,7 @@ import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components
 import { DuelSignIn } from "@/components/sign-in-form";
 import { InstallCard } from "@/components/install-card";
 import { DriveCard } from "./drive-card";
+import { DailyCalendar } from "./daily-calendar";
 import { useCompanionPage, type CompanionPage } from "@/lib/companion";
 import { openFeedback } from "@/lib/feedback";
 import { TikoTour } from "@/components/tiko-tour";
@@ -36,6 +37,7 @@ export function HomeClient() {
   const [attempt, setAttempt] = useState(0);
   const [busy, setBusy] = useState<Action | null>(null);
   const [signIn, setSignIn] = useState(false);
+  const [calendar, setCalendar] = useState(false);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
   useCompanionPage(homeNudge(me));
 
@@ -206,8 +208,20 @@ export function HomeClient() {
             resetsIn={untilIstMidnight(minute * 60_000)}
             busy={busy}
             onPlay={() => start("daily")}
+            onCalendar={() => setCalendar(true)}
           />
         </div>
+        <DailyCalendar
+          open={calendar}
+          onClose={() => setCalendar(false)}
+          me={me}
+          nowMs={minute * 60_000}
+          busy={busy === "daily"}
+          onPlay={() => {
+            setCalendar(false);
+            start("daily");
+          }}
+        />
 
         <DriveCard />
 
@@ -460,12 +474,14 @@ function DailyCard({
   resetsIn,
   busy,
   onPlay,
+  onCalendar,
 }: {
   me: Me;
   now: Date;
   resetsIn: string;
   busy: Action | null;
   onPlay: () => void;
+  onCalendar: () => void;
 }) {
   const doneToday = me.quests.daily > 0;
   return (
@@ -480,10 +496,25 @@ function DailyCard({
           <p className="text-sm text-violet-soft/80">5 questions · same for everyone</p>
           <p className="font-mono text-xs text-violet">New set in {resetsIn}</p>
         </div>
-        {now.getTime() > 0 && <CalendarPage date={now} />}
+        {now.getTime() > 0 && (
+          <button onClick={onCalendar} aria-label="Daily calendar" className="rounded-xl">
+            <CalendarPage date={now} />
+          </button>
+        )}
+      </div>
+      <div className="mt-auto -mb-1.5 flex items-center justify-between">
+        <span className="font-mono text-[11px] tracking-[0.12em] text-violet-soft/60">THIS WEEK</span>
+        <button
+          onClick={onCalendar}
+          aria-label="View all days"
+          className="-my-2 flex items-center gap-0.5 py-2 text-[13px] font-semibold text-violet hover:text-violet-soft"
+        >
+          View all
+          <ChevronRight size={13} strokeWidth={2.8} />
+        </button>
       </div>
       {/* The week as an OMR row: a bubble per day, filled in when done. */}
-      <ol className="mt-auto grid grid-cols-7 gap-1.5" aria-label="Daily challenges this week">
+      <ol className="grid grid-cols-7 gap-1.5" aria-label="Daily challenges this week">
         {DAYS.map((label, i) => {
           const done = me.daily_week[i];
           const today = i === me.today_idx;

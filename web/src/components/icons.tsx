@@ -39,6 +39,9 @@ export const Close = (p: IconProps) => (
 export const Check = (p: IconProps) => (
   <Icon {...p}><path d="M20 6 9 17l-5-5" /></Icon>
 );
+export const ChevronLeft = (p: IconProps) => (
+  <Icon {...p}><path d="m15 18-6-6 6-6" /></Icon>
+);
 export const ChevronRight = (p: IconProps) => (
   <Icon {...p}><path d="m9 18 6-6-6-6" /></Icon>
 );

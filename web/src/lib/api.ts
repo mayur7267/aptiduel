@@ -291,6 +291,8 @@ export const api = {
   quickMatch: () => rpc<MatchStart>("quick_match"),
   companyMatch: (company: string) => rpc<MatchStart>("company_match", { p_company: company }),
   dailyChallenge: () => rpc<{ duel_id: string }>("daily_challenge"),
+  // The IST days you finished the Daily, oldest first (0016_daily_calendar.sql).
+  dailyDays: () => rpc<string[]>("daily_days"),
   leaderboard: (scope: "college" | "india", limit = 50) =>
     rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),
   joinChallenge: (code: string) => rpc<{ duel_id: string }>("join_challenge", { p_code: code }),
