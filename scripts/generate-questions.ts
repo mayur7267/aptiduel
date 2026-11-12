@@ -137,6 +137,7 @@ const quant: Record<string, Template> = {
       const a = pick([10, 20, 25, 30, 40, 50]);
       const b = pick([10, 20, 25, 30, 40, 50]);
       const thenFalls = rand() < 0.75;
+      if (!thenFalls && a < b) return null; // up 30% then 50% is the same question as up 50% then 30%
       const item = pick(['price of a phone', 'salary of an employee', 'population of a town', 'price of a scooter', 'rent of a flat']);
       const net = thenFalls ? a - b - (a * b) / 100 : a + b + (a * b) / 100;
       if (!isInt(net)) return null;
@@ -1199,9 +1200,12 @@ function variantOf(q: Draft) {
   return createHash('md5').update(all).digest('hex').slice(0, 16);
 }
 
+// Two questions that differ only in a person's name count as the same question.
+const SAME_NAME = new RegExp(`\\b(${NAMES.join('|')})\\b`, 'g');
+
 function add(q: Draft, template: string) {
   const variant = variantOf(q);
-  const key = `${q.body}|${variant ?? ''}`;
+  const key = `${q.body.replace(SAME_NAME, '_')}|${variant ?? ''}`;
   if (seen.has(key)) return false;
   if (q.options.length !== 4 || new Set(q.options).size !== 4) throw new Error(`Bad options: ${q.body}`);
   if (q.correctIdx < 0 || q.correctIdx > 3) throw new Error(`Bad answer index: ${q.body}`);
@@ -1211,13 +1215,15 @@ function add(q: Draft, template: string) {
   return true;
 }
 
+// Each template makes SCALE times its count, so players rarely see the same numbers twice.
+const SCALE = 5;
 for (const [id, t] of Object.entries({ ...quant, ...reasoning, ...logic, ...visualTemplates })) {
   let made = 0;
-  for (let tries = 0; tries < 20000 && made < t.count; tries++) {
+  for (let tries = 0; tries < 50000 && made < t.count * SCALE; tries++) {
     const q = t.make();
     if (q && add(q, id)) made++;
   }
-  if (made < t.count) console.warn(`  ${id}: only ${made} of ${t.count}`);
+  if (made < t.count * SCALE) console.warn(`  ${id}: only ${made} of ${t.count * SCALE}`);
 }
 
 for (const [section, items] of [['reasoning', curatedReasoning], ['verbal', curatedVerbal]] as const) {
