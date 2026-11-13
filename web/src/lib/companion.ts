@@ -10,6 +10,7 @@ import type { TikoMood } from "@/components/tiko";
 export type CompanionPage = {
   mood?: TikoMood;
   say?: string | null; // shown once per visit, then fades
+  hidden?: boolean; // the page has its own Tiko
 };
 
 type State = { page: CompanionPage | null; touring: boolean; off: boolean };
@@ -59,9 +60,9 @@ export function setTikoOff(off: boolean) {
 
 // Called by a page to set Tiko's mood and message while it's on screen.
 export function useCompanionPage(page: CompanionPage) {
-  const { mood, say } = page;
+  const { mood, say, hidden } = page;
   useEffect(() => {
-    set({ page: { mood, say } });
+    set({ page: { mood, say, hidden } });
     return () => set({ page: null });
-  }, [mood, say]);
+  }, [mood, say, hidden]);
 }

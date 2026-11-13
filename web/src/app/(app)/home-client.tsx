@@ -15,6 +15,8 @@ import { DailyCalendar } from "./daily-calendar";
 import { useCompanionPage, type CompanionPage } from "@/lib/companion";
 import { openFeedback } from "@/lib/feedback";
 import { TikoTour } from "@/components/tiko-tour";
+import { hasSavedSession } from "@/lib/supabase";
+import { FirstVisit } from "./first-visit";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
 
 type Action = "quick" | "challenge" | "daily";
@@ -28,6 +30,12 @@ const subscribeMinute = (cb: () => void) => {
 };
 const currentMinute = () => Math.floor(Date.now() / 60_000);
 
+// A browser with no account yet is a first visit. Read once, before the
+// guest account is made, so the answer doesn't flip while the page loads.
+let firstVisit: boolean | null = null;
+const isFirstVisit = () => (firstVisit ??= !hasSavedSession());
+const subscribeNever = () => () => {};
+
 export function HomeClient() {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
@@ -39,7 +47,12 @@ export function HomeClient() {
   const [signIn, setSignIn] = useState(false);
   const [calendar, setCalendar] = useState(false);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
-  useCompanionPage(homeNudge(me));
+  const fresh = useSyncExternalStore(subscribeNever, isFirstVisit, () => false);
+  // games_played counts rated duels only; a finished Daily (no opponent)
+  // or a challenge your friend hasn't played yet still sets a best streak.
+  const beforeFirstGame = (!me && fresh) || (me?.games_played === 0 && me.streak_best === 0);
+  // The first-visit screen has its own Tiko, standing on the Play button.
+  useCompanionPage({ ...homeNudge(me), hidden: beforeFirstGame });
 
   useEffect(() => {
     let active = true;
@@ -100,6 +113,22 @@ export function HomeClient() {
       setError(e.message);
       setBusy(null);
     });
+  }
+
+  // Before the first game: one screen, one button. A new visitor sees it
+  // at once; anyone else once their profile loads.
+  if (beforeFirstGame) {
+    return (
+      <>
+        <FirstVisit
+          busy={busy}
+          error={error}
+          onDaily={() => start("daily")}
+          onFriend={() => start("challenge")}
+        />
+        <DuelSignIn open={signIn} onClose={() => setSignIn(false)} onDone={signedIn} />
+      </>
+    );
   }
 
   if (!me) {

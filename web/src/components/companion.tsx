@@ -50,7 +50,7 @@ export function Companion() {
   }, []);
 
   const routeMood = ROUTE_MOOD[path];
-  const visible = routeMood !== undefined && !touring && !off;
+  const visible = routeMood !== undefined && !touring && !off && !page?.hidden;
   const mood = page?.mood ?? routeMood ?? "happy";
 
   function speak(text: string) {

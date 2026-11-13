@@ -6,36 +6,49 @@ import { api, type Duel } from "@/lib/api";
 import { Tiko } from "@/components/tiko";
 import { ErrorNote, Spinner } from "@/components/ui";
 
-// Opens today's daily challenge. A run you've already started or
-// finished opens straight away; a fresh one waits for you to press Start,
-// since the clock begins as soon as the first question opens.
+// Opens today's daily challenge. A run you've finished opens its result;
+// otherwise you see what it is and press Start, since the clock begins as
+// soon as the first question opens. Today's run is only made on Start, so
+// looking at this page doesn't count as starting a game.
 export function DailyStart() {
   const router = useRouter();
-  const [duel, setDuel] = useState<Duel | null>(null);
+  const [ready, setReady] = useState(false);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
     api
-      .dailyChallenge()
-      .then(({ duel_id }) => api.getDuel(duel_id))
-      .then((d) => {
+      .getMe()
+      .then(async (me) => {
         if (!active) return;
-        if (d.me.finished) router.replace(`/duel/${d.id}/result`);
-        else if (d.me.answered > 0) router.replace(`/duel/${d.id}`);
-        else setDuel(d);
+        if (me.quests.daily === 0) return setReady(true);
+        const d: Duel = await api.getDuel((await api.dailyChallenge()).duel_id);
+        if (active) router.replace(d.me.finished ? `/duel/${d.id}/result` : `/duel/${d.id}`);
       })
       .catch((e: Error) => active && setError(e.message));
     return () => {
       active = false;
       // Next keeps this page mounted (hidden); load fresh when shown again.
-      setDuel(null);
+      setReady(false);
+      setBusy(false);
     };
   }, [router, attempt]);
 
+  async function start() {
+    setBusy(true);
+    try {
+      const { duel_id } = await api.dailyChallenge();
+      router.push(`/duel/${duel_id}`);
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
+
   if (error) return <ErrorNote message={error} onRetry={() => (setError(null), setAttempt((n) => n + 1))} />;
-  if (!duel) return <Spinner label="Opening today's challenge" />;
+  if (!ready) return <Spinner label="Opening today's challenge" />;
 
   return (
     <div className="flex flex-col items-start gap-4 rounded-[22px] border-2 border-violet-strong bg-[linear-gradient(150deg,#251f4a_0%,#151a26_70%)] p-6">
@@ -47,10 +60,11 @@ export function DailyStart() {
         </p>
       </div>
       <button
-        onClick={() => router.push(`/duel/${duel.id}`)}
-        className="h-12 rounded-2xl bg-text px-6 text-[15px] font-bold text-ink hover:bg-soft"
+        onClick={start}
+        disabled={busy}
+        className="h-12 rounded-2xl bg-text px-6 text-[15px] font-bold text-ink hover:bg-soft disabled:opacity-70"
       >
-        Start
+        {busy ? "Starting…" : "Start"}
       </button>
     </div>
   );
