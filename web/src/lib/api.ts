@@ -283,6 +283,21 @@ export type LiveState = {
   rematch_id: string | null;
 };
 
+export type ShareKind = "daily" | "story" | "challenge";
+export type ShareChannel = "whatsapp" | "share" | "copy" | "download";
+
+// The public side of a shared Daily run: right or wrong per question,
+// never the questions themselves (daily_share in 0021_share_cards.sql).
+export type DailyShare = {
+  name: string;
+  day: string; // YYYY-MM-DD, IST
+  today: boolean;
+  correct: number;
+  score: number;
+  total_ms: number;
+  grid: boolean[];
+};
+
 // Starting a match can hand back an unfinished one instead.
 export type MatchStart = { duel_id: string; resumed?: boolean };
 
@@ -307,6 +322,12 @@ export const api = {
   liveRematch: (duelId: string) => rpc<{ duel_id: string; code: string }>("live_rematch", { p_duel_id: duelId }),
   challengeStatus: (code: string) => rpc<ChallengeStatus | null>("challenge_status", { p_code: code }),
   shareCode: (duelId: string) => rpc<{ code: string }>("challenge_from_duel", { p_duel_id: duelId }),
+  // Sharing (0021_share_cards.sql): count taps on share buttons, and tag a
+  // newcomer who came in through a shared Daily or story link.
+  logShare: (kind: ShareKind, channel: ShareChannel, duelId: string | null) =>
+    rpc<void>("log_share", { p_kind: kind, p_channel: channel, p_duel_id: duelId }),
+  noteArrival: (via: "daily" | "story", code: string | null = null) =>
+    rpc<void>("note_arrival", { p_via: via, p_code: code }),
   nextQuestion: (duelId: string) => rpc<QuestionView>("next_question", { p_duel_id: duelId }),
   submitAnswer: (duelId: string, qIndex: number, choice: number | null) =>
     rpc<AnswerResult>("submit_answer", { p_duel_id: duelId, p_q_index: qIndex, p_choice: choice }),

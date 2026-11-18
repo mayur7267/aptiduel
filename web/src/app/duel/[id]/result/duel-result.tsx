@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { use, useEffect, useEffectEvent, useState } from "react";
-import { api, type Duel, type Player, type ReviewItem } from "@/lib/api";
+import { use, useEffect, useEffectEvent, useState, type FormEvent } from "react";
+import { api, type Duel, type Me, type Player, type ReviewItem, type ShareChannel, type ShareKind } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
 import { openFeedback } from "@/lib/feedback";
-import { challengeShareText, clock, signed, tierFor } from "@/lib/format";
-import { Bolt, Check, ChevronRight, Close, Refresh, Shield, Trophy } from "@/components/icons";
+import { challengeShareText, clock, dailyShareText, shortDay, signed, tierFor } from "@/lib/format";
+import { Bolt, Check, Close, Refresh, Shield, Trophy } from "@/components/icons";
 import { Figure } from "@/components/figure";
 import { Tiko, type TikoMood } from "@/components/tiko";
 import { SharePanel } from "@/components/share-panel";
+import { StoryButton, type StoryData } from "@/components/story-card";
 import { BotTag, Card, ErrorNote, PlayerAvatar, Spinner } from "@/components/ui";
 
 export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
@@ -23,6 +24,15 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
   // A live duel's rematch room, once either player has asked for one.
   const [rematchId, setRematchId] = useState<string | null>(null);
   const [showReview, setShowReview] = useState(false);
+  // Your profile: the streak for the Daily share, and your college and
+  // year so saving a name here doesn't clear them.
+  const [profile, setProfile] = useState<Me | null>(null);
+  // Set once a story picture went to the share sheet: its link was copied.
+  const [storyShared, setStoryShared] = useState(false);
+
+  useEffect(() => {
+    api.getMe().then(setProfile, () => {});
+  }, []);
 
   const onLoaded = useEffectEvent((d: Duel) => {
     if (d.me.finished) setDuel(d);
@@ -110,6 +120,29 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
     else outcome = me.score > opp.score || (me.score === opp.score && me.total_ms < opp.total_ms) ? "win" : "loss";
   }
 
+  const grid = duel.review ? [...duel.review].sort((a, b) => a.q_index - b.q_index).map((r) => r.is_correct) : [];
+  const logShare = (kind: ShareKind) => (channel: ShareChannel) => {
+    api.logShare(kind, channel, duel.id).catch(() => {});
+  };
+  // Ask for a name only while the profile still has the made-up one
+  // ("Player 1586"). Checked on the profile, not this game, so a name saved
+  // since counts, and nothing shows until the profile has loaded.
+  const guestName = profile !== null && /^Player \d{4}$/.test(profile.name);
+  const named = (name: string) => {
+    setProfile((p) => (p ? { ...p, name } : p));
+    setDuel((d) => (d ? { ...d, me: { ...d.me, name } } : d));
+  };
+  const story =
+    grid.length === 5 ? (
+      <StoryButton
+        data={storyData(duel, outcome, grid)}
+        onShare={(channel) => {
+          logShare("story")(channel);
+          if (channel === "share") setStoryShared(true);
+        }}
+      />
+    ) : null;
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex">
@@ -149,34 +182,60 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
 
       {duel.review && <AnswerDots review={duel.review} />}
 
-      {/^Player \d{4}$/.test(me.name) && duel.mode !== "daily" && (
-        <Link href="/profile" className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-4 hover:bg-raised">
-          <span className="flex-1 text-sm">
-            <span className="font-semibold">Add your name before you share</span>
-            <span className="block text-muted">Friends will see “{me.name}” otherwise.</span>
-          </span>
-          <ChevronRight size={20} className="text-muted" />
-        </Link>
-      )}
+      {guestName && <NameForm current={profile.name} profile={profile} onSaved={named} />}
 
       <section className="mt-1 flex flex-col gap-2.5" aria-label="Share">
         {duel.mode === "daily" ? (
-          // Sharing the set would show friends today's answers before they play.
-          <p className="rounded-2xl border border-line bg-surface p-4 text-sm text-muted">
-            Today&apos;s set stays private until it resets at midnight, so nobody sees the answers early. Want to
-            race a friend now? Start a challenge from home.
-          </p>
+          // The message is a grid that gives nothing away: friends see how
+          // you did, never which questions, and the link says who sent it.
+          <SharePanel
+            code={duel.code}
+            path={`/d/${duel.code}`}
+            label="Share my Daily on WhatsApp"
+            short="WhatsApp"
+            copyText
+            text={dailyShareText({
+              day: istToday(),
+              correct: me.correct,
+              total_ms: me.total_ms,
+              grid,
+              streak: profile?.streak ?? 0,
+              code: duel.code,
+            })}
+            onShare={logShare("daily")}
+            beside={story}
+          />
         ) : shareCode ? (
-          <SharePanel code={shareCode} text={challengeShareText(me.name, me.correct, me.total_ms, shareCode)} />
+          <SharePanel
+            code={shareCode}
+            short="WhatsApp"
+            text={challengeShareText(me.name, me.correct, me.total_ms, shareCode)}
+            onShare={logShare("challenge")}
+            beside={story}
+          />
         ) : (
-          <button
-            onClick={makeShareCode}
-            disabled={busy !== null}
-            className="flex h-14 items-center justify-center gap-2.5 rounded-2xl bg-lime text-base font-bold text-ink hover:bg-lime-hover disabled:opacity-70"
-          >
-            <Bolt size={20} strokeWidth={2.4} />
-            {busy === "share" ? "Making your link…" : "Challenge friends with your score"}
-          </button>
+          <div className="flex gap-2.5">
+            <button
+              onClick={makeShareCode}
+              disabled={busy !== null}
+              className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-lime px-3 text-base font-bold whitespace-nowrap text-ink hover:bg-lime-hover disabled:opacity-70"
+            >
+              {/* Below 380 px wide there's only room for the words. */}
+              <Bolt size={20} strokeWidth={2.4} className="shrink-0 max-[379px]:hidden" />
+              {busy === "share" ? (
+                "Making link…"
+              ) : (
+                <>
+                  <span className="sm:hidden">Challenge friends</span>
+                  <span className="max-sm:hidden">Challenge friends with your score</span>
+                </>
+              )}
+            </button>
+            {story}
+          </div>
+        )}
+        {storyShared && (
+          <p className="-mt-0.5 text-[13px] text-muted">Your link is copied too: add it to your Story with Instagram&apos;s Link sticker.</p>
         )}
         <div className="grid grid-cols-2 gap-2.5">
           <Link
@@ -485,5 +544,88 @@ function Review({ duelId, items, opponentName }: { duelId: string; items: Review
         </Card>
       ))}
     </section>
+  );
+}
+
+// Today in India, as YYYY-MM-DD: the Daily's day.
+function istToday() {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}
+
+const MODE_CHIP: Record<string, string> = { quick: "QUICK MATCH", live: "LIVE DUEL", challenge: "CHALLENGE" };
+
+// What the story card says. First person, so it needs no name; a win over
+// a bot doesn't name the bot.
+function storyData(duel: Duel, outcome: Outcome | null, grid: boolean[]): StoryData {
+  const { me, opponent: opp } = duel;
+  const chip =
+    duel.mode === "daily"
+      ? `DAILY · ${shortDay(istToday()).toUpperCase()}`
+      : duel.company
+        ? `${duel.company.toUpperCase()} PRACTICE`
+        : (MODE_CHIP[duel.mode] ?? "APTITUDE DUEL");
+  let headline = "My score";
+  let extra: string | null = null;
+  if (duel.mode === "daily") {
+    headline = "Today's Daily";
+    extra = duel.daily ? `#${duel.daily.rank} of ${duel.daily.players} today` : null;
+  } else if (outcome === "win" && opp) {
+    headline = "I won!";
+    const gap = me.score - opp.score;
+    extra = opp.is_bot ? null : gap > 0 ? `Beat ${opp.name} by ${gap} points` : `Beat ${opp.name} on time`;
+  } else if (outcome === "draw") {
+    headline = "It's a draw";
+  }
+  return { chip, headline, correct: me.correct, score: me.score, time: clock(me.total_ms), grid, extra };
+}
+
+// A guest is "Player 4821" until they pick a name. Asked here, where they're
+// about to share, instead of sending them off to Profile.
+function NameForm({ current, profile, onSaved }: { current: string; profile: Me | null; onSaved: (name: string) => void }) {
+  const [name, setName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(e: FormEvent) {
+    e.preventDefault();
+    if (!profile) return;
+    setBusy(true);
+    setError(null);
+    try {
+      // Keeps the college and year already saved.
+      const me = await api.updateProfile(name.trim(), profile.college_id, profile.grad_year);
+      onSaved(me.name);
+    } catch (err) {
+      setError((err as Error).message);
+      setBusy(false);
+    }
+  }
+
+  return (
+    <form onSubmit={save} className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4">
+      <label htmlFor="share-name" className="text-sm">
+        <span className="font-semibold">What should friends call you?</span>
+        <span className="block text-muted">They&apos;ll see “{current}” otherwise.</span>
+      </label>
+      <div className="flex gap-2">
+        <input
+          id="share-name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="Your first name"
+          maxLength={24}
+          autoComplete="given-name"
+          className="h-11 min-w-0 flex-1 rounded-xl border border-line bg-ink px-3 text-[15px] text-text"
+        />
+        <button
+          type="submit"
+          disabled={busy || !profile || name.trim().length < 2}
+          className="h-11 shrink-0 rounded-xl bg-lime px-4 text-sm font-bold text-ink hover:bg-lime-hover disabled:opacity-60"
+        >
+          {busy ? "Saving…" : "Save"}
+        </button>
+      </div>
+      {error && <p className="text-sm text-red-soft">{error}</p>}
+    </form>
   );
 }

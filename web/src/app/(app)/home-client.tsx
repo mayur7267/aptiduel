@@ -70,6 +70,13 @@ export function HomeClient() {
     };
   }, [attempt]);
 
+  // A newcomer from a story card's link (/?via=story): noted once, so the
+  // numbers can tell shared-link visitors from everyone else.
+  useEffect(() => {
+    if (!isFirstVisit() || new URLSearchParams(window.location.search).get("via") !== "story") return;
+    api.noteArrival("story").catch(() => {});
+  }, []);
+
   // Next keeps this page mounted (hidden) while a duel is open. Clear the
   // busy flag when it hides so Back doesn't show a stuck "Starting…".
   useEffect(() => () => setBusy(null), []);

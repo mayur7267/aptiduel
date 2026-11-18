@@ -74,6 +74,29 @@ export function liveInviteText(name: string, code: string) {
   return `${name} wants to duel you live on Apticks: the same 5 placement aptitude questions at the same time, about 3 minutes. Join here: ${siteUrl(`/c/${code}`)}`;
 }
 
+// 🟩🟩🟥🟩🟩: right or wrong per question, never which question.
+export function answerGrid(grid: boolean[]) {
+  return grid.map((ok) => (ok ? "🟩" : "🟥")).join("");
+}
+
+// "14 Nov" for a YYYY-MM-DD day.
+export function shortDay(day: string) {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+}
+
+// The Daily result, Wordle-style: a grid that gives nothing away, and a
+// link that says who sent it.
+export function dailyShareText(r: { day: string; correct: number; total_ms: number; grid: boolean[]; streak: number; code: string }) {
+  return [
+    `Apticks Daily · ${shortDay(r.day)}`,
+    `${answerGrid(r.grid)}  ${r.correct}/5 · ${clock(r.total_ms)}`,
+    ...(r.streak >= 2 ? [`🔥 ${r.streak}-day streak`] : []),
+    "",
+    `Same 5 placement questions for everyone today. Can you beat me? ${siteUrl(`/d/${r.code}`)}`,
+  ].join("\n");
+}
+
 export function challengeShareText(name: string, correct: number, ms: number, code: string) {
   return `${name} scored ${correct}/5 in ${clock(ms)} on Apticks. Think you can beat that? 5 placement aptitude questions, 3 minutes: ${siteUrl(`/c/${code}`)}`;
 }

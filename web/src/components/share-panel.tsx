@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useState, useSyncExternalStore, type ReactNode } from "react";
 import { siteUrl } from "@/lib/format";
 import { Copy, Message, Share } from "./icons";
 
@@ -9,16 +9,42 @@ const noSubscribe = () => () => {};
 // WhatsApp first, because that is where college groups live.
 // `quiet` is the compact card version: link field on top, a dark
 // WhatsApp button below, for cards that sit next to a lime one.
-export function SharePanel({ code, text, quiet = false }: { code: string; text: string; quiet?: boolean }) {
-  const url = siteUrl(`/c/${code}`);
+// `path` is the link when it isn't a challenge's (a shared Daily's
+// /d/<code>); `copyText` copies the whole message, grid and all, rather
+// than just the link; `onShare` hears which button was used. `beside`
+// sits next to the WhatsApp button (the Story picture button), and
+// `short` is the WhatsApp label on phones, where the full one won't fit.
+export function SharePanel({
+  code,
+  text,
+  quiet = false,
+  path,
+  label = "Challenge on WhatsApp",
+  copyText = false,
+  onShare,
+  beside,
+  short,
+}: {
+  code: string;
+  text: string;
+  quiet?: boolean;
+  path?: string;
+  label?: string;
+  copyText?: boolean;
+  onShare?: (channel: "whatsapp" | "share" | "copy") => void;
+  beside?: ReactNode;
+  short?: string;
+}) {
+  const url = siteUrl(path ?? `/c/${code}`);
   const [copied, setCopied] = useState(false);
   // false on the server, real value after hydration
   const canShare = useSyncExternalStore(noSubscribe, () => "share" in navigator, () => false);
   const whatsapp = `https://wa.me/?text=${encodeURIComponent(text)}`;
 
   async function copy() {
+    onShare?.("copy");
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(copyText ? text : url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -56,6 +82,7 @@ export function SharePanel({ code, text, quiet = false }: { code: string; text: 
           href={whatsapp}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => onShare?.("whatsapp")}
           className="flex h-12 items-center justify-center gap-2 rounded-[14px] border border-[#2d3548] bg-raised text-[15px] font-semibold text-text hover:bg-line hover:text-text"
         >
           <Message size={18} strokeWidth={2.2} />
@@ -67,15 +94,26 @@ export function SharePanel({ code, text, quiet = false }: { code: string; text: 
 
   return (
     <div className="flex flex-col gap-2.5">
-      <a
-        href={whatsapp}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="flex h-14 items-center justify-center gap-2.5 rounded-2xl bg-lime text-base font-bold text-ink hover:bg-lime-hover hover:text-ink"
-      >
-        <Message size={20} strokeWidth={2.2} />
-        Challenge on WhatsApp
-      </a>
+      <div className="flex gap-2.5">
+        <a
+          href={whatsapp}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => onShare?.("whatsapp")}
+          className="flex h-14 min-w-0 flex-1 items-center justify-center gap-2.5 rounded-2xl bg-lime px-3 text-base font-bold whitespace-nowrap text-ink hover:bg-lime-hover hover:text-ink"
+        >
+          <Message size={20} strokeWidth={2.2} className="shrink-0" />
+          {short ? (
+            <>
+              <span className="sm:hidden">{short}</span>
+              <span className="max-sm:hidden">{label}</span>
+            </>
+          ) : (
+            label
+          )}
+        </a>
+        {beside}
+      </div>
       <div className="flex gap-2">
         <label className="sr-only" htmlFor={`link-${code}`}>
           Challenge link
@@ -90,7 +128,11 @@ export function SharePanel({ code, text, quiet = false }: { code: string; text: 
         </button>
         {canShare && (
           <button
-            onClick={() => navigator.share({ title: "Apticks challenge", text, url }).catch(() => {})}
+            onClick={() => {
+              onShare?.("share");
+              // The text already ends with the link, so it isn't sent twice.
+              navigator.share(copyText ? { title: "Apticks", text } : { title: "Apticks challenge", text, url }).catch(() => {});
+            }}
             aria-label="More ways to share"
             className="flex size-11 items-center justify-center rounded-xl border border-line bg-raised hover:bg-line"
           >

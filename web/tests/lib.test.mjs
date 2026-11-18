@@ -7,8 +7,11 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { COMPANIES, companyBySlug } from "../src/lib/companies.ts";
 import {
+  answerGrid,
   batch,
   challengeShareText,
+  dailyShareText,
+  shortDay,
   clock,
   initials,
   inviteShareText,
@@ -135,4 +138,17 @@ test("daily calendar runs: in a row up to today or yesterday, best run, total", 
   assert.deepEqual(runs(new Set([...days, "2026-11-11"]), "2026-11-11"), { current: 3, best: 3, total: 6 });
   assert.deepEqual(runs(days, "2026-11-12"), { current: 0, best: 3, total: 5 });
   assert.deepEqual(runs(new Set(), "2026-11-11"), { current: 0, best: 0, total: 0 });
+});
+
+test("daily share: a grid that gives nothing away, the streak, and a link that says who sent it", () => {
+  assert.equal(answerGrid([true, true, false, true, true]), "🟩🟩🟥🟩🟩");
+  assert.equal(shortDay("2026-11-14"), "14 Nov");
+  const text = dailyShareText({ day: "2026-11-14", correct: 4, total_ms: 42_000, grid: [true, true, false, true, true], streak: 5, code: "AB12CD" });
+  const lines = text.split("\n");
+  assert.equal(lines[0], "Apticks Daily · 14 Nov");
+  assert.equal(lines[1], "🟩🟩🟥🟩🟩  4/5 · 0:42");
+  assert.equal(lines[2], "🔥 5-day streak");
+  assert.match(text, /\/d\/AB12CD$/);
+  // A streak of one isn't worth a line.
+  assert.doesNotMatch(dailyShareText({ day: "2026-11-14", correct: 1, total_ms: 9_000, grid: [true, false, false, false, false], streak: 1, code: "X1Y2" }), /streak/);
 });
