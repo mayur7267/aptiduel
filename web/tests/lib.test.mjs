@@ -16,6 +16,7 @@ import {
   initials,
   inviteShareText,
   liveInviteText,
+  overallRating,
   signed,
   tierFor,
   untilIstMidnight,
@@ -173,4 +174,18 @@ test("daily share: a grid that gives nothing away, the streak, and a link that s
   assert.match(text, /\/d\/AB12CD$/);
   // A streak of one isn't worth a line.
   assert.doesNotMatch(dailyShareText({ day: "2026-11-14", correct: 1, total_ms: 9_000, grid: [true, false, false, false, false], streak: 1, code: "X1Y2" }), /streak/);
+});
+
+test("overallRating weights each subject by games played", () => {
+  const sub = (a, ag, c, cg, e, eg) => ({ aptitude: { rating: a, games: ag }, coding: { rating: c, games: cg }, english: { rating: e, games: eg } });
+  // 3 Aptitude games at 1,200 and 1 Coding game at 1,000: (3600 + 1000) / 4
+  assert.equal(overallRating(sub(1200, 3, 1000, 1, 1000, 0), 1200), 1150);
+  // A subject never played doesn't pull it down
+  assert.equal(overallRating(sub(1020, 1, 982, 1, 978, 1), 1020), 993);
+  assert.equal(overallRating(sub(1300, 5, 1000, 0, 1000, 0), 1300), 1300);
+  // No games yet, or subjects not loaded: the Aptitude rating
+  assert.equal(overallRating(sub(1000, 0, 1000, 0, 1000, 0), 1000), 1000);
+  assert.equal(overallRating(null, 1040), 1040);
+  // Older servers send no English
+  assert.equal(overallRating({ aptitude: { rating: 1100, games: 1 }, coding: { rating: 900, games: 1 } }, 1100), 1000);
 });

@@ -44,6 +44,19 @@ struct SubjectTests {
         #expect(r.aptitude.games == 12)
     }
 
+    // Same cases as overallRating in web/tests/lib.test.mjs.
+    @Test func overallWeighsEachSubjectByGames() throws {
+        let three: SubjectRatings = try decode(#"{"aptitude": {"rating": 1200, "games": 3}, "coding": {"rating": 1000, "games": 1}, "english": {"rating": 1000, "games": 0}}"#)
+        #expect(SubjectRatings.overall(three, aptitude: 1200) == 1150)
+        let even: SubjectRatings = try decode(#"{"aptitude": {"rating": 1020, "games": 1}, "coding": {"rating": 982, "games": 1}, "english": {"rating": 978, "games": 1}}"#)
+        #expect(SubjectRatings.overall(even, aptitude: 1020) == 993)
+        let fresh: SubjectRatings = try decode(#"{"aptitude": {"rating": 1000, "games": 0}, "coding": {"rating": 1000, "games": 0}}"#)
+        #expect(SubjectRatings.overall(fresh, aptitude: 1000) == 1000)
+        #expect(SubjectRatings.overall(nil, aptitude: 1040) == 1040)
+        let older: SubjectRatings = try decode(#"{"aptitude": {"rating": 1100, "games": 1}, "coding": {"rating": 900, "games": 1}}"#)
+        #expect(SubjectRatings.overall(older, aptitude: 1100) == 1000)
+    }
+
     @Test func tabsAndLanguages() {
         #expect(SubjectTab.allCases.filter(\.soon) == [.gk])
         #expect(SubjectTab.coding.subject == .coding)

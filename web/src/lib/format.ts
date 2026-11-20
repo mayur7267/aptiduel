@@ -9,6 +9,25 @@ export const TIERS = [
   { name: "Architect", min: 1700 },
 ] as const;
 
+// One rating across subjects, for show (the player card, a profile's tier):
+// each subject's rating weighted by the games played in it, so a subject
+// never played doesn't count. Matchmaking and Ranks stay per subject.
+// Before any game (or before the subjects load) it's the Aptitude rating.
+export function overallRating(
+  subjects: Partial<Record<Subject, { rating: number; games: number }>> | null | undefined,
+  aptitude: number,
+) {
+  let sum = 0;
+  let games = 0;
+  for (const s of Object.values(subjects ?? {})) {
+    if (s && s.games > 0) {
+      sum += s.rating * s.games;
+      games += s.games;
+    }
+  }
+  return games > 0 ? Math.round(sum / games) : aptitude;
+}
+
 export function tierFor(rating: number) {
   let i = TIERS.length - 1;
   while (i > 0 && rating < TIERS[i].min) i--;

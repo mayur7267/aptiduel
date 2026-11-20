@@ -53,6 +53,16 @@ Questions or ideas? Write to mayurl.7267@gmail.com
 Privacy policy: https://www.playapticks.in/privacy
 ```
 
+## What's New (1.2)
+
+```
+• Three subjects: Aptitude, Coding and English, each with its own Quick Match and rating
+• Duel a friend in the subject you pick
+• Your rating in every subject, and an overall rating on your player card
+• Ranks for each subject, in your college and across India
+• Bug fixes
+```
+
 ## What's New (1.1)
 
 No company or app names here (review risk); it says "friends" and "your story".

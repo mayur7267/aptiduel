@@ -79,16 +79,18 @@ public struct ProfileView: View {
 
     private func page(_ me: Me) -> some View {
         let saved = account.info?.guest == false
+        let overall = SubjectRatings.overall(profile.subjects, aptitude: me.rating)
         return VStack(spacing: 14) {
-            IDBadge(me: me, saved: saved, tilt: tilt) { sheet = .edit }
+            IDBadge(me: me, overall: overall, saved: saved, tilt: tilt) { sheet = .edit }
             VStack(spacing: 10) {
                 if let ratings = profile.subjects {
                     SubjectRatingTiles(ratings: ratings, selected: profile.subject, mine: true) { profile.subject = $0 }
                 }
-                ProgressGraph(me: me, history: profile.ratingHistory, rating: profile.rating, weekChange: profile.weekChange, winRate: profile.winRate)
+                // The subject picked in the tiles, by name: the card above is overall.
+                ProgressGraph(me: me, title: "\(profile.subject.label.uppercased()) XP", history: profile.ratingHistory, rating: profile.rating, weekChange: profile.weekChange, winRate: profile.winRate)
             }
             .rise(0.1)
-            StickerBook(stickers: Achievement.all(for: me, saved: saved))
+            StickerBook(stickers: Achievement.all(for: me, overall: overall, saved: saved))
                 .rise(0.16)
             ReportCard(me: me, winRate: profile.winRate)
                 .rise(0.22)

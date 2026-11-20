@@ -50,7 +50,9 @@ public struct PlayerProfileView: View {
 
     private func profile(_ p: PublicProfile) -> some View {
         let first = PlayerProfileViewModel.shortName(p.name)
-        let tier = tierFor(p.rating)
+        // The header shows the overall rating; the tiles below, each subject.
+        let overall = SubjectRatings.overall(p.subjects, aptitude: p.rating)
+        let tier = tierFor(overall)
         return VStack(spacing: 14) {
             VStack(spacing: 10) {
                 PlayerAvatar(name: p.name, bot: p.isBot, size: 84)
@@ -60,10 +62,10 @@ public struct PlayerProfileView: View {
                 Text(p.isBot ? (p.tagline ?? "Practice bot")
                      : [p.college, p.gradYear.map { "Batch ’\(String(String($0).suffix(2)))" }].compactMap { $0 }.joined(separator: " · ").nonEmpty ?? "No college added yet")
                     .font(.ui(14)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
-                TierBadge(rating: p.rating, showRating: true)
+                TierBadge(rating: overall, showRating: true)
                 HStack(spacing: 14) {
                     if let rank = p.collegeRank { Text("#\(rank) in their college in Aptitude") }
-                    if let next = tier.next { Text("\(next.min - p.rating) to \(next.name)") }
+                    if let next = tier.next { Text("\(next.min - overall) to \(next.name)") }
                 }
                 .font(.ui(13)).foregroundStyle(Theme.muted)
             }

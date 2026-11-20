@@ -6,7 +6,7 @@ import { account, type Account } from "@/lib/account";
 import { api, type DuelSummary, type Me, type Subjects } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
 import { openFeedback } from "@/lib/feedback";
-import { signed, tierFor, TIERS } from "@/lib/format";
+import { overallRating, signed, tierFor, TIERS } from "@/lib/format";
 import { ratingHistory, weekChange } from "@/lib/rating-history";
 import type { Subject } from "@/lib/subjects";
 import { SubjectRatings } from "@/components/subject-ratings";
@@ -74,11 +74,11 @@ export function ProfileHub() {
         )
       ) : (
         <div className="flex flex-col gap-4">
-          <IdBadge me={me} saved={saved} onEdit={() => setSheet("edit")} />
+          <IdBadge me={me} overall={overallRating(subjects, me.rating)} saved={saved} onEdit={() => setSheet("edit")} />
           {/* Phones: progress, stickers, report card. Wider: stickers across the top, then the two side by side. */}
           <div className="grid gap-4 md:grid-cols-2">
             <Progress me={me} duels={duels} subjects={subjects} className="md:order-2" />
-            <StickerBook me={me} saved={saved} className="md:order-1 md:col-span-2" />
+            <StickerBook me={me} overall={overallRating(subjects, me.rating)} saved={saved} className="md:order-1 md:col-span-2" />
             <ReportCard me={me} className="md:order-3" />
           </div>
           <div className="grid grid-cols-2 gap-4 pt-2">
@@ -195,7 +195,8 @@ function Heading({ children, aside }: { children: ReactNode; aside?: ReactNode }
 // keeps it moving. On phones it also hangs towards real "down" as you
 // tilt (iPhones ask permission on the first tap). The holographic seal
 // and a sheen move with it.
-function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => void }) {
+// Its tier and rating are overall: every subject, weighted by games.
+function IdBadge({ me, overall, saved, onEdit }: { me: Me; overall: number; saved: boolean; onEdit: () => void }) {
   const card = useRef<HTMLDivElement>(null);
   const physics = useRef({ theta: 0.3, omega: 0, tilt: 0, held: null as number | null, heldV: 0, calm: false });
   const press = useRef<{ x: number; t: number; moved: boolean } | null>(null);
@@ -313,7 +314,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
     }
   }
 
-  const tier = tierFor(me.rating);
+  const tier = tierFor(overall);
   const guest = /^Player \d{4}$/.test(me.name);
   const number = me.id.replace(/-/g, "").slice(0, 8).toUpperCase();
   return (
@@ -333,7 +334,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
           ref={card}
           role="button"
           tabIndex={0}
-          aria-label={`Player card: ${me.name}, ${tier.name}, rating ${me.rating}. Tap to swing it.`}
+          aria-label={`Player card: ${me.name}, ${tier.name}, overall rating ${overall}. Tap to swing it.`}
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === " ") physics.current.omega += 3;
           }}
@@ -366,7 +367,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
                   <Field label="Batch" value={me.grad_year ? `’${String(me.grad_year).slice(2)}` : "—"} />
                   <Field label="Tier" value={tier.name} />
                 </span>
-                <Field label="Aptitude rating" value={me.rating.toLocaleString("en-IN")} big />
+                <Field label="Overall rating" value={overall.toLocaleString("en-IN")} big />
               </dl>
             </div>
             <div className="absolute inset-x-3.5 bottom-3 flex items-end gap-2">
@@ -578,7 +579,8 @@ function Progress({
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
           <div className="flex items-center gap-2">
-            <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-muted uppercase">XP TIER</span>
+            {/* The subject picked in the tiles above, by name: the card above is overall. */}
+            <span className="font-mono text-[10px] font-bold tracking-[0.2em] text-muted uppercase">{subject} XP</span>
             <span className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 font-mono text-[11px] font-extrabold tracking-wider uppercase ${theme.badgeBg} ${theme.badgeBorder} ${theme.badgeText}`}>
               <span className="size-1.5 rounded-full animate-pulse" style={{ backgroundColor: theme.accent }} />
               {tier.name}
@@ -779,16 +781,16 @@ function ReportCard({ me, className = "" }: { me: Me; className?: string }) {
 }
 
 // Achievements as die-cut stickers: earned ones peel up when clicked.
-function StickerBook({ me, saved, className = "" }: { me: Me; saved: boolean; className?: string }) {
+function StickerBook({ me, overall, saved, className = "" }: { me: Me; overall: number; saved: boolean; className?: string }) {
   const stickers = [
     { id: "first", title: "First duel", icon: "⚡", tone: "bg-lime", earned: me.games_played >= 1 },
     { id: "win", title: "First win", icon: "🏆", tone: "bg-orange", earned: me.wins >= 1 },
     { id: "streak3", title: "3-day streak", icon: "🔥", tone: "bg-red-soft", earned: me.streak_best >= 3 },
-    { id: "analyst", title: "Analyst", icon: "🛡️", tone: "bg-violet", earned: me.rating >= 1100 },
+    { id: "analyst", title: "Analyst", icon: "🛡️", tone: "bg-violet", earned: overall >= 1100 },
     { id: "college", title: "College top 3", icon: "🏛️", tone: "bg-[#5ce1e6]", earned: (me.college_rank ?? Infinity) <= 3 },
     { id: "week", title: "7-day streak", icon: "📅", tone: "bg-lime", earned: me.streak_best >= 7 },
     { id: "saved", title: "Account saved", icon: "🔒", tone: "bg-violet-soft", earned: saved },
-    { id: "consultant", title: "Consultant", icon: "⭐", tone: "bg-orange", earned: me.rating >= 1300 },
+    { id: "consultant", title: "Consultant", icon: "⭐", tone: "bg-orange", earned: overall >= 1300 },
   ];
   const earned = stickers.filter((s) => s.earned).length;
   return (

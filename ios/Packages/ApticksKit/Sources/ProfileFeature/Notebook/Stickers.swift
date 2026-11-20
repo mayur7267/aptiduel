@@ -12,17 +12,17 @@ struct Achievement: Identifiable, Equatable {
     let color: Color
     let earned: Bool
 
-    static func all(for me: Me, saved: Bool) -> [Achievement] {
+    static func all(for me: Me, overall: Int, saved: Bool) -> [Achievement] {
         [
             Achievement(id: "first", title: "First duel", icon: "bolt.fill", color: Theme.lime, earned: me.gamesPlayed >= 1),
             Achievement(id: "win", title: "First win", icon: "trophy.fill", color: Theme.orange, earned: me.wins >= 1),
             Achievement(id: "streak3", title: "3-day streak", icon: "flame.fill", color: Theme.redSoft, earned: me.streakBest >= 3),
-            Achievement(id: "analyst", title: "Analyst", icon: "shield.fill", color: Theme.violet, earned: me.rating >= 1100),
+            Achievement(id: "analyst", title: "Analyst", icon: "shield.fill", color: Theme.violet, earned: overall >= 1100),
             Achievement(id: "college", title: "College top 3", icon: "building.columns.fill", color: Theme.cyan,
                         earned: (me.collegeRank ?? .max) <= 3),
             Achievement(id: "week", title: "7-day streak", icon: "calendar", color: Theme.lime, earned: me.streakBest >= 7),
             Achievement(id: "saved", title: "Account saved", icon: "lock.fill", color: Theme.violetSoft, earned: saved),
-            Achievement(id: "consultant", title: "Consultant", icon: "star.fill", color: Theme.orange, earned: me.rating >= 1300),
+            Achievement(id: "consultant", title: "Consultant", icon: "star.fill", color: Theme.orange, earned: overall >= 1300),
         ]
     }
 }

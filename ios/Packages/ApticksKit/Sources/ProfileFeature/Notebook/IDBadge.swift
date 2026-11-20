@@ -10,6 +10,7 @@ import UIKit
 // seal and a sheen of light move with the swing.
 struct IDBadge: View {
     let me: Me
+    let overall: Int // every subject, weighted by games (SubjectRatings.overall)
     let saved: Bool
     let tilt: Tilt
     let onEdit: () -> Void
@@ -55,12 +56,12 @@ struct IDBadge: View {
                 .onEnded { swing.release(velocity: $0.velocity.width) }
         )
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Player card: \(me.name), \(tierFor(me.rating).name), rating \(me.rating)")
+        .accessibilityLabel("Player card: \(me.name), \(tierFor(overall).name), overall rating \(overall)")
         .accessibilityAction(named: "Swing the card") { swing.flick() }
     }
 
     private func card(width: CGFloat, theta: Double) -> some View {
-        let tier = tierFor(me.rating)
+        let tier = tierFor(overall)
         return VStack(spacing: 0) {
             HStack(spacing: 7) {
                 Mark(size: 18)
@@ -82,7 +83,7 @@ struct IDBadge: View {
                         field("BATCH", me.gradYear.map { "’\(String(String($0).suffix(2)))" } ?? "—")
                         field("TIER", tier.name)
                     }
-                    field("APTITUDE", grouped(me.rating), big: true)
+                    field("OVERALL", grouped(overall), big: true)
                 }
                 Spacer(minLength: 0)
             }

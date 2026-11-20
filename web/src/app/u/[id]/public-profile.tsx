@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { use, useEffect, useState } from "react";
 import { account } from "@/lib/account";
 import { api, type Profile } from "@/lib/api";
-import { batch, tierFor } from "@/lib/format";
+import { batch, overallRating, tierFor } from "@/lib/format";
 import { roomSubject } from "@/lib/subjects";
 import { Close, Flame, Swords, Trophy } from "@/components/icons";
 import { DuelSignIn } from "@/components/sign-in-form";
@@ -68,7 +68,9 @@ export function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
   }
 
   const p = profile;
-  const tier = tierFor(p.rating);
+  // The header shows the overall rating; the tiles below, each subject.
+  const overall = overallRating(p.subjects, p.rating);
+  const tier = tierFor(overall);
   const winRate = p.games_played ? Math.round((p.wins / p.games_played) * 100) : null;
   const joined = new Date(p.joined);
   // A guest is "Player 1234": the whole name, not just "Player".
@@ -97,10 +99,10 @@ export function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
               : [p.college, batch(p.grad_year)].filter(Boolean).join(" · ") || "No college added yet"}
           </p>
         </div>
-        <TierBadge rating={p.rating} showRating />
+        <TierBadge rating={overall} showRating />
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] text-muted">
           {p.college_rank && <span>#{p.college_rank} in their college in Aptitude</span>}
-          {tier.next && <span>{tier.next.min - p.rating} to {tier.next.name}</span>}
+          {tier.next && <span>{tier.next.min - overall} to {tier.next.name}</span>}
           {!p.is_bot && <span>Playing since {MONTHS[joined.getMonth()]} {joined.getFullYear()}</span>}
         </div>
       </Card>

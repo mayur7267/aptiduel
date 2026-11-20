@@ -32,6 +32,7 @@ private struct TierTheme {
 // 4 arcade stat capsules, and rating history on graph paper.
 struct ProgressGraph: View {
     let me: Me?
+    let title: String
     let history: [Int]
     let rating: Int
     let weekChange: Int
@@ -41,8 +42,9 @@ struct ProgressGraph: View {
     @State private var xpBarAnimated = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    init(me: Me? = nil, history: [Int], rating: Int, weekChange: Int, winRate: Int? = nil) {
+    init(me: Me? = nil, title: String = "XP TIER", history: [Int], rating: Int, weekChange: Int, winRate: Int? = nil) {
         self.me = me
+        self.title = title
         self.history = history
         self.rating = rating
         self.weekChange = weekChange
@@ -61,7 +63,7 @@ struct ProgressGraph: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Text("XP TIER")
+                        Text(title)
                             .font(.mono(10, .bold))
                             .tracking(2.0)
                             .foregroundStyle(Theme.muted)

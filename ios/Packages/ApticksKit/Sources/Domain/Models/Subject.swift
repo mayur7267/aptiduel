@@ -149,6 +149,18 @@ public struct SubjectRatings: Decodable, Sendable, Hashable {
     public let coding: SubjectRating
     public let english: SubjectRating? // nil before 0024_english.sql
 
+    // One rating across subjects, for show (the player card, a profile's
+    // tier): each subject's rating weighted by the games played in it, so
+    // a subject never played doesn't count. Matchmaking and Ranks stay per
+    // subject. Port of overallRating in web/src/lib/format.ts.
+    public static func overall(_ ratings: SubjectRatings?, aptitude: Int) -> Int {
+        let played = [ratings?.aptitude, ratings?.coding, ratings?.english].compactMap { $0 }.filter { $0.games > 0 }
+        let games = played.reduce(0) { $0 + $1.games }
+        guard games > 0 else { return aptitude }
+        let sum = played.reduce(0.0) { $0 + Double($1.rating * $1.games) }
+        return Int((sum / Double(games)).rounded())
+    }
+
     public subscript(_ s: Subject) -> SubjectRating? {
         switch s {
         case .aptitude: aptitude
