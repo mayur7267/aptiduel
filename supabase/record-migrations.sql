@@ -38,7 +38,8 @@ select m.version, m.name
     ('0022', '0022_subjects'),
     ('0023', '0023_room_subjects'),
     ('0024', '0024_english'),
-    ('0025', '0025_subject_ranks')
+    ('0025', '0025_subject_ranks'),
+    ('0026', '0026_subject_bots')
   ) as m(version, name)
  where not exists (select 1 from supabase_migrations.schema_migrations s where s.name = m.name)
    and not exists (select 1 from supabase_migrations.schema_migrations s where s.version = m.version);

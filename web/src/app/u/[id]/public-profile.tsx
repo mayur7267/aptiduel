@@ -105,8 +105,11 @@ export function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
         </div>
       </Card>
 
-      {/* Bots play every subject at one strength, so only people show this. */}
-      {p.subjects && !p.is_bot && <SubjectRatings subjects={p.subjects} />}
+      {/* People, and the Coding and English bots (0026), which have a record
+          in their subject. Aptitude's bots have none to show. */}
+      {p.subjects && (!p.is_bot || p.subjects.coding.games > 0 || (p.subjects.english?.games ?? 0) > 0) && (
+        <SubjectRatings subjects={p.subjects} />
+      )}
 
       <div className="grid grid-cols-4 gap-2.5">
         {[

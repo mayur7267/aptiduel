@@ -78,8 +78,9 @@ public struct PlayerProfileView: View {
             )
             .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.line))
 
-            // Bots play every subject at one strength, so only people show this.
-            if let ratings = p.subjects, !p.isBot {
+            // People, and the Coding and English bots (0026), which have a
+            // record in their subject. Aptitude's bots have none to show.
+            if let ratings = p.subjects, !p.isBot || ratings.coding.games > 0 || (ratings.english?.games ?? 0) > 0 {
                 SubjectRatingTiles(ratings: ratings)
             }
 
