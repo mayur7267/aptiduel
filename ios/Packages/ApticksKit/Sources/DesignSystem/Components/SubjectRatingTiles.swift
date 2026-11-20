@@ -50,12 +50,24 @@ public struct SubjectRatingTiles: View {
             Text(played ? grouped(r!.rating) : "—")
                 .font(.display(20))
                 .foregroundStyle(on ? Theme.ink : Theme.text)
-            Text(played ? "\(tierFor(r!.rating).name) · \(r!.games) \(r!.games == 1 ? "game" : "games")"
-                 : mine ? "Play your first" : "Not played yet")
-                .font(.ui(11, .semibold))
-                .foregroundStyle(on ? Theme.ink.opacity(0.8) : Theme.muted)
                 .lineLimit(1)
-                .minimumScaleFactor(0.8)
+                .minimumScaleFactor(0.7)
+            // Tier and games on their own lines, so "Consultant · 12 games"
+            // isn't cut short on a narrow phone.
+            Group {
+                if played {
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(tierFor(r!.rating).name)
+                        Text("\(r!.games) \(r!.games == 1 ? "game" : "games")")
+                    }
+                } else {
+                    Text(mine ? "Play your first" : "Not played yet")
+                }
+            }
+            .font(.ui(11, .semibold))
+            .foregroundStyle(on ? Theme.ink.opacity(0.8) : Theme.muted)
+            .lineLimit(2)
+            .minimumScaleFactor(0.8)
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
