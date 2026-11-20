@@ -235,10 +235,19 @@ final class ScreensUITests: XCTestCase {
         app.buttons["All India"].firstMatch.tap()
         sleep(1)
         snap("41-ranks-india")
+        app.buttons["Coding leaderboard"].firstMatch.tap()
+        sleep(2)
+        snap("42-ranks-coding")
 
         tap("Profile")
         sleep(2)
         snap("50-profile")
+        let codingTile = app.buttons.containing(NSPredicate(format: "label BEGINSWITH 'Coding'")).firstMatch
+        if codingTile.waitForExistence(timeout: 5) {
+            codingTile.tap()
+            sleep(1)
+            snap("50b-profile-coding")
+        }
         app.swipeUp()
         sleep(1)
         snap("51-profile-lower")

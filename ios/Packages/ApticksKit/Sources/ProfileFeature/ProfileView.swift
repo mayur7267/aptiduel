@@ -81,8 +81,13 @@ public struct ProfileView: View {
         let saved = account.info?.guest == false
         return VStack(spacing: 14) {
             IDBadge(me: me, saved: saved, tilt: tilt) { sheet = .edit }
-            ProgressGraph(me: me, history: profile.ratingHistory, rating: me.rating, weekChange: profile.weekChange, winRate: profile.winRate)
-                .rise(0.1)
+            VStack(spacing: 10) {
+                if let ratings = profile.subjects {
+                    SubjectRatingTiles(ratings: ratings, selected: profile.subject, mine: true) { profile.subject = $0 }
+                }
+                ProgressGraph(me: me, history: profile.ratingHistory, rating: profile.rating, weekChange: profile.weekChange, winRate: profile.winRate)
+            }
+            .rise(0.1)
             StickerBook(stickers: Achievement.all(for: me, saved: saved))
                 .rise(0.16)
             ReportCard(me: me, winRate: profile.winRate)

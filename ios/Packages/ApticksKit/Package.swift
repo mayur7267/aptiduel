@@ -81,6 +81,6 @@ let package = Package(
         .testTarget(name: "OnboardingFeatureTests", dependencies: ["OnboardingFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
         .testTarget(name: "DailyFeatureTests", dependencies: ["DailyFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
         .testTarget(name: "HomeFeatureTests", dependencies: ["HomeFeature", "NetworkingFakes", "Networking", "AppCore", "Domain", "Tiko"], swiftSettings: ui),
-        .testTarget(name: "LiveDuelTests", dependencies: ["ChallengeFeature", "DuelFeature", "ProfileFeature", "NetworkingFakes", "Networking", "AppCore", "Domain"], swiftSettings: ui),
+        .testTarget(name: "LiveDuelTests", dependencies: ["ChallengeFeature", "DuelFeature", "LeaderboardFeature", "ProfileFeature", "NetworkingFakes", "Networking", "AppCore", "Domain"], swiftSettings: ui),
     ]
 )

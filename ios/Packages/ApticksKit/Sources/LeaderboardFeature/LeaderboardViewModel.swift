@@ -11,7 +11,11 @@ public final class LeaderboardViewModel {
     public var scope: BoardScope = .college {
         didSet { if scope != oldValue { error = nil } }
     }
-    public private(set) var boards: [BoardScope: Board] = [:]
+    // Each subject has its own board.
+    public var subject: Subject = .aptitude {
+        didSet { if subject != oldValue { error = nil } }
+    }
+    public private(set) var boards: [String: Board] = [:]
     public private(set) var error: String?
 
     private let api: any APIClient
@@ -28,12 +32,13 @@ public final class LeaderboardViewModel {
         router?.open(.player(id))
     }
 
-    public var board: Board? { boards[scope] }
+    private func key(_ subject: Subject, _ scope: BoardScope) -> String { "\(subject.rawValue)-\(scope.rawValue)" }
+    public var board: Board? { boards[key(subject, scope)] }
 
     public func load() async {
-        let s = scope
+        let (sub, s) = (subject, scope)
         do {
-            boards[s] = try await api.leaderboard(s, limit: 50)
+            boards[key(sub, s)] = try await api.leaderboard(s, limit: 50, subject: sub)
             error = nil
         } catch {
             // Cancelled part-way (a pull-to-refresh restarted): keep what's shown.
@@ -43,7 +48,7 @@ public final class LeaderboardViewModel {
 
     var companionPage: CompanionPage {
         board?.isEmpty == true
-            ? CompanionPage(mood: .think, say: "Nobody's ranked here yet. One Quick Match puts you on top!")
+            ? CompanionPage(mood: .think, say: "Nobody's ranked in \(subject.label) here yet. One Quick Match puts you on top!")
             : CompanionPage(mood: .point)
     }
 }

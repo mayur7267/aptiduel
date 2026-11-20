@@ -9,7 +9,8 @@ import Foundation
 public protocol APIClient: AnyObject, Sendable {
     func me() async throws -> Me
     func myDuels(limit: Int) async throws -> [DuelSummary]
-    func leaderboard(_ scope: BoardScope, limit: Int) async throws -> Board
+    // A board per subject (0025_subject_ranks.sql).
+    func leaderboard(_ scope: BoardScope, limit: Int, subject: Subject) async throws -> Board
     func colleges() async throws -> [College]
     func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me
 
@@ -86,6 +87,9 @@ public protocol AccountClient: AnyObject, Sendable {
 extension APIClient {
     public func quickMatch() async throws -> MatchStart { try await quickMatch(.aptitude) }
     public func createRoom() async throws -> RoomRef { try await createRoom(.aptitude) }
+    public func leaderboard(_ scope: BoardScope, limit: Int) async throws -> Board {
+        try await leaderboard(scope, limit: limit, subject: .aptitude)
+    }
 }
 
 // An error with a message that's fine to show the player.

@@ -12,6 +12,9 @@ public final class ProfileViewModel {
     public private(set) var me: Me?
     public private(set) var colleges: [College] = []
     public private(set) var duels: [DuelSummary] = []
+    // Your rating in each subject, and the one the chart shows.
+    public private(set) var subjects: SubjectRatings?
+    public var subject: Subject = .aptitude
     public var name = "" {
         didSet { if name.count > 24 { name = String(name.prefix(24)) } }
     }
@@ -33,15 +36,20 @@ public final class ProfileViewModel {
     }
 
     public var collegeName: String? { colleges.first { $0.id == collegeId }?.name }
-    // Rating after each rated duel, oldest first, ending at today's rating.
-    // The chart is the Aptitude rating: Coding has its own.
+    // The chosen subject's rating (Aptitude's is the one on your profile).
+    public var rating: Int {
+        subject == .aptitude ? (me?.rating ?? 1000) : (subjects?[subject]?.rating ?? 1000)
+    }
+
+    // Rating after each rated duel in the chosen subject, oldest first,
+    // ending at today's rating.
     public var ratingHistory: [Int] {
         let rated = duels
-            .filter { $0.ratingAfter != nil && !$0.isReplay && ($0.subject ?? .aptitude) == .aptitude }
+            .filter { $0.ratingAfter != nil && !$0.isReplay && ($0.subject ?? .aptitude) == subject }
             .sorted { ($0.created ?? .distantPast) < ($1.created ?? .distantPast) }
         var points = rated.first?.ratingBefore.map { [$0] } ?? []
         points += rated.compactMap(\.ratingAfter)
-        if let now = me?.rating, points.last != now { points.append(now) }
+        if me != nil, points.last != rating { points.append(rating) }
         return points
     }
 
@@ -49,7 +57,7 @@ public final class ProfileViewModel {
     public var weekChange: Int {
         let weekAgo = Date().addingTimeInterval(-7 * 86_400)
         return duels
-            .filter { ($0.created ?? .distantPast) > weekAgo && !$0.isReplay && ($0.subject ?? .aptitude) == .aptitude }
+            .filter { ($0.created ?? .distantPast) > weekAgo && !$0.isReplay && ($0.subject ?? .aptitude) == subject }
             .compactMap { d in d.ratingAfter.flatMap { a in d.ratingBefore.map { a - $0 } } }
             .reduce(0, +)
     }
@@ -66,10 +74,12 @@ public final class ProfileViewModel {
             async let m = api.me()
             async let list = api.colleges()
             async let recent = try? api.myDuels(limit: 30)
-            let (me, colleges, duels) = try await (m, list, recent)
+            async let ratings = try? api.mySubjects()
+            let (me, colleges, duels, subjects) = try await (m, list, recent, ratings)
             self.me = me
             self.colleges = colleges
             self.duels = duels ?? []
+            self.subjects = subjects
             name = me.hasGuestName ? "" : me.name
             collegeId = me.collegeId
             gradYear = me.gradYear

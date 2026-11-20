@@ -19,6 +19,7 @@ public struct LeaderboardView: View {
                     Spacer()
                     Chip("By rating", fg: Theme.muted, bg: Theme.surface).overlay(Capsule().strokeBorder(Theme.line))
                 }
+                SubjectTabs(selected: model.subject) { model.subject = $0 }
                 Picker("Leaderboard", selection: $model.scope) {
                     ForEach(BoardScope.allCases, id: \.self) { Text($0.title).tag($0) }
                 }
@@ -26,7 +27,7 @@ public struct LeaderboardView: View {
 
                 if let error = model.error { ErrorNote(error) }
                 if model.board == nil && model.error == nil { Spinner("Loading rankings") }
-                if let board = model.board { BoardView(board: board, open: { model.open($0) }) { router.tab = .profile } }
+                if let board = model.board { BoardView(board: board, subject: model.subject, open: { model.open($0) }) { router.tab = .profile } }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -44,13 +45,45 @@ public struct LeaderboardView: View {
                     .shadow(color: Theme.ink.opacity(0.9), radius: 12, y: -8)
             }
         }
-        .task(id: "\(model.scope)-\(router.refresh)") { await model.load() }
+        .task(id: "\(model.subject)-\(model.scope)-\(router.refresh)") { await model.load() }
         .onChange(of: model.board, initial: true) { companion.pages[.ranks] = model.companionPage }
+    }
+}
+
+// Aptitude, Coding and English, in the subjects' colours.
+private struct SubjectTabs: View {
+    let selected: Subject
+    let onPick: (Subject) -> Void
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Subject.allCases, id: \.self) { s in
+                let look = SubjectRatingTiles.look(s)
+                let on = s == selected
+                Button { onPick(s) } label: {
+                    HStack(spacing: 6) {
+                        Text(look.glyph).font(.mono(13))
+                        Text(s.label).font(.ui(14, .bold)).lineLimit(1).minimumScaleFactor(0.8)
+                    }
+                    .foregroundStyle(on ? Theme.ink : look.fill)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 42)
+                    .background(RoundedRectangle(cornerRadius: 12, style: .continuous).fill(on ? look.fill : Theme.surface))
+                    .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(on ? look.edge : Theme.line, lineWidth: 2))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("\(s.label) leaderboard")
+                .accessibilityAddTraits(on ? [.isSelected, .isButton] : .isButton)
+            }
+        }
+        .animation(.snappy(duration: 0.2), value: selected)
     }
 }
 
 private struct BoardView: View {
     let board: Board
+    let subject: Subject
     let open: (BoardRow) -> Void // someone else's row opens their profile
     let addCollege: () -> Void
 
@@ -71,7 +104,7 @@ private struct BoardView: View {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(board.scope == .college ? board.college ?? "" : "All India").font(.ui(17, .bold)).foregroundStyle(Theme.text)
-                        Text("\(grouped(board.players)) \(board.players == 1 ? "player" : "players") ranked by rating · +/− is this week's change")
+                        Text("\(grouped(board.players)) \(board.players == 1 ? "player" : "players") ranked by \(subject.label) rating · +/− is this week's change")
                             .font(.ui(12)).foregroundStyle(Theme.muted)
                     }
                     Spacer()
@@ -81,7 +114,7 @@ private struct BoardView: View {
                     }
                 }
                 if board.rows.isEmpty {
-                    Text("Nobody is ranked here yet. Play a Quick Match to take the top spot.")
+                    Text("Nobody is ranked in \(subject.label) here yet. Play a \(subject.quickMatchName) to take the top spot.")
                         .font(.ui(14)).foregroundStyle(Theme.muted)
                         .padding(24)
                         .frame(maxWidth: .infinity, alignment: .leading)

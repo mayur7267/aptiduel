@@ -384,21 +384,32 @@ public final class FakeBackend: APIClient, AccountClient {
         return try decode(Array(list.prefix(limit)))
     }
 
+    // Aptitude, as before (tests call it without a subject).
     public func leaderboard(_ scope: BoardScope, limit: Int) async throws -> Board {
+        try await leaderboard(scope, limit: limit, subject: .aptitude)
+    }
+
+    public func leaderboard(_ scope: BoardScope, limit: Int, subject: Subject) async throws -> Board {
         try await pause()
         if scope == .college && collegeId == nil {
-            return try decode(["scope": "college", "college": NSNull(), "players": 0, "rows": [], "me": NSNull()] as [String: Any])
+            return try decode(["scope": "college", "subject": subject.rawValue, "college": NSNull(), "players": 0, "rows": [], "me": NSNull()] as [String: Any])
         }
-        let names = ["Aarav Shah", "Diya Patel", "Kabir Singh", "Ananya Iyer", name, "Ishaan Gupta", "Meera Nair", "Vivaan Rao"]
+        // Each subject has its own order, and your own rating in it.
+        let names = subject == .aptitude
+            ? ["Aarav Shah", "Diya Patel", "Kabir Singh", "Ananya Iyer", name, "Ishaan Gupta", "Meera Nair", "Vivaan Rao"]
+            : subject == .coding
+                ? ["Kabir Singh", "Vivaan Rao", "Aarav Shah", "Meera Nair", name, "Diya Patel"]
+                : ["Ananya Iyer", "Meera Nair", "Diya Patel", "Ishaan Gupta", name, "Kabir Singh"]
+        let mine = subject == .coding ? codingRating : subject == .english ? englishRating : rating
         let rows: [[String: Any]] = names.enumerated().map { i, n in
             [
-                "rank": i + 1, "name": n, "rating": n == name ? rating : 1640 - i * 70,
+                "rank": i + 1, "name": n, "rating": n == name ? mine : 1640 - i * 70,
                 "college": scope == .india ? Self.colleges[i % Self.colleges.count].1 : opt(collegeName),
                 "grad_year": 2026 + i % 2, "week_delta": [42, 18, -6, 0, 16, -12, 30, 8][i], "is_me": n == name,
             ]
         }
         return try decode([
-            "scope": scope.rawValue, "college": scope == .college ? opt(collegeName) : NSNull(),
+            "scope": scope.rawValue, "subject": subject.rawValue, "college": scope == .college ? opt(collegeName) : NSNull(),
             "players": scope == .college ? 48 : 12_480, "rows": Array(rows.prefix(limit)), "me": rows[4],
         ] as [String: Any])
     }
@@ -819,6 +830,11 @@ extension FakeBackend {
             "streak": 3, "streak_best": 7, "is_bot": false, "tagline": NSNull(), "is_me": mine,
             "joined": "2026-09-14T10:00:00Z", "college_rank": 2, "recent": ["W", "W", "L", "W", "D", "W", "L"],
             "vs_me": mine ? NSNull() : ["played": 3, "wins": 1, "losses": 2],
+            "subjects": mine
+                ? ["aptitude": ["rating": rating, "games": 6], "coding": ["rating": codingRating, "games": codingGames],
+                   "english": ["rating": englishRating, "games": englishGames]]
+                : ["aptitude": ["rating": 1240, "games": 18], "coding": ["rating": 1312, "games": 5],
+                   "english": ["rating": 1000, "games": 0]],
         ] as [String: Any])
     }
 }

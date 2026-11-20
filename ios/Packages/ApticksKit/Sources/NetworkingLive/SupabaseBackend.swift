@@ -80,8 +80,13 @@ public final class SupabaseBackend: APIClient, AccountClient {
             return try await rpc("my_duels", ["p_limit": .integer(limit)])
         }
     }
-    public func leaderboard(_ scope: BoardScope, limit: Int) async throws -> Board {
-        try await rpc("leaderboard", ["p_scope": .string(scope.rawValue), "p_limit": .integer(limit)])
+    // Aptitude uses the original call, so it works with or without 0025.
+    public func leaderboard(_ scope: BoardScope, limit: Int, subject: Subject) async throws -> Board {
+        if subject == .aptitude {
+            return try await rpc("leaderboard", ["p_scope": .string(scope.rawValue), "p_limit": .integer(limit)])
+        }
+        return try await rpc("leaderboard", ["p_scope": .string(scope.rawValue), "p_limit": .integer(limit),
+                                             "p_subject": .string(subject.rawValue)])
     }
     public func colleges() async throws -> [College] {
         try await ensureSession()

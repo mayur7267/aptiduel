@@ -82,7 +82,7 @@ struct IDBadge: View {
                         field("BATCH", me.gradYear.map { "’\(String(String($0).suffix(2)))" } ?? "—")
                         field("TIER", tier.name)
                     }
-                    field("RATING", grouped(me.rating), big: true)
+                    field("APTITUDE", grouped(me.rating), big: true)
                 }
                 Spacer(minLength: 0)
             }

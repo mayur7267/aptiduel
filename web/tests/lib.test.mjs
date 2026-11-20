@@ -104,6 +104,10 @@ test("rating history runs oldest to newest and ends at today's rating", async ()
   ];
   assert.deepEqual(ratingHistory(withCoding, 1180), [1150, 1164, 1180]);
   assert.equal(weekChange(withCoding, now), 16);
+  // ...and the Coding chart has only Coding duels.
+  assert.deepEqual(ratingHistory(withCoding, 1040, "coding"), [1000, 1040]);
+  assert.equal(weekChange(withCoding, now, "coding"), 40);
+  assert.deepEqual(ratingHistory(withCoding, 1000, "english"), [1000]);
 });
 
 // "Add to Home screen": stay quiet for two weeks after they say no.

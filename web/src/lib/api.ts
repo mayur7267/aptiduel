@@ -146,6 +146,7 @@ export type BoardRow = {
 
 export type Board = {
   scope: "college" | "india";
+  subject?: Subject; // 0025_subject_ranks; missing before it (Aptitude)
   college: string | null;
   players: number;
   rows: BoardRow[];
@@ -257,6 +258,7 @@ export type Profile = {
   college_rank: number | null;
   recent: ("W" | "L" | "D")[]; // newest first
   vs_me: { played: number; wins: number; losses: number } | null;
+  subjects?: Subjects; // 0025_subject_ranks; missing before it
 };
 
 // A live friend duel as of now (live_state): the lobby, the countdown,
@@ -326,8 +328,12 @@ export const api = {
   dailyChallenge: () => rpc<{ duel_id: string }>("daily_challenge"),
   // The IST days you finished the Daily, oldest first (0016_daily_calendar.sql).
   dailyDays: () => rpc<string[]>("daily_days"),
-  leaderboard: (scope: "college" | "india", limit = 50) =>
-    rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),
+  // A board per subject (0025_subject_ranks). Aptitude uses the original
+  // call, so it works with or without 0025.
+  leaderboard: (scope: "college" | "india", limit = 50, subject: Subject = "aptitude") =>
+    subject === "aptitude"
+      ? rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit })
+      : rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit, p_subject: subject }),
   // p_client 2: this app shows code, so Coding duels are open to it
   // (0023_room_subjects; older apps get a message to update instead).
   joinChallenge: (code: string) =>

@@ -62,7 +62,7 @@ public struct PlayerProfileView: View {
                     .font(.ui(14)).foregroundStyle(Theme.muted).multilineTextAlignment(.center)
                 TierBadge(rating: p.rating, showRating: true)
                 HStack(spacing: 14) {
-                    if let rank = p.collegeRank { Text("#\(rank) in their college") }
+                    if let rank = p.collegeRank { Text("#\(rank) in their college in Aptitude") }
                     if let next = tier.next { Text("\(next.min - p.rating) to \(next.name)") }
                 }
                 .font(.ui(13)).foregroundStyle(Theme.muted)
@@ -77,6 +77,11 @@ public struct PlayerProfileView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
             )
             .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).strokeBorder(Theme.line))
+
+            // Bots play every subject at one strength, so only people show this.
+            if let ratings = p.subjects, !p.isBot {
+                SubjectRatingTiles(ratings: ratings)
+            }
 
             HStack(spacing: 10) {
                 stat("Duels", "\(p.gamesPlayed)")

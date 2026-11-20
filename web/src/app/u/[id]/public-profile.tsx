@@ -11,6 +11,7 @@ import { Close, Flame, Swords, Trophy } from "@/components/icons";
 import { DuelSignIn } from "@/components/sign-in-form";
 import { Tiko } from "@/components/tiko";
 import { Avatar, Card, ErrorNote, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
+import { SubjectRatings } from "@/components/subject-ratings";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
@@ -98,11 +99,14 @@ export function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
         </div>
         <TierBadge rating={p.rating} showRating />
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-[13px] text-muted">
-          {p.college_rank && <span>#{p.college_rank} in their college</span>}
+          {p.college_rank && <span>#{p.college_rank} in their college in Aptitude</span>}
           {tier.next && <span>{tier.next.min - p.rating} to {tier.next.name}</span>}
           {!p.is_bot && <span>Playing since {MONTHS[joined.getMonth()]} {joined.getFullYear()}</span>}
         </div>
       </Card>
+
+      {/* Bots play every subject at one strength, so only people show this. */}
+      {p.subjects && !p.is_bot && <SubjectRatings subjects={p.subjects} />}
 
       <div className="grid grid-cols-4 gap-2.5">
         {[

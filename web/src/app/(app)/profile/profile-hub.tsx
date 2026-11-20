@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from "react";
 import { account, type Account } from "@/lib/account";
-import { api, type DuelSummary, type Me } from "@/lib/api";
+import { api, type DuelSummary, type Me, type Subjects } from "@/lib/api";
 import { COMPANIES } from "@/lib/companies";
 import { openFeedback } from "@/lib/feedback";
 import { signed, tierFor, TIERS } from "@/lib/format";
 import { ratingHistory, weekChange } from "@/lib/rating-history";
+import type { Subject } from "@/lib/subjects";
+import { SubjectRatings } from "@/components/subject-ratings";
 import { ChevronRight } from "@/components/icons";
 import { Modal } from "@/components/modal";
 import { Tiko } from "@/components/tiko";
@@ -25,6 +27,7 @@ type Sheet = "edit" | "account" | "tiko" | "practice";
 export function ProfileHub() {
   const [me, setMe] = useState<Me | null>(null);
   const [duels, setDuels] = useState<DuelSummary[]>([]);
+  const [subjects, setSubjects] = useState<Subjects | null>(null);
   const [acct, setAcct] = useState<Account | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
@@ -32,11 +35,12 @@ export function ProfileHub() {
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.getMe(), api.myDuels(30).catch(() => []), account.get().catch(() => null)])
-      .then(([m, d, a]) => {
+    Promise.all([api.getMe(), api.myDuels(30).catch(() => []), account.get().catch(() => null), api.mySubjects().catch(() => null)])
+      .then(([m, d, a, sub]) => {
         if (!active) return;
         setMe(m);
         setDuels(d);
+        setSubjects(sub);
         setAcct(a);
         setError(null);
       })
@@ -73,7 +77,7 @@ export function ProfileHub() {
           <IdBadge me={me} saved={saved} onEdit={() => setSheet("edit")} />
           {/* Phones: progress, stickers, report card. Wider: stickers across the top, then the two side by side. */}
           <div className="grid gap-4 md:grid-cols-2">
-            <Progress me={me} duels={duels} className="md:order-2" />
+            <Progress me={me} duels={duels} subjects={subjects} className="md:order-2" />
             <StickerBook me={me} saved={saved} className="md:order-1 md:col-span-2" />
             <ReportCard me={me} className="md:order-3" />
           </div>
@@ -362,7 +366,7 @@ function IdBadge({ me, saved, onEdit }: { me: Me; saved: boolean; onEdit: () => 
                   <Field label="Batch" value={me.grad_year ? `’${String(me.grad_year).slice(2)}` : "—"} />
                   <Field label="Tier" value={tier.name} />
                 </span>
-                <Field label="Rating" value={me.rating.toLocaleString("en-IN")} big />
+                <Field label="Aptitude rating" value={me.rating.toLocaleString("en-IN")} big />
               </dl>
             </div>
             <div className="absolute inset-x-3.5 bottom-3 flex items-end gap-2">
@@ -516,20 +520,33 @@ function getTierTheme(name: string) {
 
 // Gaming-style XP Progress Card: Tier badge with glow, thick animated XP bar,
 // 4 arcade stat capsules, and rating history on graph paper.
-function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[]; className?: string }) {
-  const history = ratingHistory(duels, me.rating);
-  const week = weekChange(duels);
-  const tier = tierFor(me.rating);
+function Progress({
+  me,
+  duels,
+  subjects,
+  className = "",
+}: {
+  me: Me;
+  duels: DuelSummary[];
+  subjects: Subjects | null;
+  className?: string;
+}) {
+  // Each subject has its own rating: the tiles pick which one shows here.
+  const [subject, setSubject] = useState<Subject>("aptitude");
+  const rating = subject === "aptitude" ? me.rating : (subjects?.[subject]?.rating ?? 1000);
+  const history = ratingHistory(duels, rating, subject);
+  const week = weekChange(duels, undefined, subject);
+  const tier = tierFor(rating);
   const theme = getTierTheme(tier.name);
   const winRate = me.games_played > 0 ? Math.round((me.wins / me.games_played) * 100) : null;
   const has = history.length >= 2;
-  const series = has ? history : [me.rating, me.rating];
+  const series = has ? history : [rating, rating];
   const W = 320;
   const H = 145;
   let lo = Math.min(...series) - 40;
-  let hi = Math.max(Math.max(...series), tier.next?.min ?? me.rating) + 30;
+  let hi = Math.max(Math.max(...series), tier.next?.min ?? rating) + 30;
   if (hi - lo < 120) hi = lo + 120;
-  if (!has) lo = me.rating - 80;
+  if (!has) lo = rating - 80;
   const y = (v: number) => 12 + (H - 22) * (1 - (v - lo) / (hi - lo));
   const pts = series.map((v, i) => [8 + ((W - 34) * i) / Math.max(1, series.length - 1), y(v) + (((i * 37) % 7) - 3) * 0.6] as const);
   const shown = has ? pts : pts.slice(0, 1);
@@ -555,6 +572,8 @@ function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[];
         }}
       />
 
+      {subjects && <SubjectRatings subjects={subjects} selected={subject} onSelect={setSubject} mine />}
+
       {/* Header: Tier Level Emblem & Rating */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
@@ -566,7 +585,7 @@ function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[];
             </span>
           </div>
           <span className="font-display text-2xl font-black tracking-tight text-text">
-            {me.rating.toLocaleString("en-IN")}{" "}
+            {rating.toLocaleString("en-IN")}{" "}
             <span className="font-mono text-xs font-semibold text-muted">XP</span>
           </span>
         </div>
@@ -577,7 +596,7 @@ function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[];
               {signed(week)} this week
             </span>
           )}
-          {me.college_rank && (
+          {subject === "aptitude" && me.college_rank && (
             <span className="font-mono text-[11px] font-semibold text-muted">
               #{me.college_rank} in college
             </span>
@@ -656,7 +675,7 @@ function Progress({ me, duels, className = "" }: { me: Me; duels: DuelSummary[];
           </span>
         </div>
         <div className="relative overflow-hidden rounded-xl border border-line/80 bg-ink/60 p-1">
-          <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${me.rating}`}>
+          <svg viewBox={`0 0 ${W} ${H}`} className="block h-auto w-full overflow-visible" role="img" aria-label={`Rating ${rating}`}>
             <defs>
               <pattern id="graph-paper" width="14" height="14" patternUnits="userSpaceOnUse">
                 <path d="M14 0H0V14" fill="none" stroke="rgb(200 241 53 / 0.08)" strokeWidth="0.6" />

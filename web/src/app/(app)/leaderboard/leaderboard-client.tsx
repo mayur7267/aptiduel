@@ -5,31 +5,43 @@ import { useEffect, useState } from "react";
 import { api, type Board, type BoardRow } from "@/lib/api";
 import { batch, signed } from "@/lib/format";
 import { useCompanionPage } from "@/lib/companion";
+import type { Subject } from "@/lib/subjects";
 import { Avatar, ErrorNote, Logo, Spinner } from "@/components/ui";
 
 type Scope = "college" | "india";
+type Key = `${Subject}:${Scope}`;
+
+// A board per subject, in the subjects' colours (Home's tabs).
+const SUBJECTS: { id: Subject; label: string; glyph: string; on: string; off: string }[] = [
+  { id: "aptitude", label: "Aptitude", glyph: "Σ", on: "border-[#9fc41f] bg-lime text-ink", off: "text-lime" },
+  { id: "coding", label: "Coding", glyph: "</>", on: "border-[#8676e6] bg-violet text-ink", off: "text-violet" },
+  { id: "english", label: "English", glyph: "Aa", on: "border-[#d4683a] bg-orange text-ink", off: "text-orange" },
+];
+const PLAY_HREF: Record<Subject, string> = { aptitude: "/play", coding: "/play/coding", english: "/play/english" };
 
 export function LeaderboardClient() {
+  const [subject, setSubject] = useState<Subject>("aptitude");
   const [scope, setScope] = useState<Scope>("college");
-  const [boards, setBoards] = useState<Partial<Record<Scope, Board>>>({});
+  const [boards, setBoards] = useState<Partial<Record<Key, Board>>>({});
   const [error, setError] = useState<string | null>(null);
+  const key: Key = `${subject}:${scope}`;
 
   useEffect(() => {
     let active = true;
     api
-      .leaderboard(scope, 50)
+      .leaderboard(scope, 50, subject)
       .then((b) => {
         if (!active) return;
-        setBoards((all) => ({ ...all, [scope]: b }));
+        setBoards((all) => ({ ...all, [`${subject}:${scope}`]: b }));
         setError(null);
       })
       .catch((e: Error) => active && setError(e.message));
     return () => {
       active = false;
     };
-  }, [scope]);
+  }, [scope, subject]);
 
-  const board = boards[scope];
+  const board = boards[key];
   const empty = board !== undefined && board.rows.length === 0 && !(board.scope === "college" && !board.college);
   useCompanionPage(
     empty ? { mood: "think", say: "Nobody's ranked here yet. One Quick Match puts you on top!" } : { mood: "point" },
@@ -45,6 +57,31 @@ export function LeaderboardClient() {
         <span className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-muted">
           By rating
         </span>
+      </div>
+
+      <div role="radiogroup" aria-label="Subject" className="grid grid-cols-3 gap-2">
+        {SUBJECTS.map((s) => {
+          const on = s.id === subject;
+          return (
+            <button
+              key={s.id}
+              role="radio"
+              aria-checked={on}
+              onClick={() => {
+                setSubject(s.id);
+                setError(null);
+              }}
+              className={`flex h-11 items-center justify-center gap-1.5 rounded-xl border-2 text-[15px] font-bold transition ${
+                on ? s.on : `border-line bg-surface hover:bg-raised ${s.off}`
+              }`}
+            >
+              <span aria-hidden="true" className="font-mono text-sm">
+                {s.glyph}
+              </span>
+              {s.label}
+            </button>
+          );
+        })}
       </div>
 
       <div role="group" aria-label="Leaderboard" className="sticker grid grid-cols-2 rounded-2xl border-2 border-line bg-surface p-1">
@@ -67,12 +104,13 @@ export function LeaderboardClient() {
 
       {error && <ErrorNote message={error} />}
       {!board && !error && <Spinner label="Loading rankings" />}
-      {board && <BoardView board={board} />}
+      {board && <BoardView board={board} subject={subject} />}
     </main>
   );
 }
 
-function BoardView({ board }: { board: Board }) {
+function BoardView({ board, subject }: { board: Board; subject: Subject }) {
+  const name = SUBJECTS.find((s) => s.id === subject)?.label ?? "Aptitude";
   if (board.scope === "college" && !board.college) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-[20px] border border-line bg-surface p-5">
@@ -95,7 +133,7 @@ function BoardView({ board }: { board: Board }) {
         <div className="flex flex-col gap-0.5">
           <span className="text-[17px] font-bold">{board.scope === "college" ? board.college : "All India"}</span>
           <span className="text-xs text-muted">
-            {board.players.toLocaleString("en-IN")} {board.players === 1 ? "player" : "players"} ranked by rating
+            {board.players.toLocaleString("en-IN")} {board.players === 1 ? "player" : "players"} ranked by {name} rating
             · +/− is this week&apos;s change
           </span>
         </div>
@@ -109,7 +147,7 @@ function BoardView({ board }: { board: Board }) {
 
       {board.rows.length === 0 ? (
         <p className="rounded-[20px] border border-dashed border-line p-6 text-sm text-muted">
-          Nobody is ranked here yet. Play a Quick Match to take the top spot.
+          Nobody is ranked in {name} here yet. <Link href={PLAY_HREF[subject]}>Play a {name} Quick Match</Link> to take the top spot.
         </p>
       ) : (
         <>
@@ -131,7 +169,7 @@ function BoardView({ board }: { board: Board }) {
         )
       ) : (
         <p className="text-sm text-muted">
-          You&apos;re not ranked yet. <Link href="/">Play a duel</Link> to get on the board.
+          You&apos;re not ranked in {name} yet. <Link href={PLAY_HREF[subject]}>Play a {name} duel</Link> to get on the board.
         </p>
       )}
     </div>

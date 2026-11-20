@@ -72,6 +72,7 @@ public struct PublicProfile: Decodable, Sendable, Hashable {
     public let collegeRank: Int?
     public let recent: [String] // "W", "L" or "D", newest first
     public let vsMe: Record?
+    public let subjects: SubjectRatings? // 0025_subject_ranks.sql; nil before it
 
     public var winRate: Int? { gamesPlayed > 0 ? Int((Double(wins) / Double(gamesPlayed) * 100).rounded()) : nil }
 }

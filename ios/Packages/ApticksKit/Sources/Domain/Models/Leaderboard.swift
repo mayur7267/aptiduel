@@ -19,6 +19,7 @@ public struct BoardRow: Decodable, Sendable, Hashable {
 
 public struct Board: Decodable, Sendable, Hashable {
     public let scope: BoardScope
+    public let subject: Subject? // 0025_subject_ranks.sql; nil before it (Aptitude)
     public let college: String?
     public let players: Int
     public let rows: [BoardRow]
