@@ -4,6 +4,9 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getChallenge } from "@/lib/challenge";
 import { clock } from "@/lib/format";
+import { SUBJECT_INFO } from "@/lib/subject-info";
+
+const cap = (s: string) => s[0].toUpperCase() + s.slice(1);
 import { Bolt, Check } from "@/components/icons";
 import { Avatar, Logo, TierBadge } from "@/components/ui";
 import { Tiko } from "@/components/tiko";
@@ -16,15 +19,18 @@ export async function generateMetadata({ params }: PageProps<"/c/[code]">): Prom
   const { code } = await params;
   const ch = await getChallenge(code);
   if (!ch) return { title: "Challenge not found" };
+  const subject = ch.subject ?? "aptitude";
+  const info = SUBJECT_INFO[subject];
   if (ch.live) {
-    const title = `${ch.challenger.name} wants to duel you live`;
-    const description = "Join and answer the same 5 placement aptitude questions at the same time. About 3 minutes.";
+    const title = subject === "aptitude" ? `${ch.challenger.name} wants to duel you live` : `${ch.challenger.name} wants a live ${info.duel.split(" ")[1]} duel`;
+    const description = info.live;
     return { title, description, openGraph: { title, description }, robots: { index: false } };
   }
-  const title = `${ch.challenger.name} challenged you to an aptitude duel`;
+  const title = `${ch.challenger.name} challenged you to ${info.duel}`;
+  const what = info.what;
   const description = ch.challenger_finished
-    ? `Score to beat: ${ch.correct}/5 in ${clock(ch.total_ms)}. 5 placement-style questions, about 3 minutes. No sign-up.`
-    : "5 placement-style questions, about 3 minutes. No sign-up.";
+    ? `Score to beat: ${ch.correct}/5 in ${clock(ch.total_ms)}. ${cap(what)}. No sign-up.`
+    : `${cap(what)}. No sign-up.`;
   return { title, description, openGraph: { title, description }, robots: { index: false } };
 }
 
@@ -89,7 +95,7 @@ async function ChallengeBody({ params }: { params: Promise<{ code: string }> }) 
         {ch.live ? (
           <LiveRoom challenge={ch} />
         ) : (
-          <ViewerSwitch>
+          <ViewerSwitch subject={ch.subject ?? "aptitude"}>
             <div className="flex min-w-0 flex-[1_1_480px] flex-col gap-5">
               <ChallengeIntro ch={ch} />
             </div>
@@ -124,6 +130,7 @@ async function ChallengeBody({ params }: { params: Promise<{ code: string }> }) 
 
 function ChallengeIntro({ ch }: { ch: Challenge }) {
   const { challenger } = ch;
+  const subject = ch.subject ?? "aptitude";
 
   return (
     <>
@@ -132,10 +139,10 @@ function ChallengeIntro({ ch }: { ch: Challenge }) {
         You&apos;ve been challenged
       </span>
       <h1 className="font-display text-[clamp(30px,4.6vw,54px)] leading-[1.08] font-bold tracking-tight">
-        {challenger.name} challenged you to an aptitude duel.
+        {challenger.name} challenged you to {SUBJECT_INFO[subject].duel}.
       </h1>
       <p className="max-w-[520px] text-lg leading-relaxed text-muted">
-        5 placement-style questions. About 3 minutes. No sign-up, no download. Just tap play.
+        {cap(SUBJECT_INFO[subject].what)}. No sign-up, no download. Just tap play.
       </p>
 
       <div className="sticker flex max-w-[520px] flex-wrap items-center gap-4 rounded-[20px] border-2 border-line bg-surface p-4">
@@ -171,7 +178,7 @@ function ChallengeIntro({ ch }: { ch: Challenge }) {
       )}
 
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted">
-        {["Free", "Works in any browser", "Quant, reasoning, verbal"].map((t) => (
+        {["Free", "Works in any browser", SUBJECT_INFO[subject].points].map((t) => (
           <span key={t} className="flex items-center gap-1.5">
             <Check size={14} strokeWidth={3} className="text-lime" />
             {t}

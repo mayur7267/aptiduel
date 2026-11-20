@@ -60,7 +60,7 @@ export default function DailySharePage({ params }: PageProps<"/d/[code]">) {
 }
 
 const STEPS = [
-  ["01", "Same 5 for everyone", "Every player in India gets the same questions today: quant, reasoning and verbal."],
+  ["01", "Same 5 for everyone", "Every player in India gets the same questions today: quant and reasoning."],
   ["02", "Fast and right wins", "100 points for every correct answer, plus up to 50 for speed. One try a day."],
   ["03", "Keep your streak", "A new set every midnight. Play daily to build a streak and climb today's ranks."],
 ];

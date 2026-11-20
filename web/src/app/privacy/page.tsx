@@ -10,7 +10,7 @@ export default function PrivacyPage() {
   return (
     <LegalPage
       title="Privacy policy"
-      updated="7 November 2026"
+      updated="19 November 2026"
       lead="Apticks is a placement aptitude game for students: duels, a daily challenge and leaderboards, on the website and in the iPhone app. This page says what we collect, who can see it and how to remove it. It covers both."
     >
       <section className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
@@ -52,6 +52,15 @@ export default function PrivacyPage() {
             <span className="font-semibold text-text">Your test countdown, if you use it.</span> The company and date you set, and afterwards whether
             you cleared the test and how hard it felt. This stays private to you; we only look at it in aggregate, to see how practice relates to real
             results.
+          </li>
+          <li>
+            <span className="font-semibold text-text">Shares.</span> When you tap a share button (WhatsApp, copy, the share sheet or the Story
+            picture), which button it was, so we can count how often results are shared. If someone opens Apticks for the first time from a shared
+            Daily or Story link, we note which kind of link it was. We never see who you sent it to or what you wrote.
+          </li>
+          <li>
+            <span className="font-semibold text-text">Daily reminders, if you turn them on in the app.</span> They are set on your iPhone itself; we
+            don&apos;t receive anything about them.
           </li>
           <li>
             <span className="font-semibold text-text">Feedback you send.</span> Your message, the email address if you give one, the app version, device or

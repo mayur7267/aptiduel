@@ -6,6 +6,7 @@ import { use, useEffect, useState } from "react";
 import { account } from "@/lib/account";
 import { api, type Profile } from "@/lib/api";
 import { batch, tierFor } from "@/lib/format";
+import { roomSubject } from "@/lib/subjects";
 import { Close, Flame, Swords, Trophy } from "@/components/icons";
 import { DuelSignIn } from "@/components/sign-in-form";
 import { Tiko } from "@/components/tiko";
@@ -44,7 +45,7 @@ export function PublicProfile({ params }: { params: Promise<{ id: string }> }) {
         setBusy(false);
         return;
       }
-      const { code } = await api.createRoom();
+      const { code } = await api.createRoom(roomSubject());
       router.push(`/c/${code}`);
     } catch (e) {
       setError((e as Error).message);

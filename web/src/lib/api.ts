@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import type { Code, Subject } from "./subjects";
 
 // Shapes returned by the database functions in supabase/migrations.
 
@@ -27,6 +28,7 @@ export type ReviewItem = {
   companies: string[]; // company test patterns this topic is on
   body: string;
   figure: string | null;
+  code?: Code | null; // coding questions: the program in each language
   options: string[];
   option_figures: string[] | null;
   correct_idx: number;
@@ -44,6 +46,7 @@ export type Duel = {
   id: string;
   code: string;
   mode: DuelMode;
+  subject?: Subject; // missing before 0022_subjects: Aptitude
   company?: string | null; // set on company practice duels (and challenges made from them)
   status: "open" | "complete";
   is_creator: boolean;
@@ -70,6 +73,7 @@ export type QuestionView =
       difficulty: 1 | 2 | 3;
       body: string;
       figure: string | null; // SVG shown with the question
+      code?: Code | null; // coding questions: the program in each language
       options: string[];
       option_figures: string[] | null; // SVG per option for picture questions
       time_limit_ms: number;
@@ -107,6 +111,7 @@ export type Me = {
 export type DuelSummary = {
   id: string;
   mode: DuelMode;
+  subject?: Subject;
   company?: string | null;
   status: string;
   created_at: string;
@@ -154,6 +159,7 @@ export type Challenge = {
   started?: boolean; // live: the duel has begun
   full?: boolean; // live: both seats are taken
   my_seat?: 1 | 2 | null; // your seat, when you're in it (needs your session)
+  subject?: Subject; // 0023_room_subjects; missing before it (Aptitude)
   challenger: { name: string; rating: number; college: string | null; grad_year: number | null };
   challenger_finished: boolean;
   score: number;
@@ -281,6 +287,7 @@ export type LiveState = {
   me: LivePlayer;
   opponent: LivePlayer | null;
   rematch_id: string | null;
+  subject?: Subject; // 0023_room_subjects; missing before it (Aptitude)
 };
 
 export type ShareKind = "daily" | "story" | "challenge";
@@ -301,21 +308,50 @@ export type DailyShare = {
 // Starting a match can hand back an unfinished one instead.
 export type MatchStart = { duel_id: string; resumed?: boolean };
 
+// Your rating and games in each subject (my_subjects).
+// English is missing until 0024_english is applied.
+export type Subjects = Record<Exclude<Subject, "english">, { rating: number; games: number }> & { english?: { rating: number; games: number } };
+
+// Before a migration is applied its new functions don't exist yet.
+const missingFunction = (e: unknown) => e instanceof Error && /Could not find the function/i.test(e.message);
+
 export const api = {
   createChallenge: () => rpc<{ duel_id: string; code: string }>("create_challenge"),
-  quickMatch: () => rpc<MatchStart>("quick_match"),
+  // Aptitude uses the original call, so it works with or without 0022.
+  quickMatch: (subject: Subject = "aptitude") =>
+    subject === "aptitude" ? rpc<MatchStart>("quick_match") : rpc<MatchStart>("quick_match", { p_subject: subject }),
+  // null until 0022_subjects is live: the Coding tab stays hidden.
+  mySubjects: () => rpc<Subjects>("my_subjects").catch((e) => (missingFunction(e) ? null : Promise.reject(e))),
   companyMatch: (company: string) => rpc<MatchStart>("company_match", { p_company: company }),
   dailyChallenge: () => rpc<{ duel_id: string }>("daily_challenge"),
   // The IST days you finished the Daily, oldest first (0016_daily_calendar.sql).
   dailyDays: () => rpc<string[]>("daily_days"),
   leaderboard: (scope: "college" | "india", limit = 50) =>
     rpc<Board>("leaderboard", { p_scope: scope, p_limit: limit }),
-  joinChallenge: (code: string) => rpc<{ duel_id: string }>("join_challenge", { p_code: code }),
+  // p_client 2: this app shows code, so Coding duels are open to it
+  // (0023_room_subjects; older apps get a message to update instead).
+  joinChallenge: (code: string) =>
+    rpc<{ duel_id: string }>("join_challenge", { p_code: code, p_client: 2 }).catch((e) =>
+      missingFunction(e) ? rpc<{ duel_id: string }>("join_challenge", { p_code: code }) : Promise.reject(e),
+    ),
   // Live friend duels (supabase/migrations/0013_live_duels.sql). Opening
   // and joining need a saved account.
   getChallenge: (code: string) => rpc<Challenge | null>("get_challenge", { p_code: code }),
-  createRoom: () => rpc<{ duel_id: string; code: string }>("create_room"),
-  joinRoom: (code: string) => rpc<{ duel_id: string; mode: "live" | "challenge" }>("join_room", { p_code: code }),
+  // A room in a subject (0023_room_subjects). Aptitude uses the original
+  // call, so it works with or without 0023.
+  createRoom: (subject: Subject = "aptitude") =>
+    subject === "aptitude"
+      ? rpc<{ duel_id: string; code: string }>("create_room")
+      : rpc<{ duel_id: string; code: string }>("create_room", { p_subject: subject }),
+  // The host changes the subject until the friend joins.
+  setRoomSubject: (duelId: string, subject: Subject) =>
+    rpc<{ subject: Subject }>("set_room_subject", { p_duel_id: duelId, p_subject: subject }),
+  joinRoom: (code: string) =>
+    rpc<{ duel_id: string; mode: "live" | "challenge" }>("join_room", { p_code: code, p_client: 2 }).catch((e) =>
+      missingFunction(e)
+        ? rpc<{ duel_id: string; mode: "live" | "challenge" }>("join_room", { p_code: code })
+        : Promise.reject(e),
+    ),
   liveState: (duelId: string) => rpc<LiveState>("live_state", { p_duel_id: duelId }),
   livePlayNow: (duelId: string) => rpc<{ duel_id: string }>("live_play_now", { p_duel_id: duelId }),
   liveCancel: (duelId: string) => rpc<void>("live_cancel", { p_duel_id: duelId }),
@@ -338,7 +374,11 @@ export const api = {
   setDrive: (company: string | null, driveOn: string | null) => rpc<Drive>("set_drive", { p_company: company, p_drive_on: driveOn }),
   submitDriveResult: (cleared: "yes" | "no" | "skipped", difficulty: "easier" | "same" | "harder" | null) =>
     rpc<Drive>("submit_drive_result", { p_cleared: cleared, p_difficulty: difficulty }),
-  myDuels: (limit = 10) => rpc<DuelSummary[]>("my_duels", { p_limit: limit }),
+  // Every subject (my_duels itself only lists Aptitude, for the apps already out).
+  myDuels: (limit = 10) =>
+    rpc<DuelSummary[]>("my_duels_all", { p_limit: limit }).catch((e) =>
+      missingFunction(e) ? rpc<DuelSummary[]>("my_duels", { p_limit: limit }) : Promise.reject(e),
+    ),
   updateProfile: (name: string, collegeId: number | null, gradYear: number | null) =>
     rpc<Me>("update_profile", { p_name: name, p_college_id: collegeId, p_grad_year: gradYear }),
   deleteMe: () => rpc<void>("delete_me"),

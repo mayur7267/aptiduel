@@ -135,6 +135,15 @@ body {
   background-attachment: fixed;
 }
 
+/* Code shows exactly what was typed: JetBrains Mono would otherwise draw
+   <= as ≤ and join ++, which misleads in "what does this print?". */
+.font-mono,
+code,
+pre {
+  font-variant-ligatures: none;
+  font-feature-settings: "calt" 0, "liga" 0;
+}
+
 /* Sticker depth: a solid offset shadow. Set --pop to change its colour. */
 @utility sticker {
   box-shadow: 4px 4px 0 0 var(--pop, #2b3247);

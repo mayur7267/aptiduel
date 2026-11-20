@@ -7,7 +7,8 @@ import { account } from "@/lib/account";
 import { api, type Challenge } from "@/lib/api";
 import { liveInviteText } from "@/lib/format";
 import { useLiveState } from "@/lib/live";
-import { hasSavedSession } from "@/lib/supabase";
+import { type Subject } from "@/lib/subjects";
+import { hasSavedSession, publicSupabase } from "@/lib/supabase";
 import { Bolt, Check, Play } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
 import { DuelSignIn } from "@/components/sign-in-form";
@@ -23,6 +24,28 @@ const secondary =
 // How long the host waits before "Play now" is offered.
 const OFFER_PLAY_NOW_MS = 45_000;
 
+// What each subject's duel is, for the invite and the lobby.
+const ABOUT: Record<Subject, { label: string; glyph: string; line: string; points: string }> = {
+  aptitude: {
+    label: "Aptitude",
+    glyph: "Σ",
+    line: "You race through the same 5 placement questions, starting together. Fast and right wins. About 3 minutes.",
+    points: "Quant and reasoning",
+  },
+  coding: {
+    label: "Coding",
+    glyph: "</>",
+    line: "You race through the same 5 short programs, starting together: say what each one prints. Fast and right wins. About 4 minutes.",
+    points: "C, C++, Java, Python or pseudocode",
+  },
+  english: {
+    label: "English",
+    glyph: "Aa",
+    line: "You race through the same 5 English questions, starting together: vocabulary, grammar and usage. Fast and right wins. About 3 minutes.",
+    points: "Vocabulary, grammar, usage",
+  },
+};
+
 // A live room's page. Players in it see the lobby; anyone else sees the
 // invite, signs in if they're a guest, and joins.
 export function LiveRoom({ challenge }: { challenge: Challenge }) {
@@ -36,6 +59,21 @@ export function LiveRoom({ challenge }: { challenge: Challenge }) {
   const [signIn, setSignIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [subject, setSubject] = useState<Subject>(challenge.subject ?? "aptitude");
+
+  // The host can switch the subject until someone joins, so the invite
+  // keeps up (a read with no session: it never makes a guest account).
+  const waitingRoom = challenge.open && !challenge.started && !challenge.full;
+  useEffect(() => {
+    if (seat === "in" || !waitingRoom) return;
+    const db = publicSupabase();
+    const timer = setInterval(async () => {
+      const { data } = await db.rpc("get_challenge", { p_code: challenge.code });
+      const s = (data as Challenge | null)?.subject;
+      if (s) setSubject(s);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [seat, waitingRoom, challenge.code]);
 
   useEffect(() => {
     if (!returning) return;
@@ -100,9 +138,8 @@ export function LiveRoom({ challenge }: { challenge: Challenge }) {
         <h1 className="font-display text-[clamp(30px,4.6vw,54px)] leading-[1.08] font-bold tracking-tight">
           {challenger.name} wants to duel you, live.
         </h1>
-        <p className="max-w-[520px] text-lg leading-relaxed text-muted">
-          You race through the same 5 placement questions, starting together. Fast and right wins. About 3 minutes.
-        </p>
+        <SubjectChip subject={subject} />
+        <p className="max-w-[520px] text-lg leading-relaxed text-muted">{ABOUT[subject].line}</p>
 
         <ChallengerCard challenge={challenge} />
 
@@ -133,7 +170,7 @@ export function LiveRoom({ challenge }: { challenge: Challenge }) {
         {error && <ErrorNote message={error} />}
 
         <div className="flex flex-wrap gap-x-5 gap-y-2 text-[13px] text-muted">
-          {["Free", "Same account on the app and the website", "Quant, reasoning, verbal"].map((t) => (
+          {["Free", "Same account on the app and the website", ABOUT[subject].points].map((t) => (
             <span key={t} className="flex items-center gap-1.5">
               <Check size={14} strokeWidth={3} className="text-lime" />
               {t}
@@ -179,6 +216,8 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
   const [now, setNow] = useState(() => Date.now());
   const [busy, setBusy] = useState<"play" | "close" | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // The host's pick, shown at once (the server agrees on the next refresh).
+  const [picked, setPicked] = useState<Subject | null>(null);
 
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now()), 1000);
@@ -202,6 +241,17 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
     }
   }
 
+  async function pick(s: Subject) {
+    setPicked(s);
+    setActionError(null);
+    try {
+      await api.setRoomSubject(duelId, s);
+    } catch (e) {
+      setPicked(null);
+      setActionError((e as Error).message);
+    }
+  }
+
   async function close() {
     setBusy("close");
     try {
@@ -218,6 +268,9 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
 
   const opp = state.opponent;
   const host = state.is_host;
+  const subject = (opp ? null : picked) ?? state.subject ?? "aptitude";
+  // The host picks the subject until the friend joins.
+  const canPick = host && !opp && state.status === "waiting";
   const waitedLong = now - since > OFFER_PLAY_NOW_MS;
   const elapsed = Math.floor((now - since) / 1000);
   const other = host ? "your friend" : challenge.challenger.name;
@@ -252,6 +305,7 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
         </span>
         <h1 className="font-display text-[clamp(28px,4.2vw,48px)] leading-[1.08] font-bold tracking-tight">{title}</h1>
         <p className="max-w-[520px] text-lg leading-relaxed text-muted">{line}</p>
+        {canPick ? <SubjectPicker subject={subject} onPick={pick} /> : <SubjectChip subject={subject} />}
 
         {state.status === "async" ? (
           <Link href={`/duel/${duelId}`} className={primary}>
@@ -266,7 +320,7 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
           <>
             {host && !opp && (
               <div className="flex max-w-[520px] flex-col gap-2.5">
-                <SharePanel code={state.code} text={liveInviteText(state.me.name, state.code)} />
+                <SharePanel code={state.code} text={liveInviteText(state.me.name, state.code, subject)} />
                 <p className="text-sm text-muted">
                   Or tell them the room code: <span className="font-mono font-bold tracking-[0.2em] text-text">{state.code}</span>
                 </p>
@@ -307,6 +361,50 @@ function Lobby({ duelId, challenge }: { duelId: string; challenge: Challenge }) 
         <Versus left={state.me.name} right={opp?.present ? opp.name : null} you />
       </div>
     </>
+  );
+}
+
+// Which subject the duel is in.
+const SUBJECT_LOOK: Record<Subject, { on: string; off: string }> = {
+  aptitude: { on: "border-[#9fc41f] bg-lime text-ink", off: "border-line bg-surface text-lime hover:bg-raised" },
+  coding: { on: "border-[#8676e6] bg-violet text-ink", off: "border-line bg-surface text-violet hover:bg-raised" },
+  english: { on: "border-[#d4683a] bg-orange text-ink", off: "border-line bg-surface text-orange hover:bg-raised" },
+};
+
+function SubjectChip({ subject }: { subject: Subject }) {
+  return (
+    <span className={`flex h-9 items-center gap-2 self-start rounded-xl border-2 px-3 text-sm font-bold ${SUBJECT_LOOK[subject].on}`}>
+      <span className="font-mono">{ABOUT[subject].glyph}</span>
+      {ABOUT[subject].label} duel
+    </span>
+  );
+}
+
+// The host's choice while waiting: the friend sees it change.
+function SubjectPicker({ subject, onPick }: { subject: Subject; onPick: (s: Subject) => void }) {
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="font-mono text-[11px] font-bold tracking-wider text-faint uppercase">Subject</span>
+      <div role="radiogroup" aria-label="Subject" className="flex flex-wrap gap-2">
+        {(Object.keys(ABOUT) as Subject[]).map((s) => {
+          const on = s === subject;
+          return (
+            <button
+              key={s}
+              role="radio"
+              aria-checked={on}
+              onClick={() => !on && onPick(s)}
+              className={`flex h-11 items-center gap-2 rounded-xl border-2 px-4 text-[15px] font-bold transition-colors ${
+                on ? SUBJECT_LOOK[s].on : SUBJECT_LOOK[s].off
+              }`}
+            >
+              <span className="font-mono">{ABOUT[s].glyph}</span>
+              {ABOUT[s].label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

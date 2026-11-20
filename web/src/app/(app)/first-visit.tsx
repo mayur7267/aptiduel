@@ -9,6 +9,8 @@ import { Bars, Bolt, Calendar, ChevronRight, Clock, Swords } from "@/components/
 import { Modal } from "@/components/modal";
 import { ErrorNote, Logo } from "@/components/ui";
 import { DriveCard } from "./drive-card";
+import { SubjectStage, SubjectTabs } from "./play-card";
+import { useSubjectTab, type Subject } from "@/lib/subjects";
 
 type Busy = "quick" | "challenge" | "daily" | null;
 
@@ -36,6 +38,9 @@ export function FirstVisit({
 }) {
   const [sheet, setSheet] = useState<"test" | "companies" | null>(null);
   const close = () => setSheet(null);
+  // The four subjects on top, so a newcomer sees at once there's more
+  // than aptitude. Play stays one tap in whichever is open.
+  const [tab, setTab] = useSubjectTab();
 
   return (
     <div className="flex-1 bg-[radial-gradient(700px_320px_at_10%_-60px,rgba(200,241,53,0.09),transparent),radial-gradient(600px_300px_at_100%_0%,rgba(165,148,255,0.08),transparent)]">
@@ -50,8 +55,13 @@ export function FirstVisit({
         {error && <ErrorNote message={error} />}
 
         <div className="grid gap-3 lg:grid-cols-[1.35fr_1fr] lg:items-stretch lg:gap-5">
-          <Hero />
-          <div className="hidden flex-col gap-4 lg:flex">
+          <div className="flex flex-col">
+            <SubjectTabs current={tab} onPick={setTab} />
+            <SubjectStage current={tab}>
+              {(t) => (t === "gk" ? <SoonHero which={t} onBack={() => setTab("aptitude")} /> : <Hero subject={t} />)}
+            </SubjectStage>
+          </div>
+          <div className="hidden flex-col gap-4 lg:mt-[74px] lg:flex">
             <SampleQuestion />
             <Tile
               tone="violet"
@@ -145,55 +155,102 @@ export function FirstVisit({
   );
 }
 
-function Hero() {
+const HERO = {
+  aptitude: {
+    box: "border-[#9fc41f] bg-lime bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(11_14_23/0.035)_14px_28px)] [--pop:#5f7710]",
+    tag: "APTITUDE · 1V1",
+    sticker: "VS",
+    title: "Aptitude, but it's a duel.",
+    blurb: (
+      <>
+        Race someone through 5 placement-style questions<span className="hidden lg:inline">: quant and reasoning</span>.
+        Right and fast wins.
+      </>
+    ),
+    sub: "text-lime-ink",
+    accent: "text-lime",
+    pop: "[--pop:#5f7710]",
+    href: "/play",
+    minutes: "3 MIN",
+    bubble: "Tap Play! I'll find you a rival.",
+  },
+  coding: {
+    box: "border-[#8676e6] bg-violet bg-[repeating-linear-gradient(90deg,transparent_0_22px,rgb(11_14_23/0.05)_22px_23px)] [--pop:#4b3fa6]",
+    tag: "CODING · 1V1",
+    sticker: "</>",
+    title: "Code, but it's a duel.",
+    blurb: <>Read 5 short programs and call the output before your rival. In C, C++, Java, Python or pseudocode.</>,
+    sub: "text-[#241d5c]",
+    accent: "text-violet",
+    pop: "[--pop:#4b3fa6]",
+    href: "/play/coding",
+    minutes: "4 MIN",
+    bubble: "Tap Play! Pick your language in the duel.",
+  },
+  english: {
+    box: "border-[#d4683a] bg-orange bg-[repeating-linear-gradient(45deg,transparent_0_16px,rgb(11_14_23/0.04)_16px_17px)] [--pop:#9c4a1f]",
+    tag: "ENGLISH · 1V1",
+    sticker: "Aa",
+    title: "English, but it's a duel.",
+    blurb: <>Synonyms, idioms, grammar and more: 5 questions the way placement tests ask them. Right and fast wins.</>,
+    sub: "text-[#4a1f08]",
+    accent: "text-orange",
+    pop: "[--pop:#9c4a1f]",
+    href: "/play/english",
+    minutes: "3 MIN",
+    bubble: "Tap Play! Words are my thing.",
+  },
+} as const;
+
+function Hero({ subject }: { subject: Subject }) {
   const router = useRouter();
+  const h = HERO[subject];
   // Tapping Tiko starts a duel too, after Tiko's little reaction.
-  const play = () => router.push("/play");
+  const play = () => router.push(h.href);
   return (
     <section
       aria-labelledby="first-title"
-      className="relative isolate flex flex-col gap-3 overflow-hidden rounded-[24px] border-2 border-[#9fc41f] bg-lime bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(11_14_23/0.035)_14px_28px)] p-[18px] text-ink sticker [--pop:#5f7710] motion-safe:animate-rise lg:gap-4 lg:p-9"
+      className={`relative isolate flex flex-1 flex-col gap-3 overflow-hidden rounded-[24px] border-2 p-[18px] text-ink sticker motion-safe:animate-rise lg:gap-4 lg:p-9 ${h.box}`}
     >
       {/* Phones skip this row: Tiko below does its job, in less room. */}
       <div className="hidden items-start justify-between lg:flex">
-        <span className="-rotate-3 rounded-md bg-ink px-2 py-1 font-mono text-[11px] font-bold tracking-wider text-lime">
-          APTITUDE · 1V1
-        </span>
+        <span className="-rotate-3 rounded-md bg-ink px-2 py-1 font-mono text-[11px] font-bold tracking-wider text-lime">{h.tag}</span>
         <span
           aria-hidden="true"
-          className="sticker hidden size-16 rotate-6 items-center justify-center rounded-2xl bg-ink font-display text-lg font-bold text-lime [--pop:#5f7710] lg:flex"
+          className={`sticker hidden size-16 rotate-6 items-center justify-center rounded-2xl bg-ink font-display font-bold lg:flex ${
+            subject === "coding" ? "font-mono text-base" : "text-lg"
+          } ${h.accent} ${h.pop}`}
         >
-          VS
+          {h.sticker}
         </span>
       </div>
       <div className="flex flex-col gap-1.5 lg:gap-2">
         <h1 id="first-title" className="font-display text-[clamp(26px,7.4vw,46px)] leading-[1.08] font-bold">
-          Aptitude, but it&apos;s a duel.
+          {h.title}
         </h1>
-        <p className="text-[14px] font-medium text-lime-ink lg:max-w-[46ch] lg:text-base">
-          Race someone through 5 placement-style questions<span className="hidden lg:inline">: quant, reasoning and verbal</span>.
-          Right and fast wins.
-        </p>
+        <p className={`text-[14px] font-medium lg:max-w-[46ch] lg:text-base ${h.sub}`}>{h.blurb}</p>
       </div>
       <div className="mt-auto flex flex-col gap-2 pt-1">
         {/* Phones: Tiko stands on the button and asks you to press it. */}
         <div className="relative z-10 -mb-2.5 flex items-end justify-end gap-1 pr-1 lg:hidden">
-          <Bubble className="mb-7">Tap Play! I&apos;ll find you a rival.</Bubble>
+          <Bubble className="mb-7">{h.bubble}</Bubble>
           <Tiko mood="point" size={62} onTap={play} />
         </div>
         <Link
-          href="/play"
-          className="pressable flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-ink px-6 text-[17px] font-bold text-text [--pop:#5f7710] hover:text-text lg:h-14 lg:self-start lg:px-10"
+          href={h.href}
+          className={`pressable flex h-[52px] items-center justify-center gap-2 rounded-2xl bg-ink px-6 text-[17px] font-bold text-text hover:text-text lg:h-14 lg:self-start lg:px-10 ${h.pop}`}
         >
-          <Bolt size={19} strokeWidth={2.4} className="text-lime" />
+          <Bolt size={19} strokeWidth={2.4} className={h.accent} />
           Play now
-          <span className="ml-1 rounded-full bg-lime/15 px-2 py-0.5 font-mono text-[11px] font-bold text-lime lg:hidden">3 MIN</span>
+          <span className={`ml-1 rounded-full bg-text/10 px-2 py-0.5 font-mono text-[11px] font-bold lg:hidden ${h.accent}`}>{h.minutes}</span>
         </Link>
-        <p className="hidden text-[13px] font-semibold text-lime-ink lg:block">Free · no sign-up · about 3 minutes</p>
+        <p className={`hidden text-[13px] font-semibold lg:block ${h.sub}`}>
+          Free · no sign-up · about {subject === "coding" ? 4 : 3} minutes
+        </p>
       </div>
       {/* Laptops: Tiko in the hero's empty corner, beside the button. */}
       <div className="absolute right-8 bottom-6 hidden items-end gap-1 lg:flex">
-        <Bubble className="mb-20 max-w-[180px]">Tap Play! I&apos;ll find you a rival.</Bubble>
+        <Bubble className="mb-20 max-w-[180px]">{h.bubble}</Bubble>
         <Tiko mood="wave" size={112} onTap={play} />
       </div>
     </section>
@@ -201,6 +258,42 @@ function Hero() {
 }
 
 // A speech bubble from Tiko, popping in just after the page.
+const SOON_HERO = {
+  gk: {
+    box: "border-[#2f6f8f] bg-[#10222c] [--pop:#0b1a22]",
+    accent: "text-[#6cc7ff]",
+    title: "GK is coming soon.",
+    blurb: "Static GK and current affairs for bank and government exams. Aptitude, Coding and English are ready now.",
+  },
+} as const;
+
+function SoonHero({ which, onBack }: { which: "gk"; onBack: () => void }) {
+  const h = SOON_HERO[which];
+  return (
+    <section
+      aria-labelledby="first-title"
+      className={`relative isolate flex flex-1 flex-col gap-3 overflow-hidden rounded-[24px] border-2 p-[18px] text-text sticker motion-safe:animate-rise lg:gap-4 lg:p-9 ${h.box}`}
+    >
+      <span className={`-rotate-3 self-start rounded-md bg-ink px-2 py-1 font-mono text-[11px] font-bold tracking-wider ${h.accent}`}>
+        COMING SOON
+      </span>
+      <div className="flex flex-col gap-1.5 lg:gap-2">
+        <h1 id="first-title" className="font-display text-[clamp(26px,7.4vw,46px)] leading-[1.08] font-bold">
+          {h.title}
+        </h1>
+        <p className="text-[14px] font-medium text-soft lg:max-w-[46ch] lg:text-base">{h.blurb}</p>
+      </div>
+      <button
+        onClick={onBack}
+        className="pressable mt-auto flex h-[52px] items-center justify-center gap-2 rounded-2xl border-2 border-line bg-ink px-6 text-[17px] font-bold text-text [--pop:#0b0e17] lg:h-14 lg:self-start lg:px-10"
+      >
+        <Bolt size={19} strokeWidth={2.4} className="text-lime" />
+        Play Aptitude now
+      </button>
+    </section>
+  );
+}
+
 function Bubble({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
     <span

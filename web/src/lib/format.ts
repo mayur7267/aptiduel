@@ -1,3 +1,5 @@
+import type { Subject } from "./subjects";
+
 export const TIERS = [
   { name: "Fresher", min: 0 },
   { name: "Trainee", min: 900 },
@@ -65,12 +67,24 @@ export function siteUrl(path = "") {
 }
 
 // For a challenge you haven't played yet: no score to beat.
-export function inviteShareText(name: string, code: string) {
+export function inviteShareText(name: string, code: string, subject: Subject = "aptitude") {
+  if (subject === "english") {
+    return `${name} challenged you to an English duel on Apticks. Same 5 questions for both of you: vocabulary, grammar and usage. About 3 minutes, no sign-up: ${siteUrl(`/c/${code}`)}`;
+  }
+  if (subject === "coding") {
+    return `${name} challenged you to a coding duel on Apticks. Same 5 short programs for both of you: say what each one prints, in C, C++, Java, Python or pseudocode. About 4 minutes, no sign-up: ${siteUrl(`/c/${code}`)}`;
+  }
   return `${name} challenged you to an aptitude duel on Apticks. Same 5 placement questions for both of you, about 3 minutes, no sign-up: ${siteUrl(`/c/${code}`)}`;
 }
 
 // For a live room: the friend joins and you play at the same time.
-export function liveInviteText(name: string, code: string) {
+export function liveInviteText(name: string, code: string, subject: Subject = "aptitude") {
+  if (subject === "english") {
+    return `${name} wants a live English duel with you on Apticks: the same 5 questions at the same time, vocabulary, grammar and usage. About 3 minutes. Join here: ${siteUrl(`/c/${code}`)}`;
+  }
+  if (subject === "coding") {
+    return `${name} wants a live coding duel with you on Apticks: the same 5 short programs at the same time, say what each one prints. C, C++, Java, Python or pseudocode, about 4 minutes. Join here: ${siteUrl(`/c/${code}`)}`;
+  }
   return `${name} wants to duel you live on Apticks: the same 5 placement aptitude questions at the same time, about 3 minutes. Join here: ${siteUrl(`/c/${code}`)}`;
 }
 
@@ -97,6 +111,11 @@ export function dailyShareText(r: { day: string; correct: number; total_ms: numb
   ].join("\n");
 }
 
-export function challengeShareText(name: string, correct: number, ms: number, code: string) {
-  return `${name} scored ${correct}/5 in ${clock(ms)} on Apticks. Think you can beat that? 5 placement aptitude questions, 3 minutes: ${siteUrl(`/c/${code}`)}`;
+export function challengeShareText(name: string, correct: number, ms: number, code: string, subject: Subject = "aptitude") {
+  const what = {
+    aptitude: "5 placement aptitude questions, 3 minutes",
+    coding: "5 short programs, say what each one prints, 4 minutes",
+    english: "5 English questions on vocabulary and grammar, 3 minutes",
+  }[subject];
+  return `${name} scored ${correct}/5 in ${clock(ms)} on Apticks. Think you can beat that? ${what}: ${siteUrl(`/c/${code}`)}`;
 }

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState, useSyncExternalStore, type ReactNode } from "react";
 import { api, type ChallengeStatus } from "@/lib/api";
 import { challengeShareText, clock, inviteShareText } from "@/lib/format";
+import type { Subject } from "@/lib/subjects";
 import { hasSavedSession } from "@/lib/supabase";
 import { Play } from "@/components/icons";
 import { SharePanel } from "@/components/share-panel";
@@ -15,7 +16,7 @@ const noSubscribe = () => () => {};
 // The challenge page is written for friends ("X challenged you"). When the
 // challenger opens their own link, it shows their side instead: who has
 // played, who won, and their own turn.
-export function ViewerSwitch({ children }: { children: ReactNode }) {
+export function ViewerSwitch({ children, subject }: { children: ReactNode; subject: Subject }) {
   // Only a browser that has played before can be the challenger, so
   // first-time visitors never wait on the check (or get a guest account).
   const returning = useSyncExternalStore(noSubscribe, hasSavedSession, () => false);
@@ -54,10 +55,10 @@ export function ViewerSwitch({ children }: { children: ReactNode }) {
       </div>
     );
   }
-  return <OwnerView status={status} />;
+  return <OwnerView status={status} subject={subject} />;
 }
 
-function OwnerView({ status }: { status: ChallengeStatus }) {
+function OwnerView({ status, subject }: { status: ChallengeStatus; subject: Subject }) {
   const { me, friends } = status;
   const title =
     friends.length === 0
@@ -71,8 +72,8 @@ function OwnerView({ status }: { status: ChallengeStatus }) {
   const mood: TikoMood =
     friends.length === 0 ? "think" : !me.finished ? "point" : settled.length === 0 ? "think" : lostOne ? "sad" : "cheer";
   const shareText = me.finished
-    ? challengeShareText(me.name, me.correct, me.total_ms, status.code)
-    : inviteShareText(me.name, status.code);
+    ? challengeShareText(me.name, me.correct, me.total_ms, status.code, subject)
+    : inviteShareText(me.name, status.code, subject);
 
   return (
     <div className="flex w-full max-w-[640px] flex-col gap-5">

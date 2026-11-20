@@ -9,6 +9,7 @@ import { openFeedback } from "@/lib/feedback";
 import { challengeShareText, clock, dailyShareText, shortDay, signed, tierFor } from "@/lib/format";
 import { Bolt, Check, Close, Refresh, Shield, Trophy } from "@/components/icons";
 import { Figure } from "@/components/figure";
+import { CodeBlock } from "@/components/code-block";
 import { Tiko, type TikoMood } from "@/components/tiko";
 import { SharePanel } from "@/components/share-panel";
 import { StoryButton, type StoryData } from "@/components/story-card";
@@ -161,7 +162,12 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
       {opp && outcome && <Scoreboard me={me} opp={opp} outcome={outcome} />}
 
       {delta !== null && me.rating_before !== null && me.rating_after !== null && (
-        <RatingCard before={me.rating_before} after={me.rating_after} delta={delta} />
+        <RatingCard
+          before={me.rating_before}
+          after={me.rating_after}
+          delta={delta}
+          label={duel.subject === "coding" ? "Coding rating" : duel.subject === "english" ? "English rating" : "Rating"}
+        />
       )}
       {live && delta === 0 && (
         <p className="-mt-2 text-[13px] text-muted">
@@ -209,7 +215,7 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
           <SharePanel
             code={shareCode}
             short="WhatsApp"
-            text={challengeShareText(me.name, me.correct, me.total_ms, shareCode)}
+            text={challengeShareText(me.name, me.correct, me.total_ms, shareCode, duel.subject)}
             onShare={logShare("challenge")}
             beside={story}
           />
@@ -412,7 +418,7 @@ function ScoreSide({ player, label, outcome }: { player: Player; label?: string;
   );
 }
 
-function RatingCard({ before, after, delta }: { before: number; after: number; delta: number }) {
+function RatingCard({ before, after, delta, label = "Rating" }: { before: number; after: number; delta: number; label?: string }) {
   const was = tierFor(before);
   const now = tierFor(after);
   const promoted = now.min > was.min;
@@ -420,7 +426,7 @@ function RatingCard({ before, after, delta }: { before: number; after: number; d
     <Card className="flex flex-col gap-3 p-4">
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
-          <span className="text-[13px] text-muted">Rating</span>
+          <span className="text-[13px] text-muted">{label}</span>
           <span className="flex items-center gap-2.5 font-display font-bold">
             <span className="font-mono text-lg text-muted">{before.toLocaleString("en-IN")}</span>
             <span aria-hidden="true" className="text-muted">→</span>
@@ -487,7 +493,7 @@ function Review({ duelId, items, opponentName }: { duelId: string; items: Review
               {r.is_correct ? `+${r.points} · ${clock(r.ms)}` : r.chosen_idx === null ? "Time ran out" : "Wrong"}
             </span>
           </div>
-          <p className="text-[15px] leading-relaxed font-semibold">{r.body}</p>
+          <p className="text-[15px] leading-relaxed font-semibold whitespace-pre-line">{r.body}</p>
           {r.figure && (
             <Figure
               svg={r.figure}
@@ -495,6 +501,7 @@ function Review({ duelId, items, opponentName }: { duelId: string; items: Review
               className="w-full max-w-[420px] rounded-xl border border-line p-2 text-text [&>svg]:max-h-[200px]"
             />
           )}
+          {r.code && <CodeBlock code={r.code} />}
           <ul className={r.option_figures ? "grid grid-cols-4 gap-2" : "flex flex-col gap-1.5"}>
             {r.options.map((o, i) => {
               const right = i === r.correct_idx;
@@ -512,7 +519,7 @@ function Review({ duelId, items, opponentName }: { duelId: string; items: Review
               }
               return (
                 <li key={i} className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2 text-sm ${tone}`}>
-                  <span>{o}</span>
+                  <span className={r.code ? "font-mono whitespace-pre-wrap" : ""}>{o}</span>
                   <span className="text-xs font-semibold text-muted">{note}</span>
                 </li>
               );
@@ -534,6 +541,7 @@ function Review({ duelId, items, opponentName }: { duelId: string; items: Review
                   question: r.q_index + 1,
                   topic: r.topic,
                   body: r.body.slice(0, 240),
+                  ...(r.code ? { code: r.code.c.slice(0, 600) } : {}),
                 })
               }
               className="shrink-0 text-xs font-semibold text-muted underline-offset-2 hover:text-text hover:underline"
@@ -563,7 +571,11 @@ function storyData(duel: Duel, outcome: Outcome | null, grid: boolean[]): StoryD
       ? `DAILY · ${shortDay(istToday()).toUpperCase()}`
       : duel.company
         ? `${duel.company.toUpperCase()} PRACTICE`
-        : (MODE_CHIP[duel.mode] ?? "APTITUDE DUEL");
+        : duel.subject === "coding"
+          ? "CODING MATCH"
+          : duel.subject === "english"
+            ? "ENGLISH MATCH"
+            : (MODE_CHIP[duel.mode] ?? "APTITUDE DUEL");
   let headline = "My score";
   let extra: string | null = null;
   if (duel.mode === "daily") {

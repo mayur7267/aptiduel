@@ -15,6 +15,7 @@ import {
   clock,
   initials,
   inviteShareText,
+  liveInviteText,
   signed,
   tierFor,
   untilIstMidnight,
@@ -69,6 +70,15 @@ test("batch and share text", () => {
   assert.match(invite, /\/c\/XYZ789$/);
 });
 
+test("share texts say when it's a coding duel", () => {
+  assert.match(inviteShareText("Asha", "XYZ789", "coding"), /^Asha challenged you to a coding duel on Apticks\..*\/c\/XYZ789$/);
+  assert.match(liveInviteText("Asha", "XYZ789", "coding"), /^Asha wants a live coding duel with you on Apticks:.*\/c\/XYZ789$/);
+  assert.match(liveInviteText("Asha", "XYZ789"), /placement aptitude questions/);
+  const scored = challengeShareText("Asha", 4, 95_000, "ABC123", "coding");
+  assert.match(scored, /5 short programs/);
+  assert.doesNotMatch(scored, /aptitude/);
+});
+
 test("companies have unique slugs and resolve by slug", () => {
   assert.equal(new Set(COMPANIES.map((c) => c.slug)).size, COMPANIES.length);
   assert.equal(companyBySlug("tcs-nqt")?.name, "TCS NQT");
@@ -86,6 +96,14 @@ test("rating history runs oldest to newest and ends at today's rating", async ()
   assert.deepEqual(ratingHistory(duels, 1180), [1150, 1164, 1180]);
   assert.deepEqual(ratingHistory([], 1000), [1000]);
   assert.equal(weekChange(duels, now), 16);
+
+  // Coding has its own rating: it never moves the Aptitude chart.
+  const withCoding = [
+    ...duels,
+    { created_at: "2026-10-30T09:00:00Z", subject: "coding", is_replay: false, rating_before: 1000, rating_after: 1040 },
+  ];
+  assert.deepEqual(ratingHistory(withCoding, 1180), [1150, 1164, 1180]);
+  assert.equal(weekChange(withCoding, now), 16);
 });
 
 // "Add to Home screen": stay quiet for two weeks after they say no.

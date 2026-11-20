@@ -8,6 +8,7 @@ import { clock, companyList } from "@/lib/format";
 import { useLiveState } from "@/lib/live";
 import { Check, Clock, Close } from "@/components/icons";
 import { Figure } from "@/components/figure";
+import { CodeBlock } from "@/components/code-block";
 import { Tiko, type TikoMood, type TikoMove } from "@/components/tiko";
 import { BotTag, ErrorNote, Spinner } from "@/components/ui";
 
@@ -16,7 +17,7 @@ export type Mark = "right" | "wrong" | "unknown";
 export type Phase = "loading" | "question" | "submitting" | "reveal";
 
 const KEYS = ["A", "B", "C", "D"];
-const SECTION_LABEL: Record<string, string> = { quant: "Quant", reasoning: "Reasoning", verbal: "Verbal" };
+const SECTION_LABEL: Record<string, string> = { quant: "Quant", reasoning: "Reasoning", verbal: "Verbal", coding: "Coding" };
 
 export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -348,7 +349,9 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
         )}
       </div>
 
-      <p className="text-lg leading-relaxed font-semibold">{q.body}</p>
+      <p className="text-lg leading-relaxed font-semibold whitespace-pre-line">{q.body}</p>
+
+      {q.code && <CodeBlock code={q.code} />}
 
       {q.figure && (
         <Figure
@@ -368,6 +371,7 @@ export function DuelPlay({ params }: { params: Promise<{ id: string }> }) {
               index={i}
               text={text}
               figure={q.option_figures?.[i]}
+              mono={Boolean(q.code)}
               phase={phase}
               chosen={chosen}
               result={result}
@@ -390,10 +394,12 @@ export function OptionButton({
   result,
   onPick,
   badge,
+  mono = false,
 }: {
   index: number;
   text: string;
   figure?: string; // picture option
+  mono?: boolean; // program output
   phase: Phase;
   chosen: number | null;
   result: Pick<AnswerResult, "correct" | "correct_idx"> | null;
@@ -451,7 +457,7 @@ export function OptionButton({
       className={`group pressable flex min-h-[60px] items-center gap-3.5 rounded-2xl border-2 px-4 text-left text-base font-semibold disabled:cursor-default ${look}`}
     >
       {mark}
-      <span className="flex-1">{text}</span>
+      <span className={`flex-1 ${mono ? "font-mono text-[15px] whitespace-pre-wrap" : ""}`}>{text}</span>
       {badge}
     </button>
   );

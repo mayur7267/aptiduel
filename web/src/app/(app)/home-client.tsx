@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { api, type Board, type DuelSummary, type Me } from "@/lib/api";
+import { CARD, QuickMatchCard } from "./play-card";
+import { roomSubject } from "@/lib/subjects";
 import { COMPANIES } from "@/lib/companies";
 import { account } from "@/lib/account";
 import { clock, greeting, signed, tierFor, untilIstMidnight } from "@/lib/format";
-import { Bolt, Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
+import { Calendar, Check, ChevronRight, Flame, Shield } from "@/components/icons";
 import { DuelSignIn } from "@/components/sign-in-form";
 import { InstallCard } from "@/components/install-card";
 import { DriveCard } from "./drive-card";
@@ -109,7 +111,7 @@ export function HomeClient() {
 
   // A live room, then its lobby, where you share the link and wait.
   async function openRoom() {
-    const { code } = await api.createRoom();
+    const { code } = await api.createRoom(roomSubject());
     router.push(`/c/${code}`);
   }
 
@@ -234,7 +236,7 @@ export function HomeClient() {
 
         {error && <ErrorNote message={error} />}
 
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-4">
+        <div className="grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <QuickMatchCard />
           <ChallengeCard me={me} latest={latestChallenge} busy={busy} onStart={() => start("challenge")} />
           <DuelSignIn open={signIn} onClose={() => setSignIn(false)} onDone={signedIn} />
@@ -326,42 +328,6 @@ function Scribble({ children }: { children: React.ReactNode }) {
         />
       </svg>
     </span>
-  );
-}
-
-// Cards ease in one after another (see each card's animationDelay).
-const CARD =
-  "relative isolate flex flex-col gap-3.5 overflow-hidden rounded-[22px] border-2 p-[22px] sticker md:min-h-[244px] motion-safe:animate-rise";
-
-function QuickMatchCard() {
-  return (
-    <div
-      data-tour="quick"
-      className={`${CARD} border-[#9fc41f] bg-lime bg-[repeating-linear-gradient(135deg,transparent_0_14px,rgb(11_14_23/0.035)_14px_28px)] text-ink [--pop:#5f7710]`}
-    >
-      <div className="flex items-start justify-between">
-        <span className="-rotate-3 rounded-md bg-ink px-2 py-1 font-mono text-[11px] font-bold tracking-wider text-lime">
-          1V1 · RATED
-        </span>
-        <span
-          aria-hidden="true"
-          className="sticker flex size-14 rotate-6 items-center justify-center rounded-2xl bg-ink font-display text-lg font-bold text-lime [--pop:#5f7710]"
-        >
-          VS
-        </span>
-      </div>
-      <div className="flex flex-col gap-1">
-        <h2 className="font-display text-[24px] leading-tight font-bold">Quick Match</h2>
-        <p className="text-sm font-medium text-lime-ink">Race a player near your rating. 5 questions, about 3 minutes.</p>
-      </div>
-      <Link
-        href="/play"
-        className="pressable mt-auto flex h-12 items-center gap-2 self-start rounded-[14px] bg-ink px-5 text-[15px] font-bold text-text [--pop:#5f7710] hover:text-text"
-      >
-        <Bolt size={17} strokeWidth={2.4} className="text-lime" />
-        Find opponent
-      </Link>
-    </div>
   );
 }
 
@@ -725,6 +691,8 @@ function describeDuel(d: DuelSummary) {
   } else if (d.opponent_is_bot) {
     sub = d.company ? `${d.company} practice · bot` : "Practice bot";
   }
+  if (d.subject === "coding") sub = `Coding · ${sub}`;
+  if (d.subject === "english") sub = `English · ${sub}`;
 
   let chip: { text: string; tone: string };
   if (!d.finished) chip = { text: "Unfinished", tone: "bg-orange-tint text-orange" };

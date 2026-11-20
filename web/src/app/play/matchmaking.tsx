@@ -5,18 +5,25 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api, type Duel, type Me, type Player } from "@/lib/api";
 import type { Company } from "@/lib/companies";
+import type { Subject } from "@/lib/subjects";
 import { tierFor } from "@/lib/format";
 import { Close } from "@/components/icons";
 import { Tiko } from "@/components/tiko";
 import { BotTag, ErrorNote, PlayerAvatar } from "@/components/ui";
 
 const STATUS = ["Looking for players near your rating", "Checking recent runs", "Lining up a fair match"];
+const SUBJECT_STATUS: Record<Subject, string[]> = {
+  aptitude: STATUS,
+  coding: ["Looking for coders near your rating", "Checking recent runs", "Picking 5 programs on 5 topics"],
+  english: ["Looking for players near your English rating", "Checking recent runs", "Picking 5 questions on 5 topics"],
+};
+const KIND: Record<Subject, string> = { aptitude: "Quick Match", coding: "Coding Quick Match", english: "English Quick Match" };
 const companyStatus = (c: Company) => [`Picking ${c.name} pattern questions`, "Finding a bot near your rating", "Lining up a fair match"];
 
 // Quick Match lobby: a short radar search, then the opponent reveal and
 // a 3-2-1 countdown into the duel. With a company, the questions all come
 // from that company's test pattern.
-export function Matchmaking({ company = null }: { company?: Company | null }) {
+export function Matchmaking({ company = null, subject = "aptitude" }: { company?: Company | null; subject?: Subject }) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
   const [duel, setDuel] = useState<Duel | null>(null);
@@ -35,7 +42,7 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
       .getMe()
       .then((m) => active && setMe(m))
       .catch(() => {});
-    const find = company ? api.companyMatch(company.name) : api.quickMatch();
+    const find = company ? api.companyMatch(company.name) : api.quickMatch(subject);
     Promise.all([find.then(async (m) => ({ m, d: await api.getDuel(m.duel_id) })), minWait])
       .then(([{ m, d }]) => {
         if (!active) return;
@@ -55,7 +62,7 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
       setStatus(0);
       setResumed(false);
     };
-  }, [attempt, company]);
+  }, [attempt, company, subject]);
 
   useEffect(() => {
     if (!duel) return;
@@ -67,12 +74,13 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
     return () => clearTimeout(t);
   }, [duel, count, resumed, router]);
 
+  const kind = (d: Duel | null) => KIND[d?.subject ?? subject];
   const label =
     duel && resumed
-      ? `Unfinished ${duel.company ? `${duel.company} practice` : "Quick Match"}`
+      ? `Unfinished ${duel.company ? `${duel.company} practice` : kind(duel)}`
       : company
         ? `${company.name} practice`
-        : "Quick Match";
+        : kind(null);
 
   return (
     <main className="relative flex min-h-dvh flex-1 flex-col items-center overflow-hidden bg-[radial-gradient(560px_420px_at_50%_38%,rgba(200,241,53,0.09),transparent)] px-4 pt-5 pb-10">
@@ -99,14 +107,18 @@ export function Matchmaking({ company = null }: { company?: Company | null }) {
         ) : duel ? (
           <Reveal me={duel.me} opponent={duel.opponent} count={count} resuming={resumed} />
         ) : (
-          <Searching me={me} status={(company ? companyStatus(company) : STATUS)[status]} />
+          <Searching
+            me={me}
+            hideRating={subject !== "aptitude"}
+            status={(company ? companyStatus(company) : SUBJECT_STATUS[subject])[status]}
+          />
         )}
       </div>
     </main>
   );
 }
 
-function Searching({ me, status }: { me: Me | null; status: string }) {
+function Searching({ me, status, hideRating = false }: { me: Me | null; status: string; hideRating?: boolean }) {
   return (
     <>
       <div aria-hidden="true" className="relative flex size-[280px] items-center justify-center sm:size-[340px]">
@@ -148,7 +160,7 @@ function Searching({ me, status }: { me: Me | null; status: string }) {
         </h1>
         <p className="text-sm text-muted">
           {status}
-          {me && ` · ${me.rating.toLocaleString("en-IN")}`}
+          {me && !hideRating && ` · ${me.rating.toLocaleString("en-IN")}`}
         </p>
       </div>
 

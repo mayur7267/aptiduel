@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { getChallenge } from "@/lib/challenge";
+import { SUBJECT_INFO } from "@/lib/subject-info";
 import { clock } from "@/lib/format";
 
 export const alt = "An Apticks challenge";
@@ -45,7 +46,7 @@ export default async function Image({ params }: { params: Promise<{ code: string
           <div style={{ fontSize: 30, fontWeight: 700, color: "#c8f135", letterSpacing: 2 }}>
             {"YOU'VE BEEN CHALLENGED"}
           </div>
-          <div style={{ fontSize: 70, fontWeight: 700, lineHeight: 1.08 }}>{`${name} challenged you to an aptitude duel`}</div>
+          <div style={{ fontSize: 70, fontWeight: 700, lineHeight: 1.08 }}>{`${name} challenged you to ${SUBJECT_INFO[ch?.subject ?? "aptitude"].duel}`}</div>
         </div>
 
         <div style={{ display: "flex", gap: 24, alignItems: "center" }}>
