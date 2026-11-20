@@ -9,6 +9,7 @@ public struct Question: Decodable, Sendable, Hashable {
     public let difficulty: Int
     public let body: String
     public let figure: String? // SVG shown with the question
+    public let code: CodeSet? // coding questions: the program in each language
     public let options: [String]
     public let optionFigures: [String]? // SVG per option for picture questions
     public let timeLimitMs: Int

@@ -4,6 +4,7 @@ public struct Duel: Decodable, Sendable, Hashable {
     public let id: String
     public let code: String
     public let mode: DuelMode
+    public let subject: Subject? // missing before 0022_subjects: Aptitude
     public let company: String? // set on company practice duels (and challenges made from them)
     public let status: String
     public let isCreator: Bool
@@ -16,6 +17,10 @@ public struct Duel: Decodable, Sendable, Hashable {
     public let myAnswers: [MyAnswer]?
     public let review: [ReviewItem]?
     public let daily: DailyRank?
+
+    public var isCoding: Bool { subject == .coding }
+    // The subject, Aptitude when the server didn't say (before 0022).
+    public var playedSubject: Subject { subject ?? .aptitude }
 
     // Final result, once both sides have finished.
     public var outcome: DuelOutcome? {
@@ -59,6 +64,7 @@ public struct ReviewItem: Decodable, Sendable, Hashable, Identifiable {
     public let companies: [String]? // company test patterns this topic is on
     public let body: String
     public let figure: String?
+    public let code: CodeSet? // coding questions: the program in each language
     public let options: [String]
     public let optionFigures: [String]?
     public let correctIdx: Int
@@ -76,6 +82,7 @@ public struct ReviewItem: Decodable, Sendable, Hashable, Identifiable {
 public struct DuelSummary: Decodable, Sendable, Hashable, Identifiable {
     public let id: String
     public let mode: DuelMode
+    public let subject: Subject? // from my_duels_all; my_duels lists only Aptitude
     public let company: String?
     public let status: String
     public let createdAt: String

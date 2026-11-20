@@ -79,7 +79,8 @@ let package = Package(
         .testTarget(name: "DuelFeatureTests", dependencies: ["DuelFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
         .testTarget(name: "FeedbackFeatureTests", dependencies: ["FeedbackFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
         .testTarget(name: "OnboardingFeatureTests", dependencies: ["OnboardingFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
-        .testTarget(name: "HomeFeatureTests", dependencies: ["HomeFeature", "NetworkingFakes", "AppCore", "Domain", "Tiko"], swiftSettings: ui),
+        .testTarget(name: "DailyFeatureTests", dependencies: ["DailyFeature", "NetworkingFakes", "AppCore", "Domain"], swiftSettings: ui),
+        .testTarget(name: "HomeFeatureTests", dependencies: ["HomeFeature", "NetworkingFakes", "Networking", "AppCore", "Domain", "Tiko"], swiftSettings: ui),
         .testTarget(name: "LiveDuelTests", dependencies: ["ChallengeFeature", "DuelFeature", "ProfileFeature", "NetworkingFakes", "Networking", "AppCore", "Domain"], swiftSettings: ui),
     ]
 )

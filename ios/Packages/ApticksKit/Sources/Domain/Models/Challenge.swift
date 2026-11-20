@@ -15,6 +15,7 @@ public struct Challenge: Decodable, Sendable, Hashable {
     public let started: Bool? // live: the duel has begun
     public let full: Bool? // live: both seats are taken
     public let mySeat: Int? // your seat, when you're in it
+    public let subject: Subject? // 0023_room_subjects.sql; nil before it (Aptitude)
     public let challenger: Challenger
     public let challengerFinished: Bool
     public let score: Int

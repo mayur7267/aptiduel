@@ -1,10 +1,10 @@
 import Foundation
 
-// Where Apticks lives on the App Store. Once the app record exists in App
-// Store Connect, put its Apple ID in `id` and Profile gains a "Rate Apticks"
-// row that opens the write-a-review page.
+// Where Apticks lives on the App Store (apps.apple.com/in/app/id6828983597).
+// With an id, Profile shows a "Rate Apticks" row that opens the
+// write-a-review page.
 public enum AppStore {
-    public static let id: String? = nil
+    public static let id: String? = "6828983597"
 
     public static var reviewURL: URL? {
         id.flatMap { URL(string: "https://apps.apple.com/app/id\($0)?action=write-review") }

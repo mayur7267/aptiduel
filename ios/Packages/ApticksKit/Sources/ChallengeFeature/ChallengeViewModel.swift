@@ -22,6 +22,8 @@ public final class ChallengeViewModel {
     public private(set) var lobby: LobbyViewModel?
     public private(set) var guest = true
     public private(set) var signIn: SignInModel?
+    // What the duel is about (the owner's view reads it from the link).
+    public private(set) var subject: Subject = .aptitude
 
     private let api: any APIClient
     private let account: any AccountClient
@@ -41,8 +43,10 @@ public final class ChallengeViewModel {
         do {
             if let s = try await api.challengeStatus(code) {
                 status = s
+                subject = (try? await api.challenge(code))?.subject ?? .aptitude
             } else {
                 challenge = try await api.challenge(code)
+                subject = challenge?.subject ?? .aptitude
             }
             if let challenge, challenge.live == true {
                 guest = (try? await account.info())?.guest ?? true
@@ -62,6 +66,21 @@ public final class ChallengeViewModel {
             await sleep(.seconds(10))
             if Task.isCancelled { return }
             if let s = try? await api.challengeStatus(code) { status = s }
+        }
+    }
+
+    // A live invite you haven't joined: the host can still switch the
+    // subject, so it keeps up.
+    var waitingInvite: Bool { lobby == nil && status == nil && challenge?.live == true && challenge?.open == true }
+
+    public func followInvite() async {
+        while waitingInvite, !Task.isCancelled {
+            await sleep(.seconds(5))
+            if Task.isCancelled || !waitingInvite { return }
+            if let c = try? await api.challenge(code), lobby == nil {
+                challenge = c
+                subject = c.subject ?? .aptitude
+            }
         }
     }
 
@@ -127,7 +146,7 @@ public final class ChallengeViewModel {
     var shareText: String {
         guard let status else { return "" }
         let me = status.me
-        return me.finished ? challengeShareText(me.name, me.correct, me.totalMs, code) : inviteShareText(me.name, code)
+        return me.finished ? challengeShareText(me.name, me.correct, me.totalMs, code, subject) : inviteShareText(me.name, code, subject)
     }
 
     public func open(_ screen: Screen) { router.open(screen) }

@@ -18,6 +18,9 @@ public final class LobbyViewModel {
     public private(set) var error: String?
     public private(set) var busy: Busy?
     public let since: Date
+    // The host's pick, shown at once (the server agrees on the next poll).
+    public private(set) var picked: Subject?
+    public private(set) var pickError: String?
 
     // How long the host waits before "Play now" is offered.
     static let offerPlayNowAfter: TimeInterval = 45
@@ -77,6 +80,19 @@ public final class LobbyViewModel {
         router.close()
     }
 
+    // The host switches the subject while waiting for the friend.
+    public func pick(_ s: Subject) async {
+        guard canPick, s != subject else { return }
+        picked = s
+        pickError = nil
+        do {
+            try await api.setRoomSubject(duelId, s)
+        } catch {
+            picked = nil
+            pickError = error.localizedDescription
+        }
+    }
+
     public func playYourTurn() { router.open(.duel(duelId)) }
     public func leave() { router.close() }
 
@@ -84,6 +100,9 @@ public final class LobbyViewModel {
 
     var opponent: LivePlayer? { state?.opponent }
     var isHost: Bool { state?.isHost ?? true }
+    var subject: Subject { (opponent == nil ? picked : nil) ?? state?.subject ?? .aptitude }
+    // Until the friend is in, the host picks the subject.
+    var canPick: Bool { isHost && opponent == nil && state?.status == .waiting }
 
     func offersPlayNow(at date: Date) -> Bool {
         guard state?.status == .waiting else { return false }
@@ -116,5 +135,5 @@ public final class LobbyViewModel {
         }
     }
 
-    var shareText: String { liveInviteText(state?.me.name ?? hostName, code) }
+    var shareText: String { liveInviteText(state?.me.name ?? hostName, code, subject) }
 }

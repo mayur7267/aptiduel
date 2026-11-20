@@ -8,6 +8,8 @@ public struct DuelResultView: View {
     @State private var model: DuelResultViewModel
     @Environment(\.requestReview) private var requestReview
     @Environment(ReviewState.self) private var review: ReviewState?
+    @Environment(ReminderState.self) private var reminders: ReminderState?
+    @State private var reminderOn = false
 
     public init(model: DuelResultViewModel) {
         _model = State(initialValue: model)
@@ -55,7 +57,7 @@ public struct DuelResultView: View {
                     Hero(duel: duel, outcome: outcome)
                     if let opp, let outcome { Scoreboard(me: me, opp: opp, outcome: outcome) { model.openPlayer($0) } }
                     if let delta = me.ratingDelta, let before = me.ratingBefore, let after = me.ratingAfter {
-                        RatingChange(before: before, after: after, delta: delta)
+                        RatingChange(before: before, after: after, delta: delta, label: duel.playedSubject.ratingLabel)
                         if model.isLive && delta == 0 {
                             Text("Friends move each other's rating once a day, so this one was just for fun.")
                                 .font(.ui(13)).foregroundStyle(Theme.muted)
@@ -73,20 +75,10 @@ public struct DuelResultView: View {
                     }
                     if let review = duel.review { AnswerDots(review: review) }
 
-                    if me.hasGuestName && duel.mode != .daily {
-                        Button { model.close(to: .profile) } label: {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Add your name before you share").font(.ui(14, .semibold)).foregroundStyle(Theme.text)
-                                    Text("Friends will see “\(me.name)” otherwise.").font(.ui(14)).foregroundStyle(Theme.muted)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundStyle(Theme.muted)
-                            }
-                            .padding(16)
-                            .card(16)
+                    if model.askForName, let profile = model.profile {
+                        NameForm(current: profile.name, saving: model.savingName, error: model.nameError) { name in
+                            Task { await model.saveName(name) }
                         }
-                        .buttonStyle(.plain)
                     }
 
                     actions(duel)
@@ -106,25 +98,72 @@ public struct DuelResultView: View {
         }
     }
 
+    // Once, after a finished Daily: an 8 pm nudge on days you haven't played.
+    @ViewBuilder
+    private var reminderOffer: some View {
+        if let reminders, reminders.shouldOffer || reminderOn {
+            VStack(alignment: .leading, spacing: 10) {
+                if reminderOn {
+                    Label("Reminder on: 8 pm, on days you haven't played.", systemImage: "bell.fill")
+                        .font(.ui(14, .semibold)).foregroundStyle(Theme.lime)
+                } else {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Want a nudge at 8 pm?").font(.ui(14, .semibold)).foregroundStyle(Theme.text)
+                        Text("Only on days you haven't played the Daily. Turn it off any time in Profile.")
+                            .font(.ui(13)).foregroundStyle(Theme.muted)
+                    }
+                    HStack(spacing: 10) {
+                        Button("Remind me") {
+                            Task {
+                                let ok = await reminders.turnOn(doneToday: true, streak: model.profile?.streak ?? 0)
+                                withAnimation(.snappy) { reminderOn = ok }
+                            }
+                        }
+                        .buttonStyle(FilledStyle(fill: Theme.lime, foreground: Theme.ink, radius: 12, height: 40))
+                        Button("Not now") { withAnimation(.snappy) { reminders.dismissOffer() } }
+                            .font(.ui(14, .semibold)).foregroundStyle(Theme.muted)
+                    }
+                }
+            }
+            .padding(16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .card(16)
+        }
+    }
+
+    @ViewBuilder
+    private var story: some View {
+        if let data = model.story { StoryButton(data: data) { model.sharedStory() } }
+    }
+
     private func actions(_ duel: Duel) -> some View {
         VStack(spacing: 10) {
-            if duel.mode == .daily {
-                // Sharing the set would show friends today's answers before they play.
-                Text("Today's set stays private until it resets at midnight, so nobody sees the answers early. Want to race a friend now? Start a challenge from home.")
-                    .font(.ui(14)).foregroundStyle(Theme.muted)
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .card(16)
-            } else if let code = model.shareCode {
-                SharePanel(code: code, text: challengeShareText(duel.me.name, duel.me.correct, duel.me.totalMs, code))
-            } else {
-                Button { Task { await model.makeShareCode() } } label: {
-                    Label(model.sharing ? "Making your link…" : "Challenge friends with your score", systemImage: "bolt.fill")
-                        .font(.ui(16, .bold))
-                        .frame(maxWidth: .infinity)
+            if duel.mode == .daily, let text = model.dailyText {
+                // A grid that gives nothing away: friends see how you did,
+                // never which questions, and the link says who sent it.
+                SharePanel(code: duel.code, text: text, link: Links.daily(duel.code), label: "WhatsApp", copyText: true,
+                           onShare: { model.logShare(.daily, $0) }) { story }
+            } else if duel.mode != .daily, let code = model.shareCode {
+                SharePanel(code: code, text: challengeShareText(duel.me.name, duel.me.correct, duel.me.totalMs, code, duel.subject ?? .aptitude),
+                           label: "WhatsApp", onShare: { model.logShare(.challenge, $0) }) { story }
+            } else if duel.mode != .daily {
+                HStack(spacing: 10) {
+                    Button { Task { await model.makeShareCode() } } label: {
+                        Label(model.sharing ? "Making link…" : "Challenge friends", systemImage: "bolt.fill")
+                            .font(.ui(16, .bold))
+                            .lineLimit(1)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(FilledStyle(fill: Theme.lime, foreground: Theme.ink, height: 56))
+                    .disabled(model.sharing)
+                    story
                 }
-                .buttonStyle(FilledStyle(fill: Theme.lime, foreground: Theme.ink, height: 56))
-                .disabled(model.sharing)
+            }
+            if duel.mode == .daily { reminderOffer }
+            if model.storyShared {
+                Text("Your link is copied too: add it to your Story with Instagram's Link sticker.")
+                    .font(.ui(13)).foregroundStyle(Theme.muted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             HStack(spacing: 10) {
                 Button { model.playAgain() } label: {

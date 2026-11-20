@@ -12,6 +12,8 @@ struct OptionButton: View {
     let phase: DuelPhase
     let chosen: Int?
     let result: AnswerResult?
+    // Program output (coding questions): monospaced, as it would print.
+    var mono = false
     let onPick: () -> Void
 
     var body: some View {
@@ -50,7 +52,8 @@ struct OptionButton: View {
                 } else {
                     HStack(spacing: 14) {
                         mark
-                        Text(text).font(.ui(16, .semibold)).foregroundStyle(Theme.text).multilineTextAlignment(.leading)
+                        Text(text).font(mono ? .mono(16, .semibold) : .ui(16, .semibold)).foregroundStyle(Theme.text)
+                            .multilineTextAlignment(.leading)
                         Spacer(minLength: 0)
                     }
                     .padding(.horizontal, 16)

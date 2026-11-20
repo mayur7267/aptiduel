@@ -14,6 +14,9 @@ public final class HomeViewModel {
     public private(set) var me: Me?
     public private(set) var duels: [DuelSummary] = []
     public private(set) var board: Board?
+    // Your rating in each subject, for the Coding card. Optional: Home
+    // works without it.
+    public private(set) var subjects: SubjectRatings?
     public private(set) var error: String?
     public private(set) var busy: HomeAction?
 
@@ -42,7 +45,9 @@ public final class HomeViewModel {
         async let m = api.me()
         async let d = api.myDuels(limit: 8)
         async let b = api.leaderboard(.college, limit: 5)
+        async let s = try? api.mySubjects()
         await test
+        if let ratings = await s { subjects = ratings }
         do {
             let (me, duels, board) = try await (m, d, b)
             dailyJustDone = self.me.map { $0.quests.daily == 0 && me.quests.daily > 0 } ?? false
@@ -51,7 +56,8 @@ public final class HomeViewModel {
             self.board = board
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            // Cancelled part-way (a pull-to-refresh restarted): keep what's shown.
+            if !error.isCancellation { self.error = error.localizedDescription }
         }
     }
 

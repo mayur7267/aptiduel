@@ -8,6 +8,7 @@ public enum AppTab: Hashable, Sendable {
 // Full-screen flows over the tabs, like the website's /play and /duel pages.
 public enum Screen: Hashable, Sendable {
     case matchmaking(Company?)
+    case subjectMatch(Subject) // a Quick Match in Coding or English
     case duel(String)
     case result(String)
     case challenge(String) // a link: a live room's lobby, or a recorded challenge

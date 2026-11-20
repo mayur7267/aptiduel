@@ -36,7 +36,8 @@ public final class LeaderboardViewModel {
             boards[s] = try await api.leaderboard(s, limit: 50)
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            // Cancelled part-way (a pull-to-refresh restarted): keep what's shown.
+            if !error.isCancellation { self.error = error.localizedDescription }
         }
     }
 

@@ -11,6 +11,7 @@ import Networking
 @Observable
 public final class MatchmakingViewModel {
     public let company: Company?
+    public let subject: Subject
     public private(set) var me: Me?
     public private(set) var duel: Duel?
     public private(set) var error: String?
@@ -25,10 +26,11 @@ public final class MatchmakingViewModel {
     private let sleep: (Duration) async -> Void
     private let searchTime: ClosedRange<Double>
 
-    public init(company: Company?, api: any APIClient, router: AppRouter,
+    public init(company: Company?, subject: Subject = .aptitude, api: any APIClient, router: AppRouter,
                 sleep: @escaping (Duration) async -> Void = Wait.real,
                 searchTime: ClosedRange<Double> = 1.8...3.3) {
         self.company = company
+        self.subject = subject
         self.api = api
         self.router = router
         self.sleep = sleep
@@ -38,13 +40,21 @@ public final class MatchmakingViewModel {
     public var status: String {
         let lines = company.map {
             ["Picking \($0.name) pattern questions", "Finding a bot near your rating", "Lining up a fair match"]
-        } ?? ["Looking for players near your rating", "Checking recent runs", "Lining up a fair match"]
+        } ?? {
+            switch subject {
+            case .coding: ["Looking for coders near your rating", "Checking recent runs", "Picking 5 programs on 5 topics"]
+            case .english: ["Looking for players near your English rating", "Checking recent runs", "Picking 5 questions on 5 topics"]
+            case .aptitude: ["Looking for players near your rating", "Checking recent runs", "Lining up a fair match"]
+            }
+        }()
         return lines[statusIndex % lines.count]
     }
 
     public var label: String {
-        if let duel, resumed { return "Unfinished \(duel.company.map { "\($0) practice" } ?? "Quick Match")" }
-        return company.map { "\($0.name) practice" } ?? "Quick Match"
+        if let duel, resumed {
+            return "Unfinished \(duel.company.map { "\($0) practice" } ?? duel.playedSubject.quickMatchName)"
+        }
+        return company.map { "\($0.name) practice" } ?? subject.quickMatchName
     }
 
     public func find() async {
@@ -53,7 +63,7 @@ public final class MatchmakingViewModel {
         let minimum = Task { await sleep(.seconds(wait)) }
         Task { me = try? await api.me() }
         do {
-            let m = if let company { try await api.companyMatch(company.name) } else { try await api.quickMatch() }
+            let m = if let company { try await api.companyMatch(company.name) } else { try await api.quickMatch(subject) }
             let d = try await api.duel(m.duelId)
             await minimum.value
             resumed = (m.resumed ?? false) || d.me.answered > 0

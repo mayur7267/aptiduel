@@ -46,7 +46,10 @@ public struct HomeView: View {
             .refreshable {
                 // Stay on the page you're looking at.
                 page = page ?? model.suggestedPage
-                await model.load()
+                // In its own task: setting the page re-draws home, and SwiftUI
+                // then cancels this refresh (it did on the first pull after
+                // every launch). The load finishes regardless.
+                await Task { await model.load() }.value
             }
             .onChange(of: tour.scrollTarget) { _, target in
                 guard let target else { return }
@@ -155,8 +158,10 @@ public struct HomeView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("PLAY").font(.mono(12)).tracking(1.6).foregroundStyle(Theme.faint)
-                QuickMatchCard(rating: me.rating) { router.open(.matchmaking(nil)) }
-                    .tourTarget("quick")
+                SubjectPlayCard(rating: me.rating, coding: model.subjects?.coding, english: model.subjects?.english) { subject in
+                    router.open(subject == .aptitude ? .matchmaking(nil) : .subjectMatch(subject))
+                }
+                .tourTarget("quick")
                 HStack(spacing: 12) {
                     FriendTile(me: me, busy: model.busy) { model.startChallenge() }
                         .tourTarget("challenge")

@@ -12,8 +12,8 @@ final class ScreensUITests: XCTestCase {
     }
 
     // The fake backend; the intro and the tour as on a first launch, or not.
-    private func launch(intro: Bool = false, tour: Bool = true) {
-        app.launchArguments = ["-FakeBackend", "-apticks-onboarding-done", intro ? "NO" : "YES", "-apticks-tour-done", tour ? "NO" : "YES"]
+    private func launch(intro: Bool = false, tour: Bool = true, extra: [String] = []) {
+        app.launchArguments = ["-FakeBackend", "-apticks-onboarding-done", intro ? "NO" : "YES", "-apticks-tour-done", tour ? "NO" : "YES"] + extra
         app.launch()
         snap("00-splash")
         sleep(3) // the launch splash
@@ -111,6 +111,113 @@ final class ScreensUITests: XCTestCase {
         snap("21-review")
     }
 
+    // The Daily on a guest: Start makes the run, then the result offers
+    // WhatsApp and a Story picture, asks for a name, and offers an 8 pm
+    // reminder, which Profile can turn off.
+    // The four subject tabs on Home, the colour pouring into the Coding
+    // card, English, GK coming soon, and a coding duel showing its program.
+    // An English duel from Home: plain-text questions, no code.
+    @MainActor
+    func testEnglishSubject() {
+        launch(tour: false, extra: ["-apticks-subject", "english"])
+        XCTAssertTrue(app.buttons["English Quick Match"].waitForExistence(timeout: 10))
+        tap("English Quick Match")
+        XCTAssertTrue(app.staticTexts["Choose the word closest in meaning to CANDID."].waitForExistence(timeout: 15))
+        sleep(1)
+        snap("97-english-question")
+        app.buttons.containing(NSPredicate(format: "label CONTAINS 'Frank'")).firstMatch.tap()
+        sleep(2)
+        snap("98-english-answered")
+    }
+
+    @MainActor
+    func testCodingSubject() {
+        launch(tour: false, extra: ["-apticks-subject", "aptitude", "-apticks-code-lang", "java"])
+        XCTAssertTrue(app.buttons["Coding"].waitForExistence(timeout: 10))
+        tap("Aptitude")
+        sleep(1)
+        snap("95-subjects-aptitude")
+        tap("Coding")
+        usleep(200_000)
+        snap("95-subjects-pouring")
+        sleep(1)
+        snap("95-subjects-coding")
+        XCTAssertTrue(app.buttons["Show code in Java"].exists)
+        tap("English")
+        sleep(1)
+        snap("95-subjects-english")
+        XCTAssertTrue(app.buttons["English Quick Match"].waitForExistence(timeout: 3))
+        tap("GK, coming soon")
+        sleep(1)
+        snap("95-subjects-gk")
+        XCTAssertTrue(app.buttons["Play Aptitude meanwhile"].waitForExistence(timeout: 3))
+        tap("Coding")
+        sleep(1)
+        tap("Coding Quick Match")
+        XCTAssertTrue(app.staticTexts["What does this code print?"].waitForExistence(timeout: 15))
+        sleep(1)
+        snap("96-coding-question")
+        XCTAssertTrue(app.staticTexts["Main.java"].exists)
+    }
+
+    @MainActor
+    func testDailyShareAndReminder() {
+        // As if the reminder had never been offered on this phone.
+        launch(tour: false, extra: ["-apticks-reminder-on", "NO", "-apticks-reminder-offered", "NO"])
+        tap("Daily", timeout: 10)
+        sleep(1)
+        snap("90-daily-start")
+        tap("Start")
+        let answers = ["B: 25%", "Option C", "B: ₹2,100", "D: 71", "A: Scarce"]
+        for (i, answer) in answers.enumerated() {
+            let shown = app.staticTexts["Question \(i + 1) of 5"].waitForExistence(timeout: 10)
+            snap("90-daily-q\(i + 1)")
+            XCTAssertTrue(shown)
+            tap(answer)
+            usleep(400_000)
+            snap("90-daily-a\(i + 1)")
+        }
+        XCTAssertTrue(app.buttons["Review answers"].waitForExistence(timeout: 12))
+        sleep(2)
+        snap("91-daily-result")
+        XCTAssertTrue(app.buttons["WhatsApp"].exists)
+        XCTAssertTrue(app.buttons["Share a story picture of your score"].exists)
+        XCTAssertTrue(app.staticTexts["What should friends call you?"].exists)
+
+        app.swipeUp(velocity: .slow)
+        sleep(1)
+        snap("92-daily-result-lower")
+        // The system asks first; allow it.
+        tap("Remind me")
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        let allow = springboard.buttons["Allow"]
+        if allow.waitForExistence(timeout: 5) { allow.tap() }
+        XCTAssertFalse(app.staticTexts["Your link is copied too: add it to your Story with Instagram's Link sticker."].exists)
+        XCTAssertTrue(app.staticTexts["Reminder on: 8 pm, on days you haven't played."].waitForExistence(timeout: 8))
+        snap("93-reminder-on")
+
+        app.swipeDown(velocity: .slow)
+        sleep(1)
+        let field = app.textFields.firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        let tip = app.buttons["Continue"]
+        if tip.waitForExistence(timeout: 2) { tip.tap() }
+        if !app.keyboards.firstMatch.waitForExistence(timeout: 2) { field.tap() }
+        field.typeText("Asha")
+        tap("Save")
+        XCTAssertTrue(app.staticTexts["What should friends call you?"].waitForNonExistence(timeout: 8))
+        snap("94-named")
+
+        app.buttons["Back to home"].firstMatch.tap()
+        tap("Profile")
+        sleep(1)
+        app.swipeUp()
+        sleep(1)
+        snap("95-profile-reminder")
+        XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS 'Daily reminder'")).firstMatch.exists)
+    }
+
     @MainActor
     func testTabsAndChallengeLinks() {
         launch(tour: true)
@@ -172,7 +279,9 @@ final class ScreensUITests: XCTestCase {
     // countdown, five questions together, the result.
     @MainActor
     func testLiveDuel() {
-        launch()
+        // A room opens in the subject open on Home: start on Aptitude.
+        // The pretend friend joins after 6 s, so the lobby is there to see.
+        launch(extra: ["-apticks-subject", "aptitude", "-FakeFriendDelay", "6"])
         tap("Duel a friend")
         let email = app.textFields["Email"].firstMatch
         XCTAssertTrue(email.waitForExistence(timeout: 10))
@@ -189,7 +298,7 @@ final class ScreensUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Waiting for your friend"].waitForExistence(timeout: 10))
         snap("81-live-lobby")
         // The countdown is short, so its picture is a bonus.
-        if app.staticTexts["Same 5 questions, same moment. Fast and right wins."].waitForExistence(timeout: 6) { snap("82-live-countdown") }
+        if app.staticTexts["Same 5 questions, same moment. Fast and right wins."].waitForExistence(timeout: 12) { snap("82-live-countdown") }
         // The race: no waiting between questions, the friend's progress alongside.
         let answers = ["B: 25%", "Option C", "B: ₹2,100", "D: 71", "A: Scarce"]
         for (i, answer) in answers.enumerated() {
@@ -205,6 +314,34 @@ final class ScreensUITests: XCTestCase {
         XCTAssertTrue(app.buttons.containing(NSPredicate(format: "label CONTAINS 'Rematch'")).firstMatch.waitForExistence(timeout: 20))
         sleep(1)
         snap("86-live-result")
+    }
+
+    // A friend duel in Coding: the host switches the subject in the lobby
+    // while waiting (the pretend friend is late here).
+    @MainActor
+    func testLiveSubject() {
+        launch(extra: ["-FakeFriendDelay", "120", "-apticks-subject", "aptitude"])
+        tap("Duel a friend")
+        let email = app.textFields["Email"].firstMatch
+        XCTAssertTrue(email.waitForExistence(timeout: 10))
+        email.tap()
+        email.typeText("asha@test.local")
+        tap("Send code")
+        let code = app.textFields["Code"].firstMatch
+        XCTAssertTrue(code.waitForExistence(timeout: 10))
+        code.tap()
+        code.typeText("123456")
+        if app.buttons["Continue"].waitForExistence(timeout: 1) { app.buttons["Continue"].tap() }
+        tap("Confirm")
+        XCTAssertTrue(app.staticTexts["Waiting for your friend"].waitForExistence(timeout: 10))
+        let coding = app.buttons["room-subject-coding"]
+        XCTAssertTrue(coding.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.buttons["room-subject-aptitude"].isSelected)
+        snap("87-live-subject-aptitude")
+        coding.tap()
+        XCTAssertTrue(coding.isSelected)
+        sleep(2)
+        snap("88-live-subject-coding")
     }
 
     // The placement test countdown, on the last page of home's Today deck.

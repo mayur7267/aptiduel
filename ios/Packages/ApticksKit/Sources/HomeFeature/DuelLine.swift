@@ -44,6 +44,7 @@ struct DuelLine: Identifiable {
         } else if bot {
             sub = d.company.map { "\($0) practice · bot" } ?? "Practice bot"
         }
+        if let s = d.subject, s != .aptitude { sub = "\(s.label) · " + sub }
 
         status = !d.finished ? Status(text: "Unfinished", fg: Theme.orange, bg: Theme.orangeTint)
             : d.mode == .daily ? Status(text: "Done", fg: Theme.violet, bg: Theme.violetTint)

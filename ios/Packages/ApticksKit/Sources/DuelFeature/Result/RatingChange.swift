@@ -7,13 +7,14 @@ struct RatingChange: View {
     let before: Int
     let after: Int
     let delta: Int
+    var label = "Rating"
 
     var body: some View {
         let now = tierFor(after)
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Rating").font(.ui(13)).foregroundStyle(Theme.muted)
+                    Text(label).font(.ui(13)).foregroundStyle(Theme.muted)
                     HStack(spacing: 10) {
                         Text(grouped(before)).font(.mono(18)).foregroundStyle(Theme.muted)
                         Text("→").foregroundStyle(Theme.muted)

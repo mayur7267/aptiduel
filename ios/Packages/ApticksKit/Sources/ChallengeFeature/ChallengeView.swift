@@ -50,6 +50,7 @@ public struct ChallengeView: View {
         .task { await model.load() }
         .task(id: model.status != nil) { await model.poll() }
         .task(id: model.lobby?.duelId) { await model.lobby?.poll() }
+        .task(id: model.waitingInvite) { await model.followInvite() }
         .animation(.snappy, value: model.status)
     }
 
@@ -80,10 +81,10 @@ private struct FriendView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(Capsule().fill(Theme.limeTint))
-            Text("\(ch.challenger.name) challenged you to an aptitude duel.")
+            Text("\(ch.challenger.name) challenged you to \(model.subject.duelPhrase).")
                 .font(.display(30)).foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("5 placement-style questions. About 3 minutes. No sign-up. Just tap play.")
+            Text(SubjectChip.intro(model.subject))
                 .font(.ui(17)).foregroundStyle(Theme.muted)
 
             HStack(spacing: 16) {
@@ -125,7 +126,7 @@ private struct FriendView: View {
             }
 
             HStack(spacing: 16) {
-                ForEach(["Free", "Quant, reasoning, verbal"], id: \.self) { t in
+                ForEach(["Free", SubjectChip.points(model.subject)], id: \.self) { t in
                     Label { Text(t) } icon: { Image(systemName: "checkmark").foregroundStyle(Theme.lime).fontWeight(.black) }
                         .font(.ui(13)).foregroundStyle(Theme.muted)
                 }
@@ -236,8 +237,10 @@ private struct LiveInviteView: View {
             Text("\(ch.challenger.name) wants to duel you, live.")
                 .font(.display(30)).foregroundStyle(Theme.text)
                 .fixedSize(horizontal: false, vertical: true)
-            Text("You race through the same 5 placement questions, starting together. Fast and right wins. About 3 minutes.")
+            SubjectChip(subject: model.subject)
+            Text(SubjectChip.line(model.subject))
                 .font(.ui(17)).foregroundStyle(Theme.muted)
+                .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: 16) {
                 Avatar(name: ch.challenger.name, size: 52).padding(2).background(Circle().fill(Theme.violet))

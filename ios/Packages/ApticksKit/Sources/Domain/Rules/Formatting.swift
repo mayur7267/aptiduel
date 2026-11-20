@@ -46,10 +46,33 @@ public func grouped(_ n: Int) -> String {
     return f.string(from: NSNumber(value: n)) ?? String(n)
 }
 
-public let SECTION_LABEL = ["quant": "Quant", "reasoning": "Reasoning", "verbal": "Verbal"]
+public let SECTION_LABEL = ["quant": "Quant", "reasoning": "Reasoning", "verbal": "Verbal", "coding": "Coding"]
 
 // "TCS NQT · Infosys · Wipro +4": a topic can be on many companies' tests.
 public func companyList(_ companies: [String], shown: Int = 3) -> String {
     let more = companies.count - shown
     return companies.prefix(shown).joined(separator: " · ") + (more > 0 ? " +\(more)" : "")
+}
+
+// [true, false] -> "🟩🟥": right or wrong, question by question.
+public func answerGrid(_ grid: [Bool]) -> String {
+    grid.map { $0 ? "🟩" : "🟥" }.joined()
+}
+
+// Today in India, where the Daily resets: "2026-11-14".
+public func istToday(_ now: Date = Date()) -> String {
+    let f = DateFormatter()
+    f.calendar = Calendar(identifier: .gregorian)
+    f.locale = Locale(identifier: "en_US_POSIX")
+    f.timeZone = TimeZone(identifier: "Asia/Kolkata")
+    f.dateFormat = "yyyy-MM-dd"
+    return f.string(from: now)
+}
+
+// "2026-11-14" -> "14 Nov", like the website.
+public func shortDay(_ day: String) -> String {
+    let parts = day.split(separator: "-").compactMap { Int($0) }
+    guard parts.count == 3, (1...12).contains(parts[1]) else { return day }
+    let months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    return "\(parts[2]) \(months[parts[1] - 1])"
 }

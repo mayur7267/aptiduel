@@ -34,9 +34,10 @@ public final class ProfileViewModel {
 
     public var collegeName: String? { colleges.first { $0.id == collegeId }?.name }
     // Rating after each rated duel, oldest first, ending at today's rating.
+    // The chart is the Aptitude rating: Coding has its own.
     public var ratingHistory: [Int] {
         let rated = duels
-            .filter { $0.ratingAfter != nil && !$0.isReplay }
+            .filter { $0.ratingAfter != nil && !$0.isReplay && ($0.subject ?? .aptitude) == .aptitude }
             .sorted { ($0.created ?? .distantPast) < ($1.created ?? .distantPast) }
         var points = rated.first?.ratingBefore.map { [$0] } ?? []
         points += rated.compactMap(\.ratingAfter)
@@ -48,7 +49,7 @@ public final class ProfileViewModel {
     public var weekChange: Int {
         let weekAgo = Date().addingTimeInterval(-7 * 86_400)
         return duels
-            .filter { ($0.created ?? .distantPast) > weekAgo && !$0.isReplay }
+            .filter { ($0.created ?? .distantPast) > weekAgo && !$0.isReplay && ($0.subject ?? .aptitude) == .aptitude }
             .compactMap { d in d.ratingAfter.flatMap { a in d.ratingBefore.map { a - $0 } } }
             .reduce(0, +)
     }
@@ -75,7 +76,8 @@ public final class ProfileViewModel {
             saved = false
             error = nil
         } catch {
-            self.error = error.localizedDescription
+            // Cancelled part-way (a pull-to-refresh restarted): keep what's shown.
+            if !error.isCancellation { self.error = error.localizedDescription }
         }
     }
 

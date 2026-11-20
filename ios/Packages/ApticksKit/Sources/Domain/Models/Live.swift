@@ -18,6 +18,7 @@ public struct LiveState: Decodable, Sendable, Hashable {
     public let me: LivePlayer
     public let opponent: LivePlayer?
     public let rematchId: String?
+    public let subject: Subject? // 0023_room_subjects.sql; nil before it (Aptitude)
 }
 
 public struct LivePlayer: Decodable, Sendable, Hashable {

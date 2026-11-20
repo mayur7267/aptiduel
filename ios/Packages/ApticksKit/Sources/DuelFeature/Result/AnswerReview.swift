@@ -47,6 +47,7 @@ struct Review: View {
                     }
                     Text(r.body).font(.ui(15, .semibold)).foregroundStyle(Theme.text).lineSpacing(3)
                         .fixedSize(horizontal: false, vertical: true)
+                    if let code = r.code { CodeBlock(code: code) }
                     if let figure = r.figure {
                         SVGFigure(svg: figure).frame(maxWidth: 420, maxHeight: 200).padding(8).card(12)
                     }
@@ -66,7 +67,7 @@ struct Review: View {
                         VStack(spacing: 6) {
                             ForEach(r.options.indices, id: \.self) { i in
                                 HStack {
-                                    Text(r.options[i]).font(.ui(14)).foregroundStyle(Theme.text)
+                                    Text(r.options[i]).font(r.code != nil ? .mono(14, .regular) : .ui(14)).foregroundStyle(Theme.text)
                                     Spacer()
                                     Text(i == r.correctIdx ? "Correct answer" : i == r.chosenIdx ? "Your answer" : "")
                                         .font(.ui(12, .semibold)).foregroundStyle(Theme.muted)

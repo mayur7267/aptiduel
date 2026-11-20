@@ -17,11 +17,12 @@ The app opens as a guest automatically, so no credentials or sample files are ne
 - After the short intro, tap "Find my first match". You get a 5-question duel against another player and then a result with your rating change.
 - Home also has practice sets for company-style tests. The Daily tab has one Daily Challenge a day. The Ranks tab shows the leaderboard, and tapping a player opens their public profile. The Profile tab shows rating and stats.
 - Optional account: Profile > Account > enter an email > we send a code > enter it. An account is only needed for live friend duels ("Duel a friend" on Home), where you send a room link and a friend joins. The code goes to the player's own inbox, so the screen recording shows this flow from start to finish.
+- Daily reminder (new in 1.1, optional): after finishing the Daily Challenge, "Remind me" asks for notification permission and sets a local reminder for 8 pm on days the Daily hasn't been played. It is scheduled on the device (no push server) and can be turned off in Profile > Daily reminder.
 - Sign out and Delete account are both in Profile > Account. Delete account removes the name, college, email and rating.
 
 4. EXTERNAL SERVICES
 - Supabase: database, guest and email-code sign-in, and realtime for live duels.
-- Vercel: hosts the website and challenge links (aptiduel.vercel.app).
+- Vercel: hosts the website and challenge links (www.playapticks.in; the older aptiduel.vercel.app still works).
 - Gmail (SMTP): sends the sign-in code emails. In-app feedback reaches us by email through Gmail or Resend.
 - Apple StoreKit: only to ask happy players for an App Store rating.
 There are no ads, no analytics or tracking SDKs, no AI services and no payment processor.

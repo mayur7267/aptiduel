@@ -2,6 +2,7 @@ import AppCore
 import DesignSystem
 import Domain
 import SwiftUI
+import UIKit
 import Tiko
 
 // The Profile tab, as a page from a placement student's folder: your
@@ -14,6 +15,7 @@ public struct ProfileView: View {
     @Environment(AppRouter.self) private var router
     @Environment(FeedbackState.self) private var feedback
     @Environment(\.openURL) private var openURL
+    @Environment(ReminderState.self) private var reminders: ReminderState?
     @State private var sheet: ProfileSheet?
     @State private var tilt = Tilt()
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -45,7 +47,7 @@ public struct ProfileView: View {
             .padding(.bottom, 120)
         }
         .scrollIndicators(.hidden)
-        .refreshable { await reload() }
+        .refreshable { await Task { await reload() }.value }
         // Load afresh each visit, and after the account changes.
         .task(id: router.refresh) { await reload() }
         .onAppear { if !reduceMotion { tilt.start() } }
@@ -95,6 +97,21 @@ public struct ProfileView: View {
                     icon: saved ? "checkmark.shield" : "lock.open", accent: !saved) { sheet = .account }
                 Rectangle().fill(Theme.line).frame(height: 1).padding(.leading, 52)
                 row("Practise for a company", "11 companies · TCS, Infosys, Cognizant, etc.", icon: "building.2") { sheet = .practice }
+                if let reminders {
+                    divider
+                    row("Daily reminder",
+                        reminders.on && !reminders.blocked ? "On: 8 pm, on days you haven't played"
+                            : reminders.blocked ? "Notifications are off in Settings" : "Off",
+                        icon: reminders.on && !reminders.blocked ? "bell.fill" : "bell.slash") {
+                        if reminders.blocked, let settings = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(settings)
+                        } else {
+                            Task {
+                                if reminders.on { await reminders.turnOff() } else { await reminders.turnOn() }
+                            }
+                        }
+                    }
+                }
                 // Shown once the app has an App Store ID (see AppStore).
                 if let url = AppStore.reviewURL {
                     divider

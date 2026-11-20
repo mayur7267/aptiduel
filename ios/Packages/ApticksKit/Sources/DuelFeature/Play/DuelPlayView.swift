@@ -53,6 +53,7 @@ public struct DuelPlayView: View {
                             .card(16)
                             .accessibilityLabel("Question figure")
                     }
+                    if let code = q.code { CodeBlock(code: code) }
                     Spacer(minLength: 8)
                     // Pinned to the bottom for thumbs.
                     VStack(spacing: 10) {
@@ -136,7 +137,7 @@ public struct DuelPlayView: View {
             VStack(spacing: 10) {
                 ForEach(q.options.indices, id: \.self) { i in
                     OptionButton(index: i, text: q.options[i], figure: nil, phase: model.phase, chosen: model.chosen,
-                                 result: model.result) { _ = pick(i) }
+                                 result: model.result, mono: q.code != nil) { _ = pick(i) }
                 }
             }
         }

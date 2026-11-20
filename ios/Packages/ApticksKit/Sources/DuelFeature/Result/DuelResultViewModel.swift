@@ -16,6 +16,13 @@ public final class DuelResultViewModel {
     // Live duels: the rematch room, once either player has asked for one.
     public private(set) var rematchId: String?
     public private(set) var rematching = false
+    // Your profile: the streak for the Daily share, and your college and
+    // year so saving a name here doesn't clear them.
+    public private(set) var profile: Me?
+    public private(set) var savingName = false
+    public private(set) var nameError: String?
+    // Set once a Story picture went to the share sheet: its link was copied.
+    public private(set) var storyShared = false
 
     private let api: any APIClient
     private let router: AppRouter
@@ -41,6 +48,46 @@ public final class DuelResultViewModel {
         } catch {
             self.error = error.localizedDescription
         }
+        if duel != nil, profile == nil { profile = try? await api.me() }
+    }
+
+    // Ask for a name only while the profile still has the made-up one
+    // ("Player 1586"), and only once it has loaded.
+    public var askForName: Bool { profile?.hasGuestName == true }
+
+    public func saveName(_ name: String) async {
+        guard let profile, !savingName else { return }
+        savingName = true
+        nameError = nil
+        do {
+            self.profile = try await api.updateProfile(
+                name: name.trimmingCharacters(in: .whitespacesAndNewlines), collegeId: profile.collegeId, gradYear: profile.gradYear)
+            // So the share messages carry the new name.
+            if let d = try? await api.duel(duelId) { duel = d }
+        } catch {
+            nameError = error.localizedDescription
+        }
+        savingName = false
+    }
+
+    public var story: StoryData? { duel.flatMap { StoryData(duel: $0) } }
+
+    // Today's Daily for WhatsApp: the grid, never the questions.
+    public var dailyText: String? {
+        guard let duel, duel.mode == .daily, let grid = StoryData.grid(duel) else { return nil }
+        return dailyShareText(day: istToday(), correct: duel.me.correct, totalMs: duel.me.totalMs,
+                              grid: grid, streak: profile?.streak ?? 0, code: duel.code)
+    }
+
+    // Counted in the background; a failed count never gets in the way.
+    public func logShare(_ kind: ShareKind, _ channel: ShareChannel) {
+        let api = api, id = duelId
+        Task { try? await api.logShare(kind, channel, duelId: id) }
+    }
+
+    public func sharedStory() {
+        storyShared = true
+        logShare(.story, .share)
     }
 
     public func retry() async {
@@ -90,6 +137,10 @@ public final class DuelResultViewModel {
     }
 
     public func openPlayer(_ id: String) { router.open(.player(id)) }
-    public func playAgain() { router.open(.matchmaking(rematch)) }
+    // Again in the same subject: Coding stays Coding.
+    public func playAgain() {
+        let subject = duel?.playedSubject ?? .aptitude
+        router.open(subject == .aptitude ? .matchmaking(rematch) : .subjectMatch(subject))
+    }
     public func close(to tab: AppTab? = nil) { router.close(to: tab) }
 }

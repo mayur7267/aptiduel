@@ -36,14 +36,16 @@ struct RulesTests {
 
     @Test func challengeLinks() {
         #expect(Links.challengeCode(from: URL(string: "apticks://c/AB12CD")!) == "AB12CD")
+        #expect(Links.challengeCode(from: URL(string: "https://www.playapticks.in/c/xY9k2")!) == "xY9k2")
+        #expect(Links.challengeCode(from: URL(string: "https://www.playapticks.in/leaderboard")!) == nil)
+        // Links sent before the new address still open.
         #expect(Links.challengeCode(from: URL(string: "https://aptiduel.vercel.app/c/xY9k2")!) == "xY9k2")
-        #expect(Links.challengeCode(from: URL(string: "https://aptiduel.vercel.app/leaderboard")!) == nil)
         #expect(Links.challengeCode(from: URL(string: "apticks://c/bad!code")!) == nil)
-        #expect(inviteShareText("Asha", "AB12").hasSuffix("https://aptiduel.vercel.app/c/AB12"))
+        #expect(inviteShareText("Asha", "AB12").hasSuffix("https://www.playapticks.in/c/AB12"))
     }
 
-    @Test func websiteLinksOpenTheRightScreen() {
-        let site = "https://aptiduel.vercel.app"
+    @Test(arguments: ["https://www.playapticks.in", "https://aptiduel.vercel.app"])
+    func websiteLinksOpenTheRightScreen(site: String) {
         let id = "3f2c1a9e-8b7d-4c6e-a5f4-0123456789ab"
         #expect(Links.route(from: URL(string: "\(site)/c/AB12CD")!) == .challenge("AB12CD"))
         #expect(Links.route(from: URL(string: "\(site)/duel/\(id)")!) == .duel(id))

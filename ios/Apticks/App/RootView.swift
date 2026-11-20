@@ -52,6 +52,7 @@ struct RootView: View {
                 .feedbackSheet(container.feedback, active: true, model: container.feedbackModel)
                 .environment(container.feedback)
                 .environment(container.review)
+                .environment(container.reminders)
                 .environment(router)
                 .environment(container.companion)
                 .environment(container.tour)
@@ -66,6 +67,13 @@ struct RootView: View {
         .environment(container.launch)
         .environment(container.feedback)
         .environment(container.review)
+        .environment(container.reminders)
+        // The evening reminders follow how today is going: none on a day
+        // the Daily is done. Home reloads after every game.
+        .task(id: container.home.me) {
+            guard let me = container.home.me else { return }
+            await container.reminders.update(doneToday: me.quests.daily > 0, streak: me.streak)
+        }
         // Shake the phone anywhere to report a problem.
         .onReceive(NotificationCenter.default.publisher(for: .deviceDidShake)) { _ in
             guard container.feedback.request == nil, !container.launch.splashing else { return }

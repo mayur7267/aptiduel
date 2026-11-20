@@ -33,7 +33,7 @@ public struct LeaderboardView: View {
             .padding(.bottom, 110)
         }
         .scrollIndicators(.hidden)
-        .refreshable { await model.load() }
+        .refreshable { await Task { await model.load() }.value }
         // Your row, when it isn't already in the list above.
         .safeAreaInset(edge: .bottom) {
             if let board = model.board, let pinned = board.pinnedMe {

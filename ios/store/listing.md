@@ -50,7 +50,18 @@ BUILT FOR STUDENTS
 Questions are original, written in the style of placement aptitude tests. Apticks is an independent app and is not affiliated with or endorsed by any company named in it.
 
 Questions or ideas? Write to mayurl.7267@gmail.com
-Privacy policy: https://aptiduel.vercel.app/privacy
+Privacy policy: https://www.playapticks.in/privacy
+```
+
+## What's New (1.1)
+
+No company or app names here (review risk); it says "friends" and "your story".
+
+```
+• Share your Daily score with friends in one tap
+• Post your result to your story
+• Optional 8 pm reminder on days you haven't played
+• Bug fixes
 ```
 
 ## What's New (1.0)
@@ -63,9 +74,9 @@ Welcome to Apticks! Duel friends live, race a rival near your rating, play the D
 
 | Field | Value |
 |---|---|
-| Support URL | https://aptiduel.vercel.app/support |
-| Privacy Policy URL | https://aptiduel.vercel.app/privacy |
-| Marketing URL | https://aptiduel.vercel.app |
+| Support URL | https://www.playapticks.in/support |
+| Privacy Policy URL | https://www.playapticks.in/privacy |
+| Marketing URL | https://www.playapticks.in |
 | Contact email | mayurl.7267@gmail.com |
 | Primary category | Education |
 | Secondary category | Games › Trivia |
@@ -89,7 +100,8 @@ Contact: mayurl.7267@gmail.com
 
 Nothing is used for tracking and nothing is shared with advertisers. Everything
 below is collected, linked to the player's account, for App Functionality
-(Gameplay content also for Analytics). This matches `Apticks/Resources/PrivacyInfo.xcprivacy`.
+(Gameplay content also for Analytics; Product Interaction only for Analytics).
+This matches `Apticks/Resources/PrivacyInfo.xcprivacy`.
 
 | Data type | Why |
 |---|---|
@@ -100,6 +112,7 @@ below is collected, linked to the player's account, for App Functionality
 | User Content › Other User Content | Feedback messages the player sends |
 | Other Data › Other Data Types | College, graduation year, test countdown |
 | Diagnostics › Other Diagnostic Data | App version and device model, sent only with feedback |
+| Usage Data › Product Interaction | Which share button was tapped, to count shares (from 1.1); Analytics only |
 
 Not collected: location, contacts, photos, health, financial data, browsing or
 search history, purchases, advertising identifier.

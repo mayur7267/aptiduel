@@ -23,6 +23,11 @@ struct LobbyView: View {
                 .contentTransition(.opacity)
             Text(model.line).font(.ui(17)).foregroundStyle(Theme.muted)
                 .fixedSize(horizontal: false, vertical: true)
+            if model.canPick {
+                SubjectPicker(subject: model.subject) { s in Task { await model.pick(s) } }
+            } else if model.state != nil {
+                SubjectChip(subject: model.subject)
+            }
 
             Versus(me: model.state?.me.name ?? model.hostName, friend: model.opponent?.present == true ? model.opponent?.name : nil)
                 .padding(.top, 36)
@@ -35,7 +40,7 @@ struct LobbyView: View {
             default:
                 waiting
             }
-            if let error = model.error { ErrorNote(error) }
+            if let error = model.pickError ?? model.error { ErrorNote(error) }
         }
         .animation(.snappy, value: model.state)
     }

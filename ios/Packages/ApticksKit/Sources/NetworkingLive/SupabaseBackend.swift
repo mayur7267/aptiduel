@@ -64,27 +64,22 @@ public final class SupabaseBackend: APIClient, AccountClient {
         }
     }
 
-    private func friendly(_ error: Error) -> Error {
-        if error is AppError { return error }
-        if let url = error as? URLError {
-            switch url.code {
-            case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
-                return AppError("You're offline. Check your connection and try again.")
-            case .timedOut, .cannotConnectToHost, .cannotFindHost:
-                return AppError("Couldn't reach Apticks. Try again in a moment.")
-            default:
-                break
-            }
-        }
-        return AppError(error.localizedDescription)
-    }
+    private func friendly(_ error: Error) -> Error { friendlyError(error) }
 
     private static func id(_ v: Int?) -> AnyJSON { v.map { .integer($0) } ?? .null }
 
     // MARK: APIClient
 
     public func me() async throws -> Me { try await rpc("get_me") }
-    public func myDuels(limit: Int) async throws -> [DuelSummary] { try await rpc("my_duels", ["p_limit": .integer(limit)]) }
+    // Every subject, with each duel's subject. my_duels itself lists only
+    // Aptitude (for 1.0 and 1.1, whose rating chart knows one rating).
+    public func myDuels(limit: Int) async throws -> [DuelSummary] {
+        do {
+            return try await rpc("my_duels_all", ["p_limit": .integer(limit)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            return try await rpc("my_duels", ["p_limit": .integer(limit)])
+        }
+    }
     public func leaderboard(_ scope: BoardScope, limit: Int) async throws -> Board {
         try await rpc("leaderboard", ["p_scope": .string(scope.rawValue), "p_limit": .integer(limit)])
     }
@@ -100,7 +95,10 @@ public final class SupabaseBackend: APIClient, AccountClient {
         try await rpc("update_profile", ["p_name": .string(name), "p_college_id": Self.id(collegeId), "p_grad_year": Self.id(gradYear)])
     }
 
-    public func quickMatch() async throws -> MatchStart { try await rpc("quick_match") }
+    public func quickMatch(_ subject: Subject) async throws -> MatchStart {
+        subject == .aptitude ? try await rpc("quick_match") : try await rpc("quick_match", ["p_subject": .string(subject.rawValue)])
+    }
+    public func mySubjects() async throws -> SubjectRatings { try await rpc("my_subjects") }
     public func companyMatch(_ company: String) async throws -> MatchStart { try await rpc("company_match", ["p_company": .string(company)]) }
     public func dailyChallenge() async throws -> DuelRef { try await rpc("daily_challenge") }
     public func duel(_ id: String) async throws -> Duel { try await rpc("get_duel", ["p_duel_id": .string(id)]) }
@@ -113,10 +111,32 @@ public final class SupabaseBackend: APIClient, AccountClient {
     public func shareCode(_ duelId: String) async throws -> ShareCode { try await rpc("challenge_from_duel", ["p_duel_id": .string(duelId)]) }
     public func challenge(_ code: String) async throws -> Challenge? { try await rpc("get_challenge", ["p_code": .string(code)]) }
     public func challengeStatus(_ code: String) async throws -> ChallengeStatus? { try await rpc("challenge_status", ["p_code": .string(code)]) }
-    public func joinChallenge(_ code: String) async throws -> DuelRef { try await rpc("join_challenge", ["p_code": .string(code)]) }
+    // p_client 2: this app shows code, so Coding duels are open to it
+    // (0023_room_subjects.sql; older apps are told to update instead).
+    // Before 0023 is applied only the one-argument calls exist.
+    public func joinChallenge(_ code: String) async throws -> DuelRef {
+        do {
+            return try await rpc("join_challenge", ["p_code": .string(code), "p_client": .integer(2)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            return try await rpc("join_challenge", ["p_code": .string(code)])
+        }
+    }
 
-    public func createRoom() async throws -> RoomRef { try await rpc("create_room") }
-    public func joinRoom(_ code: String) async throws -> JoinedRoom { try await rpc("join_room", ["p_code": .string(code)]) }
+    // Aptitude uses the original call, so it works with or without 0023.
+    public func createRoom(_ subject: Subject) async throws -> RoomRef {
+        if subject == .aptitude { return try await rpc("create_room") }
+        return try await rpc("create_room", ["p_subject": .string(subject.rawValue)])
+    }
+    public func setRoomSubject(_ duelId: String, _ subject: Subject) async throws {
+        _ = try await call("set_room_subject", ["p_duel_id": .string(duelId), "p_subject": .string(subject.rawValue)])
+    }
+    public func joinRoom(_ code: String) async throws -> JoinedRoom {
+        do {
+            return try await rpc("join_room", ["p_code": .string(code), "p_client": .integer(2)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            return try await rpc("join_room", ["p_code": .string(code)])
+        }
+    }
     public func liveState(_ duelId: String) async throws -> LiveState { try await rpc("live_state", ["p_duel_id": .string(duelId)]) }
     public func livePlayNow(_ duelId: String) async throws -> DuelRef { try await rpc("live_play_now", ["p_duel_id": .string(duelId)]) }
     public func liveCancel(_ duelId: String) async throws { _ = try await call("live_cancel", ["p_duel_id": .string(duelId)]) }
@@ -133,6 +153,13 @@ public final class SupabaseBackend: APIClient, AccountClient {
     }
 
     public func dailyDays() async throws -> [String] { try await rpc("daily_days") }
+
+    public func logShare(_ kind: ShareKind, _ channel: ShareChannel, duelId: String?) async throws {
+        _ = try await call("log_share", [
+            "p_kind": .string(kind.rawValue), "p_channel": .string(channel.rawValue),
+            "p_duel_id": duelId.map { .string($0) } ?? .null,
+        ])
+    }
 
     public func sendFeedback(_ feedback: FeedbackDraft) async throws {
         _ = try await call("submit_feedback", [

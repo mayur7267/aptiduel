@@ -59,9 +59,7 @@ struct ReviewStateTests {
         #expect(second.recordWin(in: "c", now: start))
     }
 
-    @Test func reviewLinkNeedsAnAppStoreId() {
-        // Until the app has an App Store ID there is nothing to link to.
-        #expect(AppStore.id == nil)
-        #expect(AppStore.reviewURL == nil)
+    @Test func reviewLinkOpensTheWriteAReviewPage() {
+        #expect(AppStore.reviewURL?.absoluteString == "https://apps.apple.com/app/id6828983597?action=write-review")
     }
 }

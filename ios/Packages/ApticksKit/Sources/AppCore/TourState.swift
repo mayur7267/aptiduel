@@ -12,8 +12,10 @@ public struct TourStep: Sendable {
 // The first-run tour of the home tab, card by card.
 public let TOUR_STEPS: [TourStep] = [
     TourStep(target: nil, mood: .wave, title: "Hi, I'm Tiko!", text: "I'll hop you around Apticks. It takes about 20 seconds."),
+    TourStep(target: "subjects", mood: .point, title: "Four subjects",
+             text: "Tap a tab to switch. Aptitude, Coding and English are ready, each with its own rating. Coding shows each program in C, C++, Java, Python or pseudocode. GK is coming soon."),
     TourStep(target: "quick", mood: .point, title: "Quick Match",
-             text: "Race someone near your rating: 5 questions, about 3 minutes. A right answer scores 100, plus up to 50 for speed."),
+             text: "Race someone near your rating in the subject you picked: 5 questions, a few minutes. A right answer scores 100, plus up to 50 for speed."),
     TourStep(target: "challenge", mood: .happy, title: "Duel a friend",
              text: "Send a link on WhatsApp. When your friend joins, you both race the same 5 questions live."),
     TourStep(target: "company", mood: .think, title: "Company prep",

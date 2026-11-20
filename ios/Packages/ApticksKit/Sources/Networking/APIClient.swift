@@ -13,7 +13,11 @@ public protocol APIClient: AnyObject, Sendable {
     func colleges() async throws -> [College]
     func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me
 
-    func quickMatch() async throws -> MatchStart
+    // A Quick Match in a subject (0022_subjects.sql). Aptitude uses the
+    // original call, so it also works against a database without 0022.
+    func quickMatch(_ subject: Subject) async throws -> MatchStart
+    // Your rating and games in each subject.
+    func mySubjects() async throws -> SubjectRatings
     func companyMatch(_ company: String) async throws -> MatchStart
     func dailyChallenge() async throws -> DuelRef
     func duel(_ id: String) async throws -> Duel
@@ -28,7 +32,10 @@ public protocol APIClient: AnyObject, Sendable {
 
     // Live friend duels (supabase/migrations/0013_live_duels.sql). Opening
     // and joining a room need a saved account.
-    func createRoom() async throws -> RoomRef
+    func createRoom(_ subject: Subject) async throws -> RoomRef
+    // The host changes the subject until the friend joins
+    // (0023_room_subjects.sql).
+    func setRoomSubject(_ duelId: String, _ subject: Subject) async throws
     func joinRoom(_ code: String) async throws -> JoinedRoom
     // Also tells the server you're here: a player gone for 45 s forfeits
     // the rest of the race. Questions go through nextQuestion/submitAnswer.
@@ -54,6 +61,10 @@ public protocol APIClient: AnyObject, Sendable {
 
     // Saved for the team and emailed to them.
     func sendFeedback(_ feedback: FeedbackDraft) async throws
+
+    // A tap on a share button, for the share counts (0021_share_cards.sql).
+    // Only your own duels are recorded against a duel.
+    func logShare(_ kind: ShareKind, _ channel: ShareChannel, duelId: String?) async throws
 }
 
 // A guest account lives only on this device. Adding an email keeps the
@@ -72,7 +83,44 @@ public protocol AccountClient: AnyObject, Sendable {
     func deleteAccount() async throws
 }
 
+extension APIClient {
+    public func quickMatch() async throws -> MatchStart { try await quickMatch(.aptitude) }
+    public func createRoom() async throws -> RoomRef { try await createRoom(.aptitude) }
+}
+
 // An error with a message that's fine to show the player.
+extension Error {
+    // A request given up part-way because its screen moved on (SwiftUI
+    // cancelled a pull-to-refresh, a view went away). Nothing went wrong,
+    // so there's nothing to tell the player.
+    public var isCancellation: Bool {
+        if self is CancellationError { return true }
+        if let url = self as? URLError, url.code == .cancelled { return true }
+        let ns = self as NSError
+        return ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled
+    }
+}
+
+// What a failed request tells the player: a plain message for the usual
+// network problems, the server's own message otherwise. A cancellation
+// passes through untouched, so screens can tell it apart and say nothing
+// (wrapped in an AppError it read "Swift.CancellationError error 1." on
+// the first pull-to-refresh after every launch).
+public func friendlyError(_ error: Error) -> Error {
+    if error is AppError || error.isCancellation { return error }
+    if let url = error as? URLError {
+        switch url.code {
+        case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
+            return AppError("You're offline. Check your connection and try again.")
+        case .timedOut, .cannotConnectToHost, .cannotFindHost:
+            return AppError("Couldn't reach Apticks. Try again in a moment.")
+        default:
+            break
+        }
+    }
+    return AppError(error.localizedDescription)
+}
+
 public struct AppError: LocalizedError, Sendable, Equatable {
     public let message: String
     public init(_ message: String) { self.message = message }

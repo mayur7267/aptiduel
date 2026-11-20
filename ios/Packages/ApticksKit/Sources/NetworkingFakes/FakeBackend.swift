@@ -47,6 +47,7 @@ public final class FakeBackend: APIClient, AccountClient {
         let id: String
         let code: String
         let mode: DuelMode
+        var subject: Subject
         let company: String?
         let isCreator: Bool
         let opponentName: String?
@@ -56,10 +57,11 @@ public final class FakeBackend: APIClient, AccountClient {
         var ratingBefore: Int?
         var ratingAfter: Int?
 
-        init(id: String, code: String, mode: DuelMode, company: String?, isCreator: Bool, opponentName: String?, opponentIsBot: Bool) {
+        init(id: String, code: String, mode: DuelMode, subject: Subject = .aptitude, company: String?, isCreator: Bool, opponentName: String?, opponentIsBot: Bool) {
             self.id = id
             self.code = code
             self.mode = mode
+            self.subject = subject
             self.company = company
             self.isCreator = isCreator
             self.opponentName = opponentName
@@ -76,6 +78,11 @@ public final class FakeBackend: APIClient, AccountClient {
     private var collegeId: Int?
     private var gradYear: Int?
     private var rating = 1180
+    // Coding has its own rating (0022_subjects.sql).
+    private var codingRating = 1000
+    private var codingGames = 0
+    private var englishRating = 1000
+    private var englishGames = 0
     private var guest = true
     // The pretend player's id (the number on the Profile card is made from it).
     private var meId = "fake-user"
@@ -105,6 +112,7 @@ public final class FakeBackend: APIClient, AccountClient {
         let explanation: String
         var figure: String? = nil
         var optionFigures: [String]? = nil
+        var code: [String: String]? = nil
     }
 
     static let questions: [FakeQuestion] = [
@@ -126,6 +134,79 @@ public final class FakeBackend: APIClient, AccountClient {
                      options: ["Scarce", "Plentiful", "Ordinary", "Hidden"], correctIdx: 1,
                      explanation: "Abundant means existing in large quantities: plentiful."),
     ]
+
+    // English: five topics, as on the server (the real ones are made by
+    // scripts/generate-verbal.ts).
+    static let englishQuestions: [FakeQuestion] = [
+        FakeQuestion(section: "verbal", topic: "Synonyms", body: "Choose the word closest in meaning to CANDID.",
+                     options: ["Evasive", "Frank", "Guarded", "Fragile"], correctIdx: 1,
+                     explanation: "Candid means \"truthful and straightforward\". Frank is the closest in meaning."),
+        FakeQuestion(section: "verbal", topic: "Idioms", body: "What does the idiom \"bury the hatchet\" mean?",
+                     options: ["Make peace", "Hide a secret", "Give up a fight", "Work very hard"], correctIdx: 0,
+                     explanation: "\"Bury the hatchet\" means make peace."),
+        FakeQuestion(section: "verbal", topic: "Fill in the blanks", body: "Fill in the blank: Neha is good ___ mathematics and science.",
+                     options: ["in", "at", "on", "with"], correctIdx: 1,
+                     explanation: "We say \"good at\" a subject or skill."),
+        FakeQuestion(section: "verbal", topic: "Active and passive voice", body: "Choose the passive form of this sentence:\n\"Ravi writes a letter.\"",
+                     options: ["A letter was written by Ravi.", "A letter is being written by Ravi.", "A letter is written by Ravi.", "A letter has been written by Ravi."],
+                     correctIdx: 2, explanation: "The sentence is in the simple present, and so is its passive: \"A letter is written by Ravi.\""),
+        FakeQuestion(section: "verbal", topic: "Spelling", body: "Choose the correctly spelt word.",
+                     options: ["Accomodate", "Acommodate", "Accommodate", "Accommodete"], correctIdx: 2,
+                     explanation: "The correct spelling is \"accommodate\"."),
+    ]
+
+    // Coding: "what does this print?", each program in all five languages
+    // (the real ones are made by scripts/generate-coding.ts).
+    static let codingQuestions: [FakeQuestion] = [
+        FakeQuestion(section: "coding", topic: "Loops", body: "What does this code print?",
+                     options: ["10", "6", "15", "4"], correctIdx: 0,
+                     explanation: "The loop adds i for i = 1 to 4: 1 + 2 + 3 + 4 = 10.",
+                     code: ["c": "int s = 0;\nfor (int i = 1; i <= 4; i++) {\n  s += i;\n}\nprintf(\"%d \", s);",
+                            "cpp": "int s = 0;\nfor (int i = 1; i <= 4; i++) {\n  s += i;\n}\ncout << s << \" \";",
+                            "java": "int s = 0;\nfor (int i = 1; i <= 4; i++) {\n  s += i;\n}\nSystem.out.print(s + \" \");",
+                            "python": "s = 0\nfor i in range(1, 5):\n    s += i\nprint(s, end=\" \")",
+                            "pseudo": "Integer s = 0\nfor i = 1 to 4\n  s = s + i\nend for\nprint s"]),
+        FakeQuestion(section: "coding", topic: "Operators", body: "What does this code print?",
+                     options: ["3.4 2", "3 2", "2 3", "4 2"], correctIdx: 1,
+                     explanation: "With whole numbers, / drops the fraction and % gives the remainder: 17 = 3 × 5 + 2.",
+                     code: ["c": "int a = 17;\nint b = 5;\nprintf(\"%d \", a / b);\nprintf(\"%d \", a % b);",
+                            "cpp": "int a = 17;\nint b = 5;\ncout << (a / b) << \" \";\ncout << (a % b) << \" \";",
+                            "java": "int a = 17;\nint b = 5;\nSystem.out.print((a / b) + \" \");\nSystem.out.print((a % b) + \" \");",
+                            "python": "a = 17\nb = 5\nprint(a // b, end=\" \")\nprint(a % b, end=\" \")",
+                            "pseudo": "// \"/\" is integer division: 7 / 2 = 3\n\nInteger a = 17\nInteger b = 5\nprint a / b\nprint a mod b"]),
+        FakeQuestion(section: "coding", topic: "Recursion", body: "What does this code print?",
+                     options: ["12", "24", "120", "4"], correctIdx: 1,
+                     explanation: "f(4) = 4 × f(3) = 4 × 3 × 2 × f(1), and f(1) = 1: 24.",
+                     code: ["c": "int f(int n) {\n  if (n <= 1) return 1;\n  return n * f(n - 1);\n}\n\nprintf(\"%d \", f(4));",
+                            "cpp": "int f(int n) {\n  if (n <= 1) return 1;\n  return n * f(n - 1);\n}\n\ncout << f(4) << \" \";",
+                            "java": "static int f(int n) {\n  if (n <= 1) return 1;\n  return n * f(n - 1);\n}\n\nSystem.out.print(f(4) + \" \");",
+                            "python": "def f(n):\n    if n <= 1:\n        return 1\n    return n * f(n - 1)\n\nprint(f(4), end=\" \")",
+                            "pseudo": "function f(n)\n  if (n <= 1)\n    return 1\n  end if\n  return n * f(n - 1)\nend function\n\nprint f(4)"]),
+        FakeQuestion(section: "coding", topic: "Arrays", body: "What does this code print?",
+                     options: ["3", "2", "8", "13"], correctIdx: 2,
+                     explanation: "m keeps the largest value seen so far: 3, then 8, and 2 doesn't beat it. It prints 8.",
+                     code: ["c": "int a[] = {3, 8, 2};\nint m = a[0];\nfor (int i = 1; i <= 2; i++) {\n  if (a[i] > m) {\n    m = a[i];\n  }\n}\nprintf(\"%d \", m);",
+                            "cpp": "int a[] = {3, 8, 2};\nint m = a[0];\nfor (int i = 1; i <= 2; i++) {\n  if (a[i] > m) {\n    m = a[i];\n  }\n}\ncout << m << \" \";",
+                            "java": "int[] a = {3, 8, 2};\nint m = a[0];\nfor (int i = 1; i <= 2; i++) {\n  if (a[i] > m) {\n    m = a[i];\n  }\n}\nSystem.out.print(m + \" \");",
+                            "python": "a = [3, 8, 2]\nm = a[0]\nfor i in range(1, 3):\n    if a[i] > m:\n        m = a[i]\nprint(m, end=\" \")",
+                            "pseudo": "// Arrays start at index 0\n\nInteger a[] = {3, 8, 2}\nInteger m = a[0]\nfor i = 1 to 2\n  if (a[i] > m)\n    m = a[i]\n  end if\nend for\nprint m"]),
+        FakeQuestion(section: "coding", topic: "While Loops", body: "What does this code print?",
+                     options: ["321", "6", "3", "123"], correctIdx: 1,
+                     explanation: "x % 10 is the last digit and x / 10 drops it, so the loop adds the digits: 1 + 2 + 3 = 6.",
+                     code: ["c": "int x = 123;\nint s = 0;\nwhile (x > 0) {\n  s += x % 10;\n  x /= 10;\n}\nprintf(\"%d \", s);",
+                            "cpp": "int x = 123;\nint s = 0;\nwhile (x > 0) {\n  s += x % 10;\n  x /= 10;\n}\ncout << s << \" \";",
+                            "java": "int x = 123;\nint s = 0;\nwhile (x > 0) {\n  s += x % 10;\n  x /= 10;\n}\nSystem.out.print(s + \" \");",
+                            "python": "x = 123\ns = 0\nwhile x > 0:\n    s += x % 10\n    x //= 10\nprint(s, end=\" \")",
+                            "pseudo": "// \"/\" is integer division: 7 / 2 = 3\n\nInteger x = 123\nInteger s = 0\nwhile (x > 0)\n  s = s + x mod 10\n  x = x / 10\nend while\nprint s"]),
+    ]
+
+    private func questions(for r: Run) -> [FakeQuestion] {
+        switch r.subject {
+        case .coding: Self.codingQuestions
+        case .english: Self.englishQuestions
+        case .aptitude: Self.questions
+        }
+    }
 
     // How the bot (or a friend) played the same five questions.
     static let opponentRun: [(ms: Int, correct: Bool)] = [(14_000, true), (22_000, false), (18_000, true), (9_000, true), (12_000, false)]
@@ -150,9 +231,10 @@ public final class FakeBackend: APIClient, AccountClient {
 
     private var collegeName: String? { Self.colleges.first { $0.0 == collegeId }?.1 }
 
-    private func newRun(_ mode: DuelMode, company: String? = nil, isCreator: Bool = false, opponent: String?, bot: Bool) -> Run {
+    private func newRun(_ mode: DuelMode, subject: Subject = .aptitude, company: String? = nil, isCreator: Bool = false,
+                        opponent: String?, bot: Bool) -> Run {
         counter += 1
-        let run = Run(id: "fake-\(mode.rawValue)-\(counter)", code: "FAKE\(counter)", mode: mode, company: company,
+        let run = Run(id: "fake-\(mode.rawValue)-\(counter)", code: "FAKE\(counter)", mode: mode, subject: subject, company: company,
                       isCreator: isCreator, opponentName: opponent, opponentIsBot: bot)
         runs[run.id] = run
         order.insert(run.id, at: 0)
@@ -180,9 +262,21 @@ public final class FakeBackend: APIClient, AccountClient {
         if r.mode == .live, friendAnswers(r.id).count < Self.questions.count { return }
         let mine = r.answers.reduce(0) { $0 + $1.points }
         let theirs = opponentTimeline().reduce(0) { $0 + (($1["points"] as? Int) ?? 0) }
-        r.ratingBefore = rating
-        rating += mine >= theirs ? 16 : -12
-        r.ratingAfter = rating
+        if r.subject == .coding {
+            r.ratingBefore = codingRating
+            codingRating += mine >= theirs ? 20 : -14
+            codingGames += 1
+            r.ratingAfter = codingRating
+        } else if r.subject == .english {
+            r.ratingBefore = englishRating
+            englishRating += mine >= theirs ? 18 : -13
+            englishGames += 1
+            r.ratingAfter = englishRating
+        } else {
+            r.ratingBefore = rating
+            rating += mine >= theirs ? 16 : -12
+            r.ratingAfter = rating
+        }
     }
 
     private func opponentTimeline() -> [[String: Any]] {
@@ -232,21 +326,21 @@ public final class FakeBackend: APIClient, AccountClient {
             timeline = opponentTimeline()
         }
         let review: Any = r.finished
-            ? Self.questions.enumerated().map { i, q in
+            ? questions(for: r).enumerated().map { i, q in
                 let a = r.answers[i]
                 return [
                     "q_index": i, "section": q.section, "topic": q.topic, "companies": r.company.map { [$0] } ?? [],
-                    "body": q.body, "figure": opt(q.figure), "options": q.options, "option_figures": opt(q.optionFigures),
-                    "correct_idx": q.correctIdx, "chosen_idx": opt(a.choice), "is_correct": a.correct, "points": a.points,
+                    "body": q.body, "figure": opt(q.figure), "code": opt(q.code), "options": q.options,
+                    "option_figures": opt(q.optionFigures), "correct_idx": q.correctIdx, "chosen_idx": opt(a.choice), "is_correct": a.correct, "points": a.points,
                     "ms": a.ms, "explanation": q.explanation,
                     "opp_correct": r.opponentName == nil ? NSNull() : Self.opponentRun[i].correct,
                 ] as [String: Any]
             }
             : NSNull()
         return [
-            "id": r.id, "code": r.code, "mode": r.mode.rawValue, "company": opt(r.company),
+            "id": r.id, "code": r.code, "mode": r.mode.rawValue, "subject": r.subject.rawValue, "company": opt(r.company),
             "status": r.finished ? "complete" : "open", "is_creator": r.isCreator,
-            "me": playerJSON(name: name, rating: rating, college: collegeName, bot: false, answers: mine,
+            "me": playerJSON(name: name, rating: r.subject == .coding ? codingRating : r.subject == .english ? englishRating : rating, college: collegeName, bot: false, answers: mine,
                              finished: r.finished, before: r.ratingBefore, after: r.ratingAfter, seat: 1),
             "opponent": opponent, "opponent_timeline": timeline,
             "my_answers": r.answers.enumerated().map { ["q_index": $0.offset, "correct": $0.element.correct] },
@@ -268,7 +362,8 @@ public final class FakeBackend: APIClient, AccountClient {
         var list: [[String: Any]] = order.prefix(limit).compactMap { runs[$0] }.map { r in
             let mine = r.answers
             return [
-                "id": r.id, "mode": r.mode.rawValue, "company": opt(r.company), "status": r.finished ? "complete" : "open",
+                "id": r.id, "mode": r.mode.rawValue, "subject": r.subject.rawValue, "company": opt(r.company),
+                "status": r.finished ? "complete" : "open",
                 "created_at": iso.string(from: now()), "code": r.isCreator ? r.code : NSNull(), "seat": 1, "is_replay": false,
                 "score": mine.reduce(0) { $0 + $1.points }, "correct": mine.filter(\.correct).count,
                 "total_ms": mine.reduce(0) { $0 + $1.ms }, "finished": r.finished,
@@ -322,12 +417,25 @@ public final class FakeBackend: APIClient, AccountClient {
         return try decode(meJSON())
     }
 
-    public func quickMatch() async throws -> MatchStart {
+    public func quickMatch(_ subject: Subject) async throws -> MatchStart {
         try await pause()
+        // As on the server: finish an open quick match (any subject) first.
         if let open = order.compactMap({ runs[$0] }).first(where: { $0.mode == .quick && !$0.finished && !$0.answers.isEmpty }) {
             return try decode(["duel_id": open.id, "resumed": true])
         }
-        return try decode(["duel_id": newRun(.quick, opponent: "Bolt", bot: true).id, "resumed": false])
+        return try decode(["duel_id": newRun(.quick, subject: subject, opponent: "Bolt", bot: true).id, "resumed": false])
+    }
+
+    // Aptitude, as before (tests call it without a subject).
+    public func quickMatch() async throws -> MatchStart { try await quickMatch(.aptitude) }
+
+    public func mySubjects() async throws -> SubjectRatings {
+        try await pause()
+        return try decode([
+            "aptitude": ["rating": rating, "games": 6 + runs.count],
+            "coding": ["rating": codingRating, "games": codingGames],
+            "english": ["rating": englishRating, "games": englishGames],
+        ])
     }
 
     public func companyMatch(_ company: String) async throws -> MatchStart {
@@ -357,13 +465,13 @@ public final class FakeBackend: APIClient, AccountClient {
         let score = r.answers.reduce(0) { $0 + $1.points }
         if r.finished { return try decode(["done": true, "score": score]) }
         let i = r.answers.count
-        let q = Self.questions[i]
+        let q = questions(for: r)[i]
         if r.openedAt == nil { r.openedAt = now() }
         let elapsed = Int(now().timeIntervalSince(r.openedAt!) * 1000)
         return try decode([
             "done": false, "q_index": i, "total": Self.questions.count, "section": q.section, "topic": q.topic,
             "companies": r.company.map { [$0] } ?? [], "difficulty": 2, "body": q.body, "figure": opt(q.figure),
-            "options": q.options, "option_figures": opt(q.optionFigures), "time_limit_ms": timeLimitMs,
+            "code": opt(q.code), "options": q.options, "option_figures": opt(q.optionFigures), "time_limit_ms": timeLimitMs,
             "remaining_ms": max(0, timeLimitMs - elapsed), "score": score,
         ] as [String: Any])
     }
@@ -372,7 +480,7 @@ public final class FakeBackend: APIClient, AccountClient {
         try await pause()
         let r = try run(duelId)
         guard question == r.answers.count, !r.finished else { throw AppError("You already answered this question.") }
-        let q = Self.questions[question]
+        let q = questions(for: r)[question]
         let ms = min(timeLimitMs, Int(now().timeIntervalSince(r.openedAt ?? now()) * 1000))
         let correct = choice == q.correctIdx
         let points = Self.points(correct: correct, ms: ms, limit: timeLimitMs)
@@ -402,7 +510,7 @@ public final class FakeBackend: APIClient, AccountClient {
         try await pause()
         if let room = rooms.values.first(where: { $0.code == code.uppercased() }) {
             tick(room)
-            return try decode(liveChallengeJSON(code: room.code, mine: true, started: room.startsAt != nil))
+            return try decode(liveChallengeJSON(code: room.code, mine: true, started: room.startsAt != nil, subject: room.subject))
         }
         if code.uppercased().hasPrefix("LIVE") { return try decode(liveChallengeJSON(code: code.uppercased(), mine: false, started: false)) }
         guard code.uppercased().hasPrefix("FRIEND") else { return try decode(NSNull()) }
@@ -440,6 +548,25 @@ public final class FakeBackend: APIClient, AccountClient {
         guard draft.isSendable else { throw AppError("Tell us a little more.") }
         guard feedback.count < 5 else { throw AppError("Thanks, that's a lot at once! Try again in a little while.") }
         feedback.append(draft)
+    }
+
+    public struct LoggedShare: Equatable, Sendable {
+        public let kind: ShareKind
+        public let channel: ShareChannel
+        public let duelId: String?
+
+        public init(kind: ShareKind, channel: ShareChannel, duelId: String?) {
+            self.kind = kind
+            self.channel = channel
+            self.duelId = duelId
+        }
+    }
+
+    public private(set) var shares: [LoggedShare] = []
+
+    public func logShare(_ kind: ShareKind, _ channel: ShareChannel, duelId: String?) async throws {
+        try await pause()
+        shares.append(LoggedShare(kind: kind, channel: channel, duelId: duelId))
     }
 
     // MARK: AccountClient
@@ -505,16 +632,18 @@ extension FakeBackend {
         let id: String
         let code: String
         let hostIsMe: Bool
+        var subject: Subject
         var friendArrives: Date?
         var startsAt: Date?
         var playedNow = false
         var closed = false
         var rematchId: String?
 
-        init(id: String, code: String, hostIsMe: Bool, friendArrives: Date?) {
+        init(id: String, code: String, hostIsMe: Bool, subject: Subject, friendArrives: Date?) {
             self.id = id
             self.code = code
             self.hostIsMe = hostIsMe
+            self.subject = subject
             self.friendArrives = friendArrives
         }
     }
@@ -524,11 +653,11 @@ extension FakeBackend {
         return r
     }
 
-    private func newRoom(hostIsMe: Bool, friendArrives: Date?) -> LiveRoom {
+    private func newRoom(hostIsMe: Bool, subject: Subject = .aptitude, friendArrives: Date?) -> LiveRoom {
         counter += 1
-        let r = LiveRoom(id: "fake-live-\(counter)", code: "LIVE\(counter)", hostIsMe: hostIsMe, friendArrives: friendArrives)
+        let r = LiveRoom(id: "fake-live-\(counter)", code: "LIVE\(counter)", hostIsMe: hostIsMe, subject: subject, friendArrives: friendArrives)
         rooms[r.id] = r
-        let run = Run(id: r.id, code: r.code, mode: .live, company: nil, isCreator: false,
+        let run = Run(id: r.id, code: r.code, mode: .live, subject: subject, company: nil, isCreator: false,
                       opponentName: hostIsMe ? Self.friendName : "Rohan Mehta", opponentIsBot: false)
         runs[run.id] = run
         order.insert(run.id, at: 0)
@@ -558,11 +687,12 @@ extension FakeBackend {
         guard let room = rooms[id], let start = room.startsAt else { return [] }
         var at = start
         var done: [Answer] = []
+        let qs = runs[id].map { questions(for: $0) } ?? Self.questions
         for (k, step) in Self.opponentRun.enumerated() {
             let ms = Int(Double(step.ms) * friendPace)
             at = at.addingTimeInterval(Double(ms) / 1000)
             guard now() >= at else { break }
-            let q = Self.questions[k]
+            let q = qs[k]
             done.append(Answer(choice: step.correct ? q.correctIdx : (q.correctIdx + 1) % 4, correct: step.correct,
                                points: Self.points(correct: step.correct, ms: ms, limit: timeLimitMs), ms: ms))
             at = at.addingTimeInterval(1)
@@ -570,9 +700,10 @@ extension FakeBackend {
         return done
     }
 
-    private func liveChallengeJSON(code: String, mine: Bool, started: Bool) -> [String: Any] {
+    private func liveChallengeJSON(code: String, mine: Bool, started: Bool, subject: Subject = .aptitude) -> [String: Any] {
         [
             "code": code, "open": true, "live": true, "started": started, "full": started, "my_seat": mine ? 1 : NSNull(),
+            "subject": subject.rawValue,
             "challenger": mine
                 ? ["name": name, "rating": rating, "college": opt(collegeName), "grad_year": opt(gradYear)] as [String: Any]
                 : ["name": "Rohan Mehta", "rating": 1320, "college": "IIT Bombay", "grad_year": 2026],
@@ -604,15 +735,31 @@ extension FakeBackend {
             "id": room.id, "code": room.code, "status": status, "is_host": room.hostIsMe,
             "now_ms": ms(now()), "starts_at_ms": ms(room.startsAt),
             "me": progressJSON(id: meId, seat: room.hostIsMe ? 1 : 2, name: name, rating: rating, college: collegeName, answers: mine),
-            "opponent": opponent, "rematch_id": opt(room.rematchId),
+            "opponent": opponent, "rematch_id": opt(room.rematchId), "subject": room.subject.rawValue,
         ]
     }
 
-    public func createRoom() async throws -> RoomRef {
+    public func createRoom(_ subject: Subject) async throws -> RoomRef {
         try await pause()
         guard !guest else { throw AppError("Sign in to duel friends.") }
-        let r = newRoom(hostIsMe: true, friendArrives: now().addingTimeInterval(friendJoinDelay))
+        let r = newRoom(hostIsMe: true, subject: subject, friendArrives: now().addingTimeInterval(friendJoinDelay))
         return try decode(["duel_id": r.id, "code": r.code])
+    }
+
+    // Aptitude, as before (tests call it without a subject).
+    public func createRoom() async throws -> RoomRef { try await createRoom(.aptitude) }
+
+    // As on the server: only the host, and only until the friend is in.
+    public func setRoomSubject(_ duelId: String, _ subject: Subject) async throws {
+        try await pause()
+        let r = try room(duelId)
+        tick(r)
+        guard r.hostIsMe else { throw AppError("Only the player who opened the room can change it.") }
+        if r.startsAt != nil || r.closed || r.playedNow || (r.friendArrives.map { now() >= $0 } ?? false) {
+            throw AppError("Your friend is already in, so the subject is set.")
+        }
+        r.subject = subject
+        runs[r.id]?.subject = subject
     }
 
     public func joinRoom(_ code: String) async throws -> JoinedRoom {
@@ -657,7 +804,7 @@ extension FakeBackend {
         let old = try room(duelId)
         if let id = old.rematchId, let r = rooms[id] { return try decode(["duel_id": r.id, "code": r.code]) }
         guard (runs[duelId]?.finished ?? false), friendAnswers(duelId).count >= 5 else { throw AppError("Finish the duel first.") }
-        let r = newRoom(hostIsMe: true, friendArrives: now())
+        let r = newRoom(hostIsMe: true, subject: old.subject, friendArrives: now())
         old.rematchId = r.id
         return try decode(["duel_id": r.id, "code": r.code])
     }

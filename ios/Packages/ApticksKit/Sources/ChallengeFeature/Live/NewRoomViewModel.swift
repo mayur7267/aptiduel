@@ -19,11 +19,16 @@ public final class NewRoomViewModel {
     private let api: any APIClient
     private let account: any AccountClient
     private let router: AppRouter
+    private let subject: () -> Subject
 
-    public init(api: any APIClient, account: any AccountClient, router: AppRouter) {
+    // The room starts in the subject open on Home; the host can switch it
+    // in the lobby.
+    public init(api: any APIClient, account: any AccountClient, router: AppRouter,
+                subject: @escaping () -> Subject = { Subject.openOnHome() }) {
         self.api = api
         self.account = account
         self.router = router
+        self.subject = subject
         signIn = SignInModel(account: account) { [weak self] in await self?.open() }
     }
 
@@ -35,7 +40,7 @@ public final class NewRoomViewModel {
     public func open() async {
         step = .opening
         do {
-            let room = try await api.createRoom()
+            let room = try await api.createRoom(subject())
             router.open(.challenge(room.code))
         } catch {
             step = .failed(error.localizedDescription)

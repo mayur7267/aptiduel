@@ -26,6 +26,7 @@ final class AppContainer {
     let launch = LaunchState()
     let feedback = FeedbackState()
     let review = ReviewState()
+    let reminders = ReminderState()
 
     // The tabs keep their view models, so switching tabs shows the last
     // data straight away while it refreshes.
@@ -58,6 +59,8 @@ final class AppContainer {
                 fake.start(as: name, rating: args.integer(forKey: "FakeRating").nonZero ?? 1180,
                            collegeId: args.integer(forKey: "FakeCollege").nonZero, gradYear: args.integer(forKey: "FakeGradYear").nonZero)
             }
+            // -FakeFriendDelay 60: the pretend friend takes that long to join a room.
+            if args.double(forKey: "FakeFriendDelay") > 0 { fake.friendJoinDelay = args.double(forKey: "FakeFriendDelay") }
             return AppContainer(dependencies: Dependencies(api: fake, account: fake))
         }
         #endif
@@ -73,6 +76,7 @@ final class AppContainer {
     var currentScreen: String {
         switch router.flow?.screen {
         case let .matchmaking(company): "matchmaking" + (company.map { " (\($0.name))" } ?? "")
+        case .subjectMatch(let s): "matchmaking (\(s.rawValue))"
         case let .duel(id): "duel \(id)"
         case let .result(id): "result \(id)"
         case let .challenge(code): "challenge \(code)"
@@ -90,6 +94,8 @@ final class AppContainer {
         switch screen {
         case let .matchmaking(company):
             MatchmakingView(model: MatchmakingViewModel(company: company, api: api, router: router))
+        case .subjectMatch(let s):
+            MatchmakingView(model: MatchmakingViewModel(company: nil, subject: s, api: api, router: router))
         case let .duel(id):
             DuelPlayView(model: DuelPlayViewModel(duelId: id, api: api, router: router))
         case let .result(id):
