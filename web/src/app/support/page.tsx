@@ -88,6 +88,18 @@ export default function SupportPage() {
         </Link>
         . To ask about it, write to <Email subject="Apticks privacy" />.
       </P>
+
+      <P>
+        The college list comes from the{" "}
+        <a href="https://ror.org" className="font-semibold text-lime underline hover:text-lime-hover">Research Organization Registry</a> (CC0),
+        with places from{" "}
+        <a href="https://www.geonames.org" className="font-semibold text-lime underline hover:text-lime-hover">GeoNames</a> (CC BY 4.0), and
+        Hipo&apos;s{" "}
+        <a href="https://github.com/Hipo/university-domains-list" className="font-semibold text-lime underline hover:text-lime-hover">
+          university-domains-list
+        </a>{" "}
+        (MIT, © 2014-2025 Hipo).
+      </P>
     </LegalPage>
   );
 }

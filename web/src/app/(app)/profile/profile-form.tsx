@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { api, type Me } from "@/lib/api";
+import { CollegeSearch, type PickedCollege } from "@/components/college-search";
 import { ErrorNote, Spinner } from "@/components/ui";
 
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030, 2031];
@@ -12,22 +13,21 @@ const field = "h-12 w-full rounded-xl border border-line bg-surface px-3.5 text-
 export function ProfileForm({ onSaved }: { onSaved?: () => void } = {}) {
   const router = useRouter();
   const [me, setMe] = useState<Me | null>(null);
-  const [colleges, setColleges] = useState<{ id: number; name: string }[]>([]);
   const [name, setName] = useState("");
-  const [collegeId, setCollegeId] = useState("");
+  const [college, setCollege] = useState<PickedCollege | null>(null);
   const [gradYear, setGradYear] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
-    Promise.all([api.getMe(), api.colleges()])
-      .then(([m, list]) => {
+    api
+      .getMe()
+      .then((m) => {
         if (!active) return;
         setMe(m);
-        setColleges(list);
         setName(/^Player \d{4}$/.test(m.name) ? "" : m.name);
-        setCollegeId(m.college_id ? String(m.college_id) : "");
+        setCollege(m.college_id ? { id: m.college_id, name: m.college ?? "Your college" } : null);
         setGradYear(m.grad_year ? String(m.grad_year) : "");
       })
       .catch((e: Error) => active && setError(e.message));
@@ -41,7 +41,7 @@ export function ProfileForm({ onSaved }: { onSaved?: () => void } = {}) {
     setSaving(true);
     setError(null);
     try {
-      await api.updateProfile(name, collegeId ? Number(collegeId) : null, gradYear ? Number(gradYear) : null);
+      await api.updateProfile(name, college?.id ?? null, gradYear ? Number(gradYear) : null);
       if (onSaved) {
         setSaving(false);
         onSaved();
@@ -75,14 +75,8 @@ export function ProfileForm({ onSaved }: { onSaved?: () => void } = {}) {
 
       <div className="flex flex-col gap-2">
         <label htmlFor="college" className="text-sm font-semibold">College</label>
-        <select id="college" value={collegeId} onChange={(e) => setCollegeId(e.target.value)} className={field}>
-          <option value="">Choose your college</option>
-          {colleges.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <CollegeSearch id="college" value={college} onChange={setCollege} />
+        <span className="text-xs text-muted">Colleges and universities in 224 countries.</span>
       </div>
 
       <div className="flex flex-col gap-2">

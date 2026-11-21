@@ -92,3 +92,9 @@ export const Phone = (p: IconProps) => (
 export const User = (p: IconProps) => (
   <Icon {...p}><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></Icon>
 );
+export const Search = (p: IconProps) => (
+  <Icon {...p}><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></Icon>
+);
+export const Plus = (p: IconProps) => (
+  <Icon {...p}><path d="M12 5v14" /><path d="M5 12h14" /></Icon>
+);

@@ -396,4 +396,28 @@ export const api = {
     if (error) throw new Error(error.message);
     return data as { id: number; name: string }[];
   },
+  // Colleges from all over the world (0027), best match first; country is
+  // a hint (the player's own). Before 0027 the server has no search, so
+  // the old list is filtered here instead.
+  searchColleges: async (query: string, country: string | null): Promise<CollegeHit[]> => {
+    try {
+      return await rpc<CollegeHit[]>("search_colleges", { p_query: query, p_limit: 20, p_country: country });
+    } catch (e) {
+      if (!missingFunction(e)) throw e;
+      const q = query.trim().toLowerCase();
+      const list = await api.colleges();
+      return list
+        .filter((c) => c.name.toLowerCase().includes(q))
+        .slice(0, 20)
+        .map((c) => ({ ...c, city: null, country: null, players: 0 }));
+    }
+  },
+  // A college that isn't on the list yet; returns its id (or the id of the
+  // same college if someone added it already).
+  addCollege: (name: string, city: string | null, country: string) =>
+    rpc<number>("add_college", { p_name: name, p_city: city, p_country: country }).catch((e) =>
+      Promise.reject(missingFunction(e) ? new Error("Adding a college opens soon. Pick “Other college” for now.") : e),
+    ),
 };
+
+export type CollegeHit = { id: number; name: string; city: string | null; country: string | null; players: number };
