@@ -34,6 +34,16 @@ public final class FakeBackend: APIClient, AccountClient {
         email = "\(name.lowercased().replacingOccurrences(of: " ", with: "."))@college.edu"
     }
 
+    // A rating already earned in Coding or English, for screenshots
+    // (-FakeCodingRating, -FakeEnglishRating).
+    public func setRating(_ subject: Subject, _ value: Int, games: Int) {
+        switch subject {
+        case .coding: codingRating = value; codingGames = games
+        case .english: englishRating = value; englishGames = games
+        case .aptitude: rating = value
+        }
+    }
+
     // MARK: State
 
     struct Answer {
@@ -405,7 +415,7 @@ public final class FakeBackend: APIClient, AccountClient {
             [
                 "rank": i + 1, "name": n, "rating": n == name ? mine : 1640 - i * 70,
                 "college": scope == .india ? Self.colleges[i % Self.colleges.count].1 : opt(collegeName),
-                "grad_year": 2026 + i % 2, "week_delta": [42, 18, -6, 0, 16, -12, 30, 8][i], "is_me": n == name,
+                "grad_year": n == name ? (gradYear ?? 2026) : 2026 + i % 2, "week_delta": [42, 18, -6, 0, 16, -12, 30, 8][i], "is_me": n == name,
             ]
         }
         return try decode([

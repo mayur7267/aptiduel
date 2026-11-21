@@ -51,7 +51,11 @@
    ```
 
 Edit the `SHOTS` list in `compose.mjs` to change a headline, a sticker or which
-screen goes where.
+screen goes where. `--only 01-three-subjects,02-coding-duels` makes just those
+shots. The 1.2 subject shots come from `testSubjects` and `testSubjectRatings`
+(the fake player gets Coding and English ratings from `-FakeCodingRating` and
+`-FakeEnglishRating`). The Home screen is cut off above the Company prep
+tile, because that tile shows a company's logo.
 
 ## Rules the screenshots follow
 
@@ -84,6 +88,15 @@ made from a screen recording, not from stills:
    node preview/compose-preview.mjs /tmp/screen-frames /tmp/out-frames '{"quick":2.2,"q1":2.7,"result":19.2}' 886x1920
    ./encode /tmp/out-frames 30 886 1920 preview.mp4
    ```
+
+The 1.2 preview records `testPreviewSubjects` instead (Home flicks through
+the three subjects, then a winning coding duel). XCUITest's taps are slow,
+so the 67 s run is cut to 28.5 s: run `frames` once per moment (the subject
+tabs, the search, each question appearing and being answered, the result),
+number the frames on in one folder, then compose with
+`'{"quick":5.3,"q1":7.87,"result":24.03}' 886x1920 1.2` (the cut's own
+times). Its "NEW" sticker sits over the Company prep tile's logos while Home
+is on screen.
 
 The preview is H.264, 30 fps, silent stereo AAC (Connect expects an audio
 track), under 30 seconds. The same script makes the iPad version: pass 1200x1600 (the default).

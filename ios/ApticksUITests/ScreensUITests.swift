@@ -232,7 +232,7 @@ final class ScreensUITests: XCTestCase {
         tap("Ranks")
         sleep(1)
         snap("40-ranks-college")
-        app.buttons["All India"].firstMatch.tap()
+        app.buttons["Everyone"].firstMatch.tap()
         sleep(1)
         snap("41-ranks-india")
         app.buttons["Coding leaderboard"].firstMatch.tap()

@@ -7,50 +7,71 @@ company's brand, so the metadata can't trip the trademark rules (2.3.7, 5.2).
 
 | Field | Text | Limit |
 |---|---|---|
-| Name | `Apticks: Aptitude Test Duels` (28) | 30 |
-| Subtitle | `Placement prep & reasoning` (26) | 30 |
-| Keywords | `quantitative,logical,verbal,campus,interview,mock,practice,quiz,fresher,exam,maths,puzzles,jobs,rank` (100) | 100 |
-| Promotional text | `Duel friends live, climb your college leaderboard and count down to your placement test. Free daily challenge to keep you sharp.` (128) | 170 |
+| Name | `Apticks: Brain & Quiz Duels` (27) | 30 |
+| Subtitle | `Aptitude, Coding & English` (26) | 30 |
+| Keywords | `placement,test,reasoning,maths,logic,puzzle,grammar,vocabulary,programming,trivia,game,iq,mock,quant` (100) | 100 |
+| Promotional text | `Duel friends live in aptitude, coding or English, for fun or for placement prep. Climb your college leaderboard. Free to play.` (126) | 170 |
 
-Why these words: people search "aptitude test", "placement preparation",
-"reasoning", "quant", "mock". The name carries *aptitude test* and *duels*,
-the subtitle *placement prep* and *reasoning*, and the keyword field adds the
-rest without repeating any of them (Apple combines the three fields, so
-"aptitude practice", "placement quiz" and "logical reasoning" are all covered).
+Why these words: the name is general on purpose, so anyone who likes brain
+games or quizzes finds it, not only students. The subtitle names the three
+subjects. Students still find it through the keyword field ("placement",
+"test", "reasoning", "quant", "mock"), which repeats nothing from the name or
+subtitle (Apple combines the three fields, so "aptitude test", "coding quiz",
+"English grammar", "brain game" and "placement test" are all covered).
+Language names (Java, Python) stay out of the keywords: they are other
+companies' trademarks. The home-screen name stays `Apticks`. Apple only takes
+a new name and subtitle with a new version, so change them when submitting
+the next build.
 Plurals and singulars are matched automatically.
 
 ## Description
 
 ```
-Prepare for campus placements by playing. Apticks turns aptitude practice into quick 1v1 duels: five questions, about three minutes, and the fastest right answers win.
+Train your brain with quick 1v1 duels. Apticks turns aptitude, coding and English into a game: five questions, a few minutes, and the fastest right answers win. Play just for fun, or to get sharp for placement tests and interviews.
+
+THREE SUBJECTS, EACH WITH ITS OWN RATING
+• Aptitude: quantitative aptitude, logical reasoning and verbal ability, with picture puzzles and figure series
+• Coding: read a short program and say what it prints, in C, C++, Java, Python or pseudocode. Loops, arrays, recursion, bitwise and more
+• English: synonyms, idioms, spotting errors, fill in the blanks, active and passive voice, and more
+• A rating in every subject, and an overall rating on your player card
 
 DUEL FRIENDS OR RACE A RIVAL
-• Quick Match pairs you with a player, or a practice bot, near your rating
+• Quick Match pairs you with a player, or a practice bot, near your rating in the subject you pick
 • Send a challenge link to a friend. They need no sign-up to play
-• Duel live and race the same five questions at the same moment
-
-PRACTISE ALL THREE SECTIONS
-• Quantitative aptitude, logical reasoning and verbal ability
-• Picture puzzles and figure series, like real placement tests
-• Company prep: duels on just the topics a company's test is known for
-• Step-by-step explanations after every duel, so each mistake teaches you something
+• Duel a friend live: the same five questions at the same moment
 
 GET RANKED AND STAY CONSISTENT
-• A live rating that rises when you beat stronger players
-• College and all-India leaderboards
+• Your rating rises when you beat stronger players
+• Leaderboards for your college and for everyone, in every subject
 • A Daily Challenge, the same five questions for everyone, with a calendar and streak
-• Daily goals to keep your practice going
+• Daily goals, and an optional 8 pm reminder on days you haven't played
+• Share your score with friends or post it to your story
+
+LEARN AS YOU PLAY
+• Step-by-step explanations after every duel, so each mistake teaches you something
+• Company prep: aptitude duels on just the topics a company's test is known for
 • A countdown to your placement test date
 
-BUILT FOR STUDENTS
+FREE, AND YOURS
 • Free to play. No ads, no purchases
 • Start as a guest and save your account with just your email whenever you like
-• Your data stays yours. Delete your account any time inside the app
+• Delete your account any time inside the app
 
-Questions are original, written in the style of placement aptitude tests. Apticks is an independent app and is not affiliated with or endorsed by any company named in it.
+Questions are original, written in the style of placement and interview tests. Apticks is an independent app and is not affiliated with or endorsed by any company named in it.
 
 Questions or ideas? Write to mayurl.7267@gmail.com
 Privacy policy: https://www.playapticks.in/privacy
+```
+
+## What's New (1.2.1)
+
+The same app as 1.2; this version carries the new name, subtitle,
+description, screenshots and preview (Apple only takes those with a new
+version).
+
+```
+• Aptitude, Coding and English duels, each with its own rating and leaderboard
+• Small fixes and improvements
 ```
 
 ## What's New (1.2)
@@ -148,13 +169,19 @@ Other sets, all from the same shots:
 - **App preview, iPad** (1200 x 1600 mp4): the same edit for the iPad 13"
   slot; like the iPad screenshots it needs native iPad support to upload.
 
-1. Aptitude prep that's a game: the home screen
-2. Live 1v1 aptitude duels: a question mid-duel
-3. All 3 sections, real puzzles: a picture puzzle
-4. Win, rank up, repeat: the result screen
-5. Daily challenge, keep the streak: the calendar
-6. Beat your college, top India: the leaderboard
-7. Daily goals, build the habit: a collage of the Today cards
+From 1.2 (four new shots for the three subjects; the other six are kept
+from 1.0):
+
+1. 3 subjects, one game: Home on the Coding tab (new)
+2. Coding duels, what does it print?: a coding question answered (new)
+3. English duels, sound sharp: an English question answered (new)
+4. Live 1v1 aptitude duels: a question mid-duel
+5. All 3 sections, real puzzles: a picture puzzle
+6. Win, rank up, repeat: the result screen
+7. Beat your college, then everyone: the Coding leaderboard (recaptured with the Everyone tab)
 8. Challenge a friend in one tap: a friend's challenge link
 9. Learn from every answer: the answer review
-10. Your player card, show it off: the profile
+10. A rating for every subject: the profile with all three ratings (new)
+
+Dropped in 1.2: the Daily calendar, the goals collage and the old first
+shot and player card.

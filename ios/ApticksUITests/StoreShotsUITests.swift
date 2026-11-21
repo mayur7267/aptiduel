@@ -14,11 +14,11 @@ final class StoreShotsUITests: XCTestCase {
 
     // Tiko is the app's mascot, but his speech bubble can sit on top of a
     // screen's content, so he is off unless a screen is about him.
-    private func start(tiko: Bool = false) {
+    private func start(tiko: Bool = false, extra: [String] = []) {
         app.launchArguments = [
             "-FakeBackend", "-FakeName", "Asha Verma", "-FakeRating", "1342", "-FakeCollege", "1", "-FakeGradYear", "2027",
             "-apticks-onboarding-done", "YES", "-apticks-tour-done", "YES", "-apticks-tiko-off", tiko ? "NO" : "YES",
-        ]
+        ] + extra
         app.launch()
         sleep(4) // the launch splash
     }
@@ -56,6 +56,55 @@ final class StoreShotsUITests: XCTestCase {
         shot("01-home")
         tap("Today's goals")
         shot("02-goals")
+    }
+
+    // The three subjects (from 1.2): Home on the Coding tab, a coding duel,
+    // an English duel, and a rating in every subject on the profile and
+    // the leaderboard. The player has played some Coding and English too.
+    // Between #4 and #6 on the fake boards (1,430 and 1,290), so the order holds.
+    private let subjectRatings = ["-FakeCodingRating", "1365", "-FakeEnglishRating", "1318"]
+
+    @MainActor
+    func testSubjects() {
+        start(extra: subjectRatings + ["-apticks-subject", "coding", "-apticks-code-lang", "python"])
+        XCTAssertTrue(app.buttons["Coding Quick Match"].waitForExistence(timeout: 10))
+        sleep(1) // the colour pours into the tab
+        shot("20-home-coding")
+        tap("Coding Quick Match")
+        XCTAssertTrue(app.staticTexts["What does this code print?"].waitForExistence(timeout: 15))
+        sleep(1)
+        shot("21-coding-question")
+        app.buttons.containing(NSPredicate(format: "label ENDSWITH ': 10'")).firstMatch.tap()
+        usleep(300_000)
+        shot("21b-coding-right")
+
+        app.terminate()
+        start(extra: subjectRatings + ["-apticks-subject", "english"])
+        tap("English Quick Match")
+        XCTAssertTrue(app.staticTexts["Choose the word closest in meaning to CANDID."].waitForExistence(timeout: 15))
+        sleep(1)
+        shot("22-english-question")
+        app.buttons.containing(NSPredicate(format: "label CONTAINS 'Frank'")).firstMatch.tap()
+        usleep(300_000)
+        shot("22b-english-right")
+
+    }
+
+    @MainActor
+    func testSubjectRatings() {
+        start(extra: subjectRatings + ["-apticks-subject", "aptitude"])
+        tap("Profile")
+        sleep(3)
+        shot("23-profile-subjects")
+        let from = app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.7))
+        from.press(forDuration: 0.1, thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)))
+        sleep(2)
+        shot("23b-profile-tiles")
+        tap("Ranks")
+        sleep(1)
+        app.buttons["Coding leaderboard"].firstMatch.tap()
+        sleep(2)
+        shot("24-ranks-coding")
     }
 
     @MainActor
@@ -101,6 +150,36 @@ final class StoreShotsUITests: XCTestCase {
             app.buttons[answer].firstMatch.tap()
             mark("a\(i + 1)")
             usleep(900_000) // the answer lights up
+        }
+        XCTAssertTrue(app.buttons["Review answers"].waitForExistence(timeout: 15))
+        mark("result")
+        sleep(5)
+        mark("end")
+    }
+
+    // The 1.2 preview: Home flicks through the three subjects, then one
+    // winning coding duel at a human pace. Marks as in testPreview.
+    @MainActor
+    func testPreviewSubjects() {
+        start(tiko: true, extra: subjectRatings + ["-apticks-subject", "aptitude", "-apticks-code-lang", "python"])
+        XCTAssertTrue(app.buttons["English"].waitForExistence(timeout: 10))
+        mark("home")
+        usleep(1_600_000)
+        app.buttons["English"].firstMatch.tap()
+        usleep(1_500_000)
+        app.buttons["Coding"].firstMatch.tap()
+        usleep(1_800_000)
+        app.buttons["Coding Quick Match"].firstMatch.tap()
+        mark("quick-tapped")
+        // Right answers all the way (the fake coding set, in order).
+        let answers = ["10", "3 2", "24", "8", "6"]
+        for (i, answer) in answers.enumerated() {
+            XCTAssertTrue(app.staticTexts["Question \(i + 1) of 5"].waitForExistence(timeout: 15))
+            mark("q\(i + 1)")
+            usleep(i == 0 ? 2_000_000 : 1_400_000) // time to read the code
+            app.buttons.containing(NSPredicate(format: "label ENDSWITH %@", ": \(answer)")).firstMatch.tap()
+            mark("a\(i + 1)")
+            usleep(800_000) // the answer lights up
         }
         XCTAssertTrue(app.buttons["Review answers"].waitForExistence(timeout: 15))
         mark("result")

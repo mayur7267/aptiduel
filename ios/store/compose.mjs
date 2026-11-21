@@ -208,10 +208,11 @@ const SHOTS = [
     extras: () => [chip({ text: "3 DAYS IN A ROW", tone: "orange", ic: "flame", at: "tr", size: 48 })],
   },
   {
-    ...BASE, id: "06-college-leaderboard", raw: "13-ranks", theme: "lime", crop: 1, fade: false,
-    l1: "BEAT YOUR COLLEGE.", l2: "TOP INDIA.", sub: "Leaderboards for your campus and all of India.",
+    ...BASE, // From 1.2.1 the board is per subject and the wider tab says "Everyone".
+    id: "07-college-leaderboard", raw: "24-ranks-coding", theme: "lime", crop: 1, fade: false,
+    l1: "BEAT YOUR COLLEGE.", l2: "THEN EVERYONE.", sub: "A leaderboard for every subject.",
     ry: 8, rz: 3,
-    extras: () => [chip({ text: "ALL INDIA RANKS", tone: "ink", ic: "trophy", at: "tr", size: 48 })],
+    extras: () => [chip({ text: "RANKS IN EVERY SUBJECT", tone: "ink", ic: "trophy", at: "tr", size: 42 })],
   },
   {
     ...BASE, id: "07-daily-goals", phone: false, theme: "ink",
@@ -254,6 +255,56 @@ const SHOTS = [
   },
 ];
 
+// New in 1.2: the three subjects. These four replace the old first shot,
+// the Daily calendar, the goals collage and the old player card; the other
+// six are kept as they were (see README.md).
+SHOTS.push(
+  {
+    // Cut just under Quick Match: the tile below names a company.
+    ...BASE, id: "01-three-subjects", raw: "20-home-coding", theme: "lime", crop: 0.668, fade: true, fadeAt: 90,
+    l1: "3 SUBJECTS.", l2: "ONE GAME.", sub: "Aptitude, coding and English duels.",
+    ry: -8, rz: -3,
+    ipad: { pw: 780, crop: 0.668, fade: true, fadeAt: 90 },
+    wide: { pw: 860, crop: 0.668, fade: true, fadeAt: 90 },
+    extras: ({ ipad, wide }) => {
+      const subjects = (x, y, size, gap) => [
+        chip({ text: "APTITUDE", tone: "lime", x, y, rot: -5, size }),
+        chip({ text: "CODING", tone: "violet", x: x + gap, y: y - size * 0.9, rot: 4, size }),
+        chip({ text: "ENGLISH", tone: "orange", x: x + gap * 0.45, y: y + size * 3.4, rot: -3, size }),
+      ];
+      if (wide) return [...subjects(150, 1080, 50, 470), `<div class="mascot" style="left:1080px;top:1130px;transform:rotate(8deg)">${tiko("cheer", 230)}</div>`];
+      if (ipad) return [chip({ text: "NEW: CODING & ENGLISH", tone: "ink", ic: "bolt", at: "tr", size: 38 }), `<div class="mascot" style="left:1010px;top:1420px;transform:rotate(8deg)">${tiko("cheer", 230)}</div>`];
+      const bottom = PY + 1390; // the phone's cut edge
+      return [
+        chip({ text: "NEW: CODING & ENGLISH", tone: "ink", ic: "bolt", at: "tr", size: 42 }),
+        ...subjects(70, bottom + 110, 54, 440),
+        `<div class="mascot" style="left:${W - 400}px;top:${Math.min(bottom + 70, H - 380)}px;transform:rotate(8deg)">${tiko("cheer", 320)}</div>`,
+      ];
+    },
+  },
+  {
+    ...BASE, id: "02-coding-duels", raw: "21b-coding-right", theme: "ink", crop: 1, fade: false,
+    l1: "CODING DUELS.", l2: "WHAT DOES IT PRINT?", sub: "Read short programs and race to the output.",
+    ry: 8, rz: 3, ipad: { pw: 690, crop: 0.8, fadeAt: 93 },
+    extras: () => [chip({ text: "5 LANGUAGES", tone: "lime", ic: "check", at: "tr", size: 50 })],
+  },
+  {
+    ...BASE, id: "03-english-duels", raw: "22b-english-right", theme: "violet", crop: 1, fade: false,
+    l1: "ENGLISH DUELS.", l2: "SOUND SHARP.", sub: "Grammar, words and usage, five at a time.",
+    ry: -8, rz: -3, ipad: { pw: 660, crop: 0.84, fadeAt: 95 },
+    extras: () => [chip({ text: "GRAMMAR · WORDS · USAGE", tone: "ink", at: "tr", size: 40 })],
+  },
+  {
+    ...BASE, id: "10-rating-every-subject", raw: "23-profile-subjects", theme: "lime", crop: 1, fade: false,
+    l1: "A RATING FOR", l2: "EVERY SUBJECT.", sub: "And an overall rating on your player card.",
+    ry: 8, rz: 3, ipad: { pw: 820, crop: 0.64, fadeAt: 95 },
+    extras: () => [chip({ text: "OVERALL RATING", tone: "ink", ic: "trophy", at: "tr", size: 46 })],
+  },
+);
+
+// --only 01-three-subjects,02-coding-duels makes just those.
+const ONLY = flags.only ? new Set(flags.only.split(",")) : null;
+
 // The 13" iPad canvas is squarer, so the phone is smaller and cut off lower.
 const IPAD_PHONE = { pw: 900, y: 560, crop: 0.6, fade: true };
 // The wide canvas puts the whole phone at the right and the words at the left.
@@ -269,7 +320,8 @@ function page(s) {
   const bezel = 18;
   const ph = (s.pw - bezel * 2) * (RAW_H / RAW_W) * (s.crop ?? 1); // visible screen height
   const radius = 150;
-  const mask = s.fade ? "mask-image:linear-gradient(to bottom,#000 78%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,#000 78%,transparent 100%);" : "";
+  const f = s.fadeAt ?? 78; // where the fade starts, in % of the visible screen
+  const mask = s.fade ? `mask-image:linear-gradient(to bottom,#000 ${f}%,transparent 100%);-webkit-mask-image:linear-gradient(to bottom,#000 ${f}%,transparent 100%);` : "";
   return `<!doctype html><html><head><meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600&family=Unbounded:wght@800;900&display=swap" rel="stylesheet">
@@ -319,7 +371,7 @@ function page(s) {
 const browser = await chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: SCALE });
 const tab = await ctx.newPage();
-for (const spec of SHOTS) {
+for (const spec of SHOTS.filter((x) => !ONLY || ONLY.has(x.id))) {
   const s = variant(spec);
   const file = join(work, `${s.id}.html`);
   writeFileSync(file, page(s));

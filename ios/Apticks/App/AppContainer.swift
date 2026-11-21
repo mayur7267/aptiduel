@@ -59,6 +59,9 @@ final class AppContainer {
                 fake.start(as: name, rating: args.integer(forKey: "FakeRating").nonZero ?? 1180,
                            collegeId: args.integer(forKey: "FakeCollege").nonZero, gradYear: args.integer(forKey: "FakeGradYear").nonZero)
             }
+            // -FakeCodingRating 1288 -FakeEnglishRating 1215: ratings already earned there.
+            if let r = args.integer(forKey: "FakeCodingRating").nonZero { fake.setRating(.coding, r, games: 9) }
+            if let r = args.integer(forKey: "FakeEnglishRating").nonZero { fake.setRating(.english, r, games: 7) }
             // -FakeFriendDelay 60: the pretend friend takes that long to join a room.
             if args.double(forKey: "FakeFriendDelay") > 0 { fake.friendJoinDelay = args.double(forKey: "FakeFriendDelay") }
             return AppContainer(dependencies: Dependencies(api: fake, account: fake))

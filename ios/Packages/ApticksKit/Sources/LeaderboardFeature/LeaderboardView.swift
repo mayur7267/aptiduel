@@ -103,7 +103,7 @@ private struct BoardView: View {
             VStack(alignment: .leading, spacing: 20) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(board.scope == .college ? board.college ?? "" : "All India").font(.ui(17, .bold)).foregroundStyle(Theme.text)
+                        Text(board.scope == .college ? board.college ?? "" : "Everyone").font(.ui(17, .bold)).foregroundStyle(Theme.text)
                         Text("\(grouped(board.players)) \(board.players == 1 ? "player" : "players") ranked by \(subject.label) rating · +/− is this week's change")
                             .font(.ui(12)).foregroundStyle(Theme.muted)
                     }

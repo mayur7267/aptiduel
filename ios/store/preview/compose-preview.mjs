@@ -2,13 +2,16 @@
 // real screen recording (already cut into frames by frames.swift) inside a
 // phone.
 //
-//   node compose-preview.mjs <screen frames dir> <output frames dir> '<scenes json>' [WxH]
+//   node compose-preview.mjs <screen frames dir> <output frames dir> '<scenes json>' [WxH] [copy]
 //
 //   WxH is 1200x1600 by default (iPad 13" portrait) or 886x1920 (the iPhone
 //   6.1"/6.3" preview size).
 //
 // scenes (seconds from the first frame): quick = Quick Match tapped, q1 = the
 // first question appears, result = the result screen appears.
+//
+// copy picks the words: "1.2" (the default: Home flicks through the three
+// subjects, then a coding duel) or "1.0" (the first preview, an aptitude duel).
 // Then encode.swift turns the output frames into the .mp4.
 
 import { chromium } from "playwright";
@@ -42,11 +45,30 @@ const radius = TALL ? 100 : 92;
 const screenH = Math.round((pw - bezel * 2) * (2868 / 1320));
 const island = TALL ? { w: 176, h: 52, top: 20 } : { w: 160, h: 48, top: 18 };
 
-const heads = [
-  { l1: "APTITUDE PREP", l2: "THAT'S A GAME", sub: "Duel friends. Climb your college." },
-  { l1: "LIVE 1V1", l2: "APTITUDE DUELS", sub: "5 questions. 3 minutes. Fastest wins." },
-  { l1: "WIN. RANK UP.", l2: "REPEAT.", sub: "A live rating shows how ready you are." },
-];
+const COPY = {
+  "1.0": {
+    heads: [
+      { l1: "APTITUDE PREP", l2: "THAT'S A GAME", sub: "Duel friends. Climb your college." },
+      { l1: "LIVE 1V1", l2: "APTITUDE DUELS", sub: "5 questions. 3 minutes. Fastest wins." },
+      { l1: "WIN. RANK UP.", l2: "REPEAT.", sub: "A live rating shows how ready you are." },
+    ],
+    speed: "SPEED BONUS +50", rating: "+16 RATING", cover: false,
+  },
+  "1.2": {
+    heads: [
+      { l1: "3 SUBJECTS.", l2: "ONE GAME.", sub: "Aptitude, coding and English duels." },
+      { l1: "CODING DUELS.", l2: "WHAT DOES IT PRINT?", sub: "5 programs. Fastest right answer wins." },
+      { l1: "WIN. RANK UP.", l2: "REPEAT.", sub: "A rating in every subject." },
+    ],
+    speed: "5 LANGUAGES", rating: "+20 CODING", cover: "NEW: CODING &amp; ENGLISH",
+  },
+};
+const copy = COPY[process.argv[6] ?? "1.2"];
+const heads = copy.heads;
+// On Home, the Company prep tile shows companies' logos (raw pixels
+// [700, 1990, 310, 85]): a sticker sits over them until Quick Match is tapped.
+const k = (pw - bezel * 2) / 1320;
+const cover = { left: Math.round((W - pw) / 2 + bezel + 640 * k), top: Math.round(phoneTop + bezel + 1985 * k - (TALL ? 14 : 16)) };
 
 const html = `<!doctype html><html><head><meta charset="utf-8">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600&family=Unbounded:wght@900&display=swap" rel="stylesheet">
@@ -69,12 +91,14 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
   #speed{background:${ORANGE};color:${INK};right:${TALL ? 30 : 46}px;top:${chipTop}px}
   #rating{background:${LIME};color:${INK};right:${TALL ? 30 : 46}px;top:${chipTop}px}
   .chip svg{width:1em;height:1em;flex:none}
+  #cover{background:${INK};color:#fff;border:4px solid #2a3248;left:${cover.left}px;top:${cover.top}px;font-size:${TALL ? 21 : 26}px;padding:${TALL ? "14px 18px" : "16px 22px"};gap:10px}
 </style></head><body><div class="stage">
   <div class="grid"></div><div class="glow"></div>
   ${heads.map((h, i) => `<div class="head" id="h${i}" style="opacity:${i === 0 ? 1 : 0}"><div class="l1" data-fit>${h.l1}</div><div class="l2" data-fit>${h.l2}</div><div class="sub">${h.sub}</div></div>`).join("")}
   <div class="phone" id="phone"><div class="body"><div class="screen"><img id="shot"><div class="island"></div></div></div></div>
-  <div class="chip" id="speed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>SPEED BONUS +50</div>
-  <div class="chip" id="rating"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>+16 RATING</div>
+  <div class="chip" id="speed"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>${copy.speed}</div>
+  <div class="chip" id="rating"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>${copy.rating}</div>
+  ${copy.cover ? `<div class="chip" id="cover"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>${copy.cover}</div>` : ""}
 </div>
 <script>
   const S = ${JSON.stringify({ quick: 4, q1: 5, result: 20, ...scenes })};
@@ -101,6 +125,12 @@ const html = `<!doctype html><html><head><meta charset="utf-8">
     $('speed').style.opacity = clamp(sp) * spOut; $('speed').style.transform = 'rotate(6deg) scale(' + (0.6 + 0.4 * clamp(sp, 0, 1.15)) + ')';
     const rp = backOut((t - (S.result + 0.6)) / 0.45);
     $('rating').style.opacity = clamp(rp); $('rating').style.transform = 'rotate(6deg) scale(' + (0.6 + 0.4 * clamp(rp, 0, 1.15)) + ')';
+    // the cover sticker: on from the first frame, gone when Quick Match is tapped
+    if ($('cover')) {
+      const cv = 1 - smooth((t - (S.quick - 0.1)) / 0.2);
+      $('cover').style.opacity = cv;
+      $('cover').style.transform = 'translateY(' + (Math.sin(t * 1.3) * 5) + 'px) rotate(-4deg)';
+    }
     // a slow float, so the phone is never dead still
     $('phone').style.transform = 'translateY(' + (Math.sin(t * 1.3) * 5) + 'px) rotate(' + (Math.sin(t * 0.9) * 0.5) + 'deg)';
   };

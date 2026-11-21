@@ -3,7 +3,7 @@ import Foundation
 public enum BoardScope: String, Decodable, Sendable, Hashable, CaseIterable {
     case college, india
 
-    public var title: String { self == .college ? "My college" : "All India" }
+    public var title: String { self == .college ? "My college" : "Everyone" }
 }
 
 public struct BoardRow: Decodable, Sendable, Hashable {
