@@ -40,7 +40,10 @@ struct NameScene: View {
         }
         .onChange(of: model.nameIsValid) { _, valid in if valid { cheers += 1 } }
         .sheet(isPresented: $picking) {
-            CollegePicker(colleges: model.colleges, selected: $model.collegeId)
+            CollegePicker(colleges: model.colleges, selected: $model.collegeId,
+                          search: { try await model.searchColleges($0) },
+                          add: { try await model.addCollege(name: $0, city: $1, country: $2) },
+                          picked: { model.remember($0) })
                 .presentationDetents([.large])
                 .preferredColorScheme(.dark)
         }

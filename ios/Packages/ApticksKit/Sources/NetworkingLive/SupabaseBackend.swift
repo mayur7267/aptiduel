@@ -91,9 +91,27 @@ public final class SupabaseBackend: APIClient, AccountClient {
     public func colleges() async throws -> [College] {
         try await ensureSession()
         do {
-            return try decode("colleges", try await client.from("colleges").select("id, name").order("name").execute().data)
+            return try decode("colleges", try await client.from("colleges").select("id, name, city").order("name").execute().data)
         } catch {
             throw friendly(error)
+        }
+    }
+    // Before 0027 the server has no search: filter the old list instead.
+    public func searchColleges(_ query: String, country: String?) async throws -> [College] {
+        do {
+            return try await rpc("search_colleges", ["p_query": .string(query), "p_limit": .integer(20),
+                                                     "p_country": country.map { .string($0) } ?? .null])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            let q = query.trimmingCharacters(in: .whitespaces)
+            return Array(try await colleges().filter { $0.name.localizedCaseInsensitiveContains(q) }.prefix(20))
+        }
+    }
+    public func addCollege(name: String, city: String?, country: String) async throws -> Int {
+        do {
+            return try await rpc("add_college", ["p_name": .string(name), "p_city": city.map { .string($0) } ?? .null,
+                                                 "p_country": .string(country)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            throw AppError("Adding a college opens soon. Pick “Other college” for now.")
         }
     }
     public func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me {

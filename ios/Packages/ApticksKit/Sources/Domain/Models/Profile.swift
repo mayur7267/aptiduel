@@ -31,6 +31,33 @@ public struct Quests: Decodable, Sendable, Hashable {
 public struct College: Decodable, Sendable, Hashable, Identifiable {
     public let id: Int
     public let name: String
+    // From search (0027_world_colleges.sql): where it is, and how many
+    // players it has. The plain list leaves them out.
+    public let city: String?
+    public let country: String?
+    public let players: Int?
+
+    public init(id: Int, name: String, city: String? = nil, country: String? = nil, players: Int? = nil) {
+        self.id = id
+        self.name = name
+        self.city = city
+        self.country = country
+        self.players = players
+    }
+
+    // "Mumbai, India".
+    public var place: String {
+        [city, country.flatMap { Locale.current.localizedString(forRegionCode: $0) }]
+            .compactMap { $0 }.filter { !$0.isEmpty }.joined(separator: ", ")
+    }
+
+    // "IN" -> 🇮🇳, or a cap when the country isn't known.
+    public var flag: String { College.flag(country) ?? "🎓" }
+
+    public static func flag(_ code: String?) -> String? {
+        guard let code, code.count == 2, code.allSatisfy({ $0.isASCII && $0.isUppercase }) else { return nil }
+        return String(String.UnicodeScalarView(code.unicodeScalars.compactMap { UnicodeScalar(0x1F1E6 + $0.value - 65) }))
+    }
 }
 
 // Whether this device's account is a guest or saved under an email.

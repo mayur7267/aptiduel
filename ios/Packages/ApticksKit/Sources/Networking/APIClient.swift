@@ -11,7 +11,14 @@ public protocol APIClient: AnyObject, Sendable {
     func myDuels(limit: Int) async throws -> [DuelSummary]
     // A board per subject (0025_subject_ranks.sql).
     func leaderboard(_ scope: BoardScope, limit: Int, subject: Subject) async throws -> Board
+    // The colleges people play for (older servers: every college).
     func colleges() async throws -> [College]
+    // About 34,000 colleges in 224 countries, best match first
+    // (0027_world_colleges.sql); country is a hint, the player's own.
+    func searchColleges(_ query: String, country: String?) async throws -> [College]
+    // A college that isn't on the list; returns its id (or the id of the
+    // same college if someone added it already).
+    func addCollege(name: String, city: String?, country: String) async throws -> Int
     func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me
 
     // A Quick Match in a subject (0022_subjects.sql). Aptitude uses the

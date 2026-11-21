@@ -429,6 +429,38 @@ public final class FakeBackend: APIClient, AccountClient {
         return try decode(Self.colleges.map { ["id": $0.0, "name": $0.1] })
     }
 
+    // A few colleges abroad too, as the real list has (0027).
+    static let worldColleges: [College] = [
+        College(id: 1, name: "VIT Vellore", city: "Vellore", country: "IN", players: 48),
+        College(id: 2, name: "IIT Bombay", city: "Mumbai", country: "IN", players: 12),
+        College(id: 3, name: "NIT Trichy", city: "Tiruchirappalli", country: "IN", players: 9),
+        College(id: 4, name: "BITS Pilani", city: "Pilani", country: "IN", players: 7),
+        College(id: 5, name: "Anna University", city: "Chennai", country: "IN", players: 3),
+        College(id: 101, name: "Massachusetts Institute of Technology", city: "Cambridge", country: "US", players: 0),
+        College(id: 102, name: "University of Oxford", city: "Oxford", country: "GB", players: 0),
+        College(id: 103, name: "University of Lagos", city: "Lagos", country: "NG", players: 0),
+        College(id: 104, name: "Technical University of Munich", city: "Munich", country: "DE", players: 0),
+    ]
+    private var addedColleges: [College] = []
+
+    public func searchColleges(_ query: String, country: String?) async throws -> [College] {
+        try await pause()
+        let words = query.lowercased().split(separator: " ").map(String.init)
+        guard query.trimmingCharacters(in: .whitespaces).count >= 2 else { return [] }
+        return (Self.worldColleges + addedColleges).filter { c in
+            let text = "\(c.name) \(c.city ?? "")".lowercased()
+            return words.allSatisfy { text.contains($0) }
+        }
+    }
+
+    public func addCollege(name: String, city: String?, country: String) async throws -> Int {
+        try await pause()
+        guard (3...120).contains(name.count) else { throw AppError("College names are 3 to 120 characters.") }
+        let c = College(id: 900 + addedColleges.count, name: name, city: city, country: country, players: 0)
+        addedColleges.append(c)
+        return c.id
+    }
+
     public func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me {
         try await pause()
         guard (2...24).contains(name.count) else { throw AppError("Names are 2 to 24 characters.") }

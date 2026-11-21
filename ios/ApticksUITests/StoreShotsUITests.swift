@@ -107,6 +107,35 @@ final class StoreShotsUITests: XCTestCase {
         shot("24-ranks-coding")
     }
 
+    // The college picker (0027): search the world list, then add a
+    // missing college.
+    @MainActor
+    func testCollegeSearch() {
+        start(extra: ["-apticks-subject", "aptitude"])
+        tap("Profile")
+        sleep(2)
+        tap("Edit profile")
+        let field = app.buttons.containing(NSPredicate(format: "label CONTAINS 'VIT Vellore'")).firstMatch
+        XCTAssertTrue(field.waitForExistence(timeout: 5))
+        field.tap()
+        let search = app.searchFields.firstMatch
+        XCTAssertTrue(search.waitForExistence(timeout: 5))
+        shot("30-college-list")
+        search.tap()
+        search.typeText("university")
+        XCTAssertTrue(app.staticTexts["University of Oxford"].waitForExistence(timeout: 5))
+        shot("31-college-search")
+        search.typeText(" of nowhere")
+        XCTAssertTrue(app.buttons["Can't find it? Add your college"].waitForExistence(timeout: 5))
+        shot("32-college-none")
+        app.buttons["Can't find it? Add your college"].tap()
+        XCTAssertTrue(app.navigationBars["Add your college"].waitForExistence(timeout: 5))
+        shot("33-college-add")
+        app.navigationBars["Add your college"].buttons["Add"].tap()
+        XCTAssertTrue(app.staticTexts["University Of Nowhere"].waitForExistence(timeout: 8) || app.buttons.containing(NSPredicate(format: "label CONTAINS[c] 'of nowhere'")).firstMatch.waitForExistence(timeout: 8))
+        shot("34-college-added")
+    }
+
     @MainActor
     func testDuel() {
         start(tiko: true)

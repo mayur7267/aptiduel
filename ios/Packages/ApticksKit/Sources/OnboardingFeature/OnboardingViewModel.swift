@@ -38,6 +38,20 @@ public final class OnboardingViewModel {
     public var collegeName: String? { colleges.first { $0.id == collegeId }?.name }
     public var isLast: Bool { page == .ready }
 
+    // Search for the college picker: the world list (0027), with the
+    // phone's country as a hint.
+    public func searchColleges(_ query: String) async throws -> [College] {
+        try await api.searchColleges(query, country: Locale.current.region?.identifier)
+    }
+    public func addCollege(name: String, city: String?, country: String) async throws -> College {
+        let id = try await api.addCollege(name: name, city: city, country: country)
+        return College(id: id, name: name, city: city, country: country, players: 0)
+    }
+    // A college found by search joins the list, so its name shows.
+    public func remember(_ college: College) {
+        if !colleges.contains(where: { $0.id == college.id }) { colleges.append(college) }
+    }
+
     // Loads colleges, and the name if this account already has one.
     public func prepare() async {
         async let me = try? api.me()

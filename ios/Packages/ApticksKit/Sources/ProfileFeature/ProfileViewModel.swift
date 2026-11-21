@@ -36,6 +36,20 @@ public final class ProfileViewModel {
     }
 
     public var collegeName: String? { colleges.first { $0.id == collegeId }?.name }
+
+    // Search for the college picker: the world list (0027), with the
+    // phone's country as a hint.
+    public func searchColleges(_ query: String) async throws -> [College] {
+        try await api.searchColleges(query, country: Locale.current.region?.identifier)
+    }
+    public func addCollege(name: String, city: String?, country: String) async throws -> College {
+        let id = try await api.addCollege(name: name, city: city, country: country)
+        return College(id: id, name: name, city: city, country: country, players: 0)
+    }
+    // A college found by search joins the list, so its name shows.
+    public func remember(_ college: College) {
+        if !colleges.contains(where: { $0.id == college.id }) { colleges.append(college) }
+    }
     // The chosen subject's rating (Aptitude's is the one on your profile).
     public var rating: Int {
         subject == .aptitude ? (me?.rating ?? 1000) : (subjects?[subject]?.rating ?? 1000)
