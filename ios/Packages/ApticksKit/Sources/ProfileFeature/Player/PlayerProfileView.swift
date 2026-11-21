@@ -104,15 +104,22 @@ public struct PlayerProfileView: View {
                 if p.recent.isEmpty {
                     Text("No finished duels yet.").font(.ui(14)).foregroundStyle(Theme.muted)
                 } else {
+                    // Ten results don't fit at 32 pt on a 6.3" phone: the chips
+                    // share the row's width, up to 32 pt each, so the card (and
+                    // the whole screen) never grows wider than the phone.
                     HStack(spacing: 6) {
                         ForEach(Array(p.recent.reversed().enumerated()), id: \.offset) { _, r in
                             Text(r)
                                 .font(.mono(14))
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
                                 .foregroundStyle(r == "W" ? Theme.ink : r == "L" ? Theme.redSoft : Theme.soft)
-                                .frame(width: 32, height: 32)
+                                .frame(minWidth: 0, maxWidth: 32)
+                                .frame(height: 32)
                                 .background(RoundedRectangle(cornerRadius: 8).fill(r == "W" ? Theme.lime : r == "L" ? Theme.redTint : Theme.raised))
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel("Last duels: \(p.recent.reversed().joined(separator: ", "))")
                 }
