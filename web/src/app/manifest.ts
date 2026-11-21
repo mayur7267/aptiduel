@@ -5,9 +5,9 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "Apticks: aptitude duels for placements",
+    name: "Apticks: brain & quiz duels",
     short_name: "Apticks",
-    description: "Beat your friends at placement aptitude. 5 quick questions, live rating, college leaderboards.",
+    description: "1v1 aptitude, coding and English duels. 5 quick questions, a live rating and college leaderboards. Play for fun or for placement prep.",
     start_url: "/",
     scope: "/",
     display: "standalone",

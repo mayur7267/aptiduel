@@ -20,9 +20,9 @@ const caveat = Caveat({ variable: "--font-caveat", subsets: ["latin"], weight: [
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "Apticks: aptitude duels for placements", template: "%s · Apticks" },
+  title: { default: "Apticks: brain & quiz duels", template: "%s · Apticks" },
   description:
-    "Beat your friends at placement aptitude. 5 quick questions, live rating, college leaderboards.",
+    "1v1 aptitude, coding and English duels. 5 quick questions, a live rating and college leaderboards. Play for fun or for placement prep.",
   // Safari on iPhone shows Apple's banner offering the app.
   itunes: { appId: APP_STORE_ID },
 };

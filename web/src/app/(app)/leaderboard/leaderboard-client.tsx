@@ -97,7 +97,7 @@ export function LeaderboardClient() {
               scope === s ? "bg-text text-ink" : "text-muted hover:text-text"
             }`}
           >
-            {s === "college" ? "My college" : "All India"}
+            {s === "college" ? "My college" : "Everyone"}
           </button>
         ))}
       </div>
@@ -131,7 +131,7 @@ function BoardView({ board, subject }: { board: Board; subject: Subject }) {
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[17px] font-bold">{board.scope === "college" ? board.college : "All India"}</span>
+          <span className="text-[17px] font-bold">{board.scope === "college" ? board.college : "Everyone"}</span>
           <span className="text-xs text-muted">
             {board.players.toLocaleString("en-IN")} {board.players === 1 ? "player" : "players"} ranked by {name} rating
             · +/− is this week&apos;s change

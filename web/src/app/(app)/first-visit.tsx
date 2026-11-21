@@ -115,7 +115,7 @@ export function FirstVisit({
               tone="lime"
               icon={<Bars size={17} strokeWidth={2.4} />}
               title="Leaderboard"
-              note="College & India"
+              note="College & everyone"
               href="/leaderboard"
               delay={180}
             />
@@ -460,7 +460,7 @@ function LeaderboardCard() {
           <span className="font-mono text-[11px] font-bold tracking-wider">RANKS</span>
         </span>
         <span className="font-display text-[19px] leading-tight font-bold">Climb the leaderboard</span>
-        <span className="text-sm text-muted">Your college&apos;s board and all of India. Every duel moves your rating.</span>
+        <span className="text-sm text-muted">Your college&apos;s board and everyone&apos;s. Every duel moves your rating.</span>
         <span className="mt-1 flex items-center gap-1 text-sm font-bold text-lime">
           See who&apos;s on top <ChevronRight size={16} className="transition-transform group-hover:translate-x-0.5" />
         </span>
