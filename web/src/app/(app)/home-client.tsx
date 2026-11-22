@@ -20,6 +20,8 @@ import { TikoTour } from "@/components/tiko-tour";
 import { hasSavedSession } from "@/lib/supabase";
 import { FirstVisit } from "./first-visit";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
+import { StreakCelebration } from "@/components/streak-celebration";
+import { decideCelebration, type Celebration } from "@/lib/streak";
 
 type Action = "quick" | "challenge" | "daily";
 
@@ -48,6 +50,9 @@ export function HomeClient() {
   const [busy, setBusy] = useState<Action | null>(null);
   const [signIn, setSignIn] = useState(false);
   const [calendar, setCalendar] = useState(false);
+  // The Streak Tower moment: a new block (or a fallen tower) since this
+  // device last showed one.
+  const [celebrate, setCelebrate] = useState<Celebration | null>(null);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
   const fresh = useSyncExternalStore(subscribeNever, isFirstVisit, () => false);
   // games_played counts rated duels only; a finished Daily (no opponent)
@@ -65,6 +70,7 @@ export function HomeClient() {
         setDuels(d);
         setBoard(b);
         setError(null);
+        setCelebrate(demoCelebration() ?? decideCelebration(m));
       })
       .catch((e: Error) => active && setError(e.message));
     return () => {
@@ -167,6 +173,14 @@ export function HomeClient() {
 
   return (
     <div className="flex-1 bg-[radial-gradient(900px_320px_at_20%_-80px,rgba(200,241,53,0.07),transparent),radial-gradient(700px_300px_at_95%_-60px,rgba(165,148,255,0.08),transparent)]">
+      {celebrate && (
+        <StreakCelebration
+          c={celebrate}
+          onClose={() => setCelebrate(null)}
+          onTower={() => router.push("/streak")}
+          onPlay={() => router.push("/play")}
+        />
+      )}
       <main className="mx-auto flex w-full max-w-[1180px] flex-col gap-6 px-4 pt-5 pb-12 sm:px-6 lg:px-10 lg:pt-8">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div className="lg:hidden">
@@ -188,7 +202,15 @@ export function HomeClient() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
-            <span className="flex h-10 items-center gap-1.5 rounded-full border border-orange/30 bg-orange-tint px-3.5 text-sm font-bold text-orange">
+            <Link
+              href="/streak"
+              aria-label="Your Streak Tower"
+              className={`flex h-10 items-center gap-1.5 rounded-full border px-3.5 text-sm font-bold text-orange hover:text-orange ${
+                me.streak > 0 && !me.played_today && new Date(minute * 60_000).getHours() >= 18
+                  ? "border-orange bg-orange-tint motion-safe:animate-pulse"
+                  : "border-orange/30 bg-orange-tint"
+              }`}
+            >
               <Flame size={16} strokeWidth={2.2} className={me.streak > 0 ? "motion-safe:animate-wiggle" : ""} />
               {me.streak > 0 ? (
                 <span>
@@ -198,7 +220,7 @@ export function HomeClient() {
               ) : (
                 <span>Start a streak</span>
               )}
-            </span>
+            </Link>
             <span className="hidden h-10 items-center gap-2 rounded-full border border-violet/30 bg-violet-tint px-3.5 text-sm font-bold text-violet lg:flex">
               <Shield size={15} strokeWidth={2.2} />
               <span className="font-mono">{me.rating.toLocaleString("en-IN")}</span> · {tier.name}
@@ -858,4 +880,14 @@ function QuestsCard({
       </ul>
     </Card>
   );
+}
+
+// ?streak=up, milestone, day1 or fell shows that moment, to try it out.
+function demoCelebration(): Celebration | null {
+  const demo = new URLSearchParams(window.location.search).get("streak");
+  if (demo === "up") return { kind: "up", from: 4, to: 5, fresh: false };
+  if (demo === "milestone") return { kind: "up", from: 6, to: 7, fresh: false };
+  if (demo === "day1") return { kind: "up", from: 0, to: 1, fresh: true };
+  if (demo === "fell") return { kind: "fell", from: 5 };
+  return null;
 }

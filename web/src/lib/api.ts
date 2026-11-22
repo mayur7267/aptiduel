@@ -307,6 +307,17 @@ export type DailyShare = {
   grid: boolean[];
 };
 
+// The Streak Tower page (my_streak, 0030_streak_tower.sql): days are the
+// India dates you played in the last 120 days.
+export type StreakInfo = {
+  streak: number;
+  best: number;
+  played_today: boolean;
+  days: string[];
+  college: string | null;
+  college_top: { name: string; streak: number; is_me: boolean }[];
+};
+
 // Starting a match can hand back an unfinished one instead.
 export type MatchStart = { duel_id: string; resumed?: boolean };
 
@@ -396,6 +407,14 @@ export const api = {
       return api.updateProfile(me.name, collegeId, me.grad_year);
     }),
   deleteMe: () => rpc<void>("delete_me"),
+  // Before 0030 the days are the current streak's, worked out from get_me.
+  myStreak: () =>
+    rpc<StreakInfo>("my_streak").catch(async (e) => {
+      if (!missingFunction(e)) throw e;
+      const me = await api.getMe();
+      const { streakDays } = await import("./streak");
+      return { streak: me.streak, best: me.streak_best, played_today: me.played_today, days: streakDays(me.streak, me.played_today), college: me.college, college_top: [] };
+    }),
   // Emailed to the team (supabase/functions/feedback-mail).
   submitFeedback: (kind: "bug" | "idea" | "question", message: string, email: string | null, context: Record<string, unknown>) =>
     rpc<void>("submit_feedback", { p_kind: kind, p_message: message, p_email: email, p_platform: "web", p_context: context }),
