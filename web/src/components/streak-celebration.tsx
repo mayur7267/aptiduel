@@ -307,7 +307,7 @@ export function StreakCelebration({
       <div ref={stage} className="absolute inset-0">
         {/* The number, rolling from yesterday's to today's. */}
         <div ref={numBox} className="absolute left-0 right-0 flex justify-center" style={{ top: numberTop, opacity: 0 }}>
-          <div className="relative overflow-hidden font-display font-bold leading-none tracking-tight text-white" style={{ fontSize: nf, height: nf * 1.02, minWidth: nf * 0.7 * String(peak).length }}>
+          <div className="relative overflow-hidden font-display font-bold leading-none tracking-tight text-white" style={{ fontSize: nf, height: nf * 1.1, width: nf * (1.05 * String(Math.max(peak, c.from)).length + 0.4) }}>
             <span ref={numOld} className="absolute inset-x-0 top-0 text-center">
               {up ? c.from : c.from}
             </span>
