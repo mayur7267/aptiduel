@@ -184,7 +184,7 @@ public struct StreakCelebrationView: View {
         let appear = seg(t, 0.4, 0.7)
         let pop = up ? 1 + 0.16 * sin(.pi * seg(t, 1.8, 2.15)) : 1
         let scale = (0.6 + 0.4 * back(seg(t, 0.4, 0.9))) * pop
-        let digits = String(peak).count
+        let digits = String(max(peak, from)).count
         return ZStack {
             Text("\(from)")
                 .foregroundStyle(.white)
@@ -197,7 +197,7 @@ public struct StreakCelebrationView: View {
             }
         }
         .font(.display(L.nf))
-        .frame(width: L.nf * 0.75 * CGFloat(digits) + 20, height: L.nf * 1.02)
+        .frame(width: L.nf * (1.05 * CGFloat(digits) + 0.4), height: L.nf * 1.1)
         .clipped()
         .scaleEffect(scale)
         .rotationEffect(.degrees(up ? 0 : -8 * out(seg(t, 1.9, 2.2))))
