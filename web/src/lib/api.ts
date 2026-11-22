@@ -292,7 +292,7 @@ export type LiveState = {
   subject?: Subject; // 0023_room_subjects; missing before it (Aptitude)
 };
 
-export type ShareKind = "daily" | "story" | "challenge";
+export type ShareKind = "daily" | "story" | "challenge" | "campus";
 export type ShareChannel = "whatsapp" | "share" | "copy" | "download";
 
 // The public side of a shared Daily run: right or wrong per question,
@@ -368,7 +368,7 @@ export const api = {
   // newcomer who came in through a shared Daily or story link.
   logShare: (kind: ShareKind, channel: ShareChannel, duelId: string | null) =>
     rpc<void>("log_share", { p_kind: kind, p_channel: channel, p_duel_id: duelId }),
-  noteArrival: (via: "daily" | "story", code: string | null = null) =>
+  noteArrival: (via: "daily" | "story" | "campus", code: string | null = null) =>
     rpc<void>("note_arrival", { p_via: via, p_code: code }),
   nextQuestion: (duelId: string) => rpc<QuestionView>("next_question", { p_duel_id: duelId }),
   submitAnswer: (duelId: string, qIndex: number, choice: number | null) =>
@@ -387,6 +387,14 @@ export const api = {
     ),
   updateProfile: (name: string, collegeId: number | null, gradYear: number | null) =>
     rpc<Me>("update_profile", { p_name: name, p_college_id: collegeId, p_grad_year: gradYear }),
+  // From a campus link (0029_campus_links): your college becomes this one.
+  // Before 0029 it goes through update_profile, keeping your name and year.
+  joinCollege: (collegeId: number) =>
+    rpc<Me>("join_college", { p_id: collegeId }).catch(async (e) => {
+      if (!missingFunction(e)) throw e;
+      const me = await api.getMe();
+      return api.updateProfile(me.name, collegeId, me.grad_year);
+    }),
   deleteMe: () => rpc<void>("delete_me"),
   // Emailed to the team (supabase/functions/feedback-mail).
   submitFeedback: (kind: "bug" | "idea" | "question", message: string, email: string | null, context: Record<string, unknown>) =>

@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, type Board, type BoardRow } from "@/lib/api";
-import { batch, signed } from "@/lib/format";
+import { api, type Board, type BoardRow, type ShareChannel } from "@/lib/api";
+import { campusPath } from "@/lib/campus";
+import { batch, signed, siteUrl } from "@/lib/format";
+import { Copy, Message } from "@/components/icons";
 import { useCompanionPage } from "@/lib/companion";
 import type { Subject } from "@/lib/subjects";
 import { Avatar, ErrorNote, Logo, Spinner } from "@/components/ui";
@@ -24,7 +26,13 @@ export function LeaderboardClient() {
   const [scope, setScope] = useState<Scope>("college");
   const [boards, setBoards] = useState<Partial<Record<Key, Board>>>({});
   const [error, setError] = useState<string | null>(null);
+  // Your college's id, for its campus link.
+  const [collegeId, setCollegeId] = useState<number | null>(null);
   const key: Key = `${subject}:${scope}`;
+
+  useEffect(() => {
+    api.getMe().then((m) => setCollegeId(m.college_id), () => {});
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -104,12 +112,12 @@ export function LeaderboardClient() {
 
       {error && <ErrorNote message={error} />}
       {!board && !error && <Spinner label="Loading rankings" />}
-      {board && <BoardView board={board} subject={subject} />}
+      {board && <BoardView board={board} subject={subject} collegeId={collegeId} />}
     </main>
   );
 }
 
-function BoardView({ board, subject }: { board: Board; subject: Subject }) {
+function BoardView({ board, subject, collegeId }: { board: Board; subject: Subject; collegeId: number | null }) {
   const name = SUBJECTS.find((s) => s.id === subject)?.label ?? "Aptitude";
   if (board.scope === "college" && !board.college) {
     return (
@@ -144,6 +152,8 @@ function BoardView({ board, subject }: { board: Board; subject: Subject }) {
           </span>
         )}
       </div>
+
+      {board.scope === "college" && board.college && collegeId !== null && <InviteCard collegeId={collegeId} college={board.college} />}
 
       {board.rows.length === 0 ? (
         <p className="rounded-[20px] border border-dashed border-line p-6 text-sm text-muted">
@@ -246,5 +256,53 @@ function Row({ row, scope, pinned = false }: { row: BoardRow; scope: Scope; pinn
         )}
       </span>
     </li>
+  );
+}
+
+// The campus link (0029_campus_links): whoever opens it lands on this
+// board, so one message in the class group fills it.
+function InviteCard({ collegeId, college }: { collegeId: number; college: string }) {
+  const url = siteUrl(campusPath(collegeId, college));
+  const [copied, setCopied] = useState(false);
+  const text = `Our college has its own leaderboard on Apticks 🏆 Quick 1v1 aptitude, coding and English duels. Join ${college} and let's see who's #1: ${url}`;
+  const log = (channel: ShareChannel) => api.logShare("campus", channel, null).catch(() => {});
+
+  async function copy() {
+    log("copy");
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard can be blocked; WhatsApp still works.
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-[20px] border border-line bg-surface p-4 sm:flex-row sm:items-center">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+        <span className="font-bold">Get your class on this board</span>
+        <span className="text-[13px] text-muted">Share {college}&apos;s link in your class group. Everyone who opens it lands here.</span>
+      </div>
+      <div className="flex gap-2">
+        <a
+          href={`https://wa.me/?text=${encodeURIComponent(text)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => log("whatsapp")}
+          className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-lime px-4 text-sm font-bold whitespace-nowrap text-ink hover:bg-lime-hover hover:text-ink sm:flex-none"
+        >
+          <Message size={18} strokeWidth={2.2} />
+          Invite on WhatsApp
+        </a>
+        <button
+          onClick={copy}
+          className="flex h-11 items-center gap-2 rounded-xl border border-line bg-raised px-3 text-sm font-semibold whitespace-nowrap hover:bg-line"
+        >
+          <Copy size={16} />
+          {copied ? "Copied" : "Copy link"}
+        </button>
+      </div>
+    </div>
   );
 }
