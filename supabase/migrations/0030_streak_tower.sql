@@ -6,9 +6,10 @@
 -- going (_touch_streak in 0001_init.sql).
 -- =====================================================================
 
+-- Not stable: _require_player may create your profile row.
 create or replace function public.my_streak()
 returns json
-language plpgsql stable security definer set search_path = '' as $$
+language plpgsql security definer set search_path = '' as $$
 declare
   uid uuid := public._require_player();
   p public.profiles%rowtype;
