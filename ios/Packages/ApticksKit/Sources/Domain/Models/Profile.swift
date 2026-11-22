@@ -28,6 +28,68 @@ public struct Quests: Decodable, Sendable, Hashable {
     public let accepted: Int
 }
 
+// The Streak Tower page (my_streak, 0030_streak_tower.sql): days are the
+// India dates you played in the last 120 days.
+public struct StreakInfo: Decodable, Sendable, Hashable {
+    public struct Top: Decodable, Sendable, Hashable {
+        public let name: String
+        public let streak: Int
+        public let isMe: Bool
+        public init(name: String, streak: Int, isMe: Bool) {
+            self.name = name
+            self.streak = streak
+            self.isMe = isMe
+        }
+    }
+
+    public let streak: Int
+    public let best: Int
+    public let playedToday: Bool
+    public let days: [String]
+    public let college: String?
+    public let collegeTop: [Top]
+
+    public init(streak: Int, best: Int, playedToday: Bool, days: [String], college: String? = nil, collegeTop: [Top] = []) {
+        self.streak = streak
+        self.best = best
+        self.playedToday = playedToday
+        self.days = days
+        self.college = college
+        self.collegeTop = collegeTop
+    }
+}
+
+// One college as its campus link shows it (college_card, 0029_campus_links.sql):
+// how many play for it, and its top three as first name and initial.
+public struct CollegeCard: Decodable, Sendable, Hashable {
+    public struct Top: Decodable, Sendable, Hashable {
+        public let name: String
+        public let rating: Int
+        public init(name: String, rating: Int) {
+            self.name = name
+            self.rating = rating
+        }
+    }
+
+    public let id: Int
+    public let name: String
+    public let city: String?
+    public let country: String?
+    public let players: Int
+    public let top: [Top]
+
+    public init(id: Int, name: String, city: String? = nil, country: String? = nil, players: Int = 0, top: [Top] = []) {
+        self.id = id
+        self.name = name
+        self.city = city
+        self.country = country
+        self.players = players
+        self.top = top
+    }
+
+    public var college: College { College(id: id, name: name, city: city, country: country, players: players) }
+}
+
 public struct College: Decodable, Sendable, Hashable, Identifiable {
     public let id: Int
     public let name: String

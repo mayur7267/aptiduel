@@ -118,6 +118,36 @@ public final class SupabaseBackend: APIClient, AccountClient {
         try await rpc("update_profile", ["p_name": .string(name), "p_college_id": Self.id(collegeId), "p_grad_year": Self.id(gradYear)])
     }
 
+    // Before 0029 there's no college_card: the college comes from the list
+    // instead (only colleges people play for), with no players shown.
+    public func collegeCard(_ id: Int) async throws -> CollegeCard? {
+        do {
+            return try await rpc("college_card", ["p_id": .integer(id)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            return try await colleges().first { $0.id == id }.map { CollegeCard(id: $0.id, name: $0.name, city: $0.city) }
+        }
+    }
+    // Before 0029 joining goes through update_profile, keeping your name and year.
+    public func joinCollege(_ id: Int) async throws -> Me {
+        do {
+            return try await rpc("join_college", ["p_id": .integer(id)])
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            let me = try await me()
+            return try await updateProfile(name: me.name, collegeId: id, gradYear: me.gradYear)
+        }
+    }
+
+    // Before 0030 the days are the current streak's, worked out from get_me.
+    public func myStreak() async throws -> StreakInfo {
+        do {
+            return try await rpc("my_streak")
+        } catch let error as AppError where error.message.contains("Could not find the function") {
+            let me = try await me()
+            return StreakInfo(streak: me.streak, best: me.streakBest, playedToday: me.playedToday,
+                              days: Streak.days(streak: me.streak, playedToday: me.playedToday), college: me.college)
+        }
+    }
+
     public func quickMatch(_ subject: Subject) async throws -> MatchStart {
         subject == .aptitude ? try await rpc("quick_match") : try await rpc("quick_match", ["p_subject": .string(subject.rawValue)])
     }

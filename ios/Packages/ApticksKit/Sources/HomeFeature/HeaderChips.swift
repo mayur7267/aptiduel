@@ -2,11 +2,13 @@ import DesignSystem
 import Domain
 import SwiftUI
 
-// The streak, in the header. Tapping it turns the Today deck to the
-// Daily Challenge, which is what keeps it going.
+// The streak, in the header. Tapping it opens your Streak Tower. In the
+// evening, with no duel yet today, it pulses: the tower falls at midnight.
 struct StreakChip: View {
     let streak: Int
+    var atRisk = false
     let action: () -> Void
+    @State private var pulse = false
 
     var body: some View {
         Button(action: action) {
@@ -20,11 +22,15 @@ struct StreakChip: View {
             .padding(.horizontal, 12)
             .frame(height: 38)
             .background(Capsule().fill(streak > 0 ? Theme.orangeTint : Theme.raised))
-            .overlay(Capsule().strokeBorder(streak > 0 ? Theme.orange.opacity(0.3) : Theme.line))
+            .overlay(Capsule().strokeBorder(streak > 0 ? Theme.orange.opacity(atRisk ? 1 : 0.3) : Theme.line, lineWidth: atRisk ? 2 : 1))
+            .scaleEffect(atRisk && pulse ? 1.08 : 1)
+            .animation(atRisk ? .easeInOut(duration: 0.8).repeatForever(autoreverses: true) : .default, value: pulse)
+            .onAppear { pulse = atRisk }
+            .onChange(of: atRisk) { _, now in pulse = now }
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(streak > 0 ? "\(streak)-day streak" : "No streak yet")
-        .accessibilityHint("Shows the Daily Challenge")
+        .accessibilityLabel(streak > 0 ? "\(streak)-day streak" + (atRisk ? ", play today to keep it" : "") : "No streak yet")
+        .accessibilityHint("Opens your Streak Tower")
     }
 }
 

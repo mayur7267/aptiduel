@@ -57,6 +57,20 @@ struct RulesTests {
         #expect(Links.route(from: URL(string: "apticks://play")!) == .play(nil))
     }
 
+    // Campus links: /join/<college id>-<name>, from the website or the app's scheme.
+    @Test func campusLinks() {
+        #expect(Links.route(from: URL(string: "https://www.playapticks.in/join/43-delhi-technological-university")!) == .campus(43))
+        #expect(Links.route(from: URL(string: "https://www.playapticks.in/join/43")!) == .campus(43))
+        #expect(Links.route(from: URL(string: "apticks://join/28613-jspm")!) == .campus(28613))
+        #expect(Links.route(from: URL(string: "https://www.playapticks.in/join/dtu")!) == nil)
+        #expect(Links.route(from: URL(string: "https://www.playapticks.in/join")!) == nil)
+        // The same address the website makes (web/src/lib/campus.ts).
+        #expect(Links.campus(43, name: "Delhi Technological University") == "https://www.playapticks.in/join/43-delhi-technological-university")
+        #expect(Links.campusPath(28613, name: "JSPM's Rajarshi Shahu College of Engineering") == "/join/28613-jspm-s-rajarshi-shahu-college-of-engineering")
+        #expect(Links.campusPath(7, name: "École Polytechnique") == "/join/7-ecole-polytechnique")
+        #expect(campusShareText("DTU", link: "https://x/join/1").hasSuffix("https://x/join/1"))
+    }
+
     @Test func companiesByName() {
         #expect(company(named: "Infosys")?.slug == "infosys")
         #expect(company(named: nil) == nil)

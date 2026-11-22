@@ -239,7 +239,9 @@ public final class FakeBackend: APIClient, AccountClient {
 
     private func opt(_ v: Any?) -> Any { v ?? NSNull() }
 
-    private var collegeName: String? { Self.colleges.first { $0.0 == collegeId }?.1 }
+    private var collegeName: String? {
+        Self.colleges.first { $0.0 == collegeId }?.1 ?? (Self.worldColleges + addedColleges).first { $0.id == collegeId }?.name
+    }
 
     private func newRun(_ mode: DuelMode, subject: Subject = .aptitude, company: String? = nil, isCreator: Bool = false,
                         opponent: String?, bot: Bool) -> Run {
@@ -468,6 +470,29 @@ public final class FakeBackend: APIClient, AccountClient {
         self.collegeId = collegeId
         self.gradYear = gradYear
         return try decode(meJSON())
+    }
+
+    public func collegeCard(_ id: Int) async throws -> CollegeCard? {
+        try await pause()
+        let known = Self.colleges.first { $0.0 == id }.map { College(id: $0.0, name: $0.1) }
+            ?? (Self.worldColleges + addedColleges).first { $0.id == id }
+        guard let c = known else { return nil }
+        // VIT Vellore has a board; anywhere else is waiting for its first player.
+        let top: [CollegeCard.Top] = id == 1 ? [.init(name: "Kabir S.", rating: 1640), .init(name: "Vivaan R.", rating: 1570), .init(name: "Aarav S.", rating: 1508)] : []
+        return CollegeCard(id: c.id, name: c.name, city: c.city, country: c.country, players: id == 1 ? 48 : 0, top: top)
+    }
+
+    public func joinCollege(_ id: Int) async throws -> Me {
+        guard try await collegeCard(id) != nil else { throw AppError("Unknown college.") }
+        collegeId = id
+        return try decode(meJSON())
+    }
+
+    public func myStreak() async throws -> StreakInfo {
+        let me = try await me()
+        let top: [StreakInfo.Top] = collegeId == nil ? [] : [.init(name: "Kabir S.", streak: 21, isMe: false), .init(name: name, streak: me.streak, isMe: true), .init(name: "Diya P.", streak: 3, isMe: false)]
+        return StreakInfo(streak: me.streak, best: max(me.streakBest, me.streak), playedToday: me.playedToday,
+                          days: Streak.days(streak: me.streak, playedToday: me.playedToday), college: me.college, collegeTop: top)
     }
 
     public func quickMatch(_ subject: Subject) async throws -> MatchStart {

@@ -204,7 +204,9 @@ public struct HomeView: View {
             }
             .layoutPriority(-1)
             Spacer(minLength: 4)
-            StreakChip(streak: me.streak) { withAnimation(.snappy) { page = .daily } }
+            StreakChip(streak: me.streak, atRisk: me.streak > 0 && !me.playedToday && Calendar.current.component(.hour, from: .now) >= 18) {
+                router.open(.streak)
+            }
             RatingChip(rating: me.rating) { router.tab = .profile }
         }
     }

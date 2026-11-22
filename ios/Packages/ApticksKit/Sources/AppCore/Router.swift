@@ -15,6 +15,8 @@ public enum Screen: Hashable, Sendable {
     case newRoom // open a live room (signing in first if you're a guest)
     case live(String) // a live friend duel in play
     case player(String) // someone's public profile
+    case campus(Int) // a college's campus link: join its board
+    case streak // your Streak Tower
 }
 
 // One presented flow. Its screen changes in place (matchmaking → duel →
@@ -72,6 +74,7 @@ public final class AppRouter {
         case let .duel(id): open(.duel(id))
         case let .result(id): open(.result(id))
         case let .play(company): open(.matchmaking(company))
+        case let .campus(id): open(.campus(id))
         case nil: break
         }
     }

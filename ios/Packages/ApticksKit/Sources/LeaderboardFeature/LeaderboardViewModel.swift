@@ -17,6 +17,8 @@ public final class LeaderboardViewModel {
     }
     public private(set) var boards: [String: Board] = [:]
     public private(set) var error: String?
+    // Your college's id, for its campus link (the board only has its name).
+    public private(set) var collegeId: Int?
 
     private let api: any APIClient
     private let router: AppRouter?
@@ -38,12 +40,19 @@ public final class LeaderboardViewModel {
     public func load() async {
         let (sub, s) = (subject, scope)
         do {
+            async let me: Me? = s == .college ? (try? await api.me()) : nil
             boards[key(sub, s)] = try await api.leaderboard(s, limit: 50, subject: sub)
+            if let me = await me { collegeId = me.collegeId }
             error = nil
         } catch {
             // Cancelled part-way (a pull-to-refresh restarted): keep what's shown.
             if !error.isCancellation { self.error = error.localizedDescription }
         }
+    }
+
+    // The campus link was shared (0021 share counts).
+    public func logInvite(_ channel: ShareChannel) {
+        Task { try? await api.logShare(.campus, channel, duelId: nil) }
     }
 
     var companionPage: CompanionPage {

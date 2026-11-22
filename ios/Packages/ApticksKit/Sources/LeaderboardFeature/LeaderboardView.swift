@@ -2,6 +2,7 @@ import AppCore
 import DesignSystem
 import Domain
 import SwiftUI
+import UIKit
 
 public struct LeaderboardView: View {
     @Bindable var model: LeaderboardViewModel
@@ -27,7 +28,10 @@ public struct LeaderboardView: View {
 
                 if let error = model.error { ErrorNote(error) }
                 if model.board == nil && model.error == nil { Spinner("Loading rankings") }
-                if let board = model.board { BoardView(board: board, subject: model.subject, open: { model.open($0) }) { router.tab = .profile } }
+                if let board = model.board {
+                    BoardView(board: board, subject: model.subject, collegeId: model.collegeId, open: { model.open($0) },
+                              invited: { model.logInvite($0) }) { router.tab = .profile }
+                }
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
@@ -84,7 +88,9 @@ private struct SubjectTabs: View {
 private struct BoardView: View {
     let board: Board
     let subject: Subject
+    let collegeId: Int?
     let open: (BoardRow) -> Void // someone else's row opens their profile
+    let invited: (ShareChannel) -> Void
     let addCollege: () -> Void
 
     var body: some View {
@@ -112,6 +118,9 @@ private struct BoardView: View {
                         Chip("You're #\(me.rank)" + (me.weekDelta != 0 ? " · \(signed(me.weekDelta)) this week" : ""),
                              fg: Theme.lime, bg: Theme.limeTint)
                     }
+                }
+                if board.scope == .college, let name = board.college, let id = collegeId {
+                    InviteCard(college: name, link: Links.campus(id, name: name), invited: invited)
                 }
                 if board.rows.isEmpty {
                     Text("Nobody is ranked in \(subject.label) here yet. Play a \(subject.quickMatchName) to take the top spot.")
@@ -206,5 +215,67 @@ private struct Row: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .card(16, fill: row.isMe ? Theme.meRow : Theme.surface, border: row.isMe ? Theme.lime : Theme.line, width: row.isMe ? 1.5 : 1)
+    }
+}
+
+// The campus link (0029_campus_links.sql): whoever opens it lands on this
+// board, so one message in the class group fills it.
+private struct InviteCard: View {
+    let college: String
+    let link: String
+    let invited: (ShareChannel) -> Void
+
+    @State private var copied = false
+    @Environment(\.openURL) private var openURL
+
+    private var text: String { campusShareText(college, link: link) }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Get your class on this board").font(.ui(16, .bold)).foregroundStyle(Theme.text)
+                Text("Share \(college)'s link in your class group. Everyone who opens it lands here.")
+                    .font(.ui(13)).foregroundStyle(Theme.muted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            HStack(spacing: 8) {
+                Button {
+                    invited(.whatsapp)
+                    var c = URLComponents(string: "https://wa.me/")!
+                    c.queryItems = [URLQueryItem(name: "text", value: text)]
+                    if let url = c.url { openURL(url) }
+                } label: {
+                    Label("Invite on WhatsApp", systemImage: "message.fill").lineLimit(1).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(FilledStyle(fill: Theme.lime, foreground: Theme.ink, radius: 12, height: 44))
+                Button {
+                    invited(.copy)
+                    UIPasteboard.general.string = link
+                    copied = true
+                    Task {
+                        try? await Task.sleep(for: .seconds(2))
+                        copied = false
+                    }
+                } label: {
+                    Group {
+                        if copied { Text("Copied").font(.ui(12, .semibold)) } else { Image(systemName: "doc.on.doc") }
+                    }
+                    .frame(minWidth: 44, minHeight: 44)
+                    .padding(.horizontal, copied ? 8 : 0)
+                }
+                .buttonStyle(FilledStyle(fill: Theme.raised, foreground: Theme.text, border: Theme.line, radius: 12, height: 44))
+                .accessibilityLabel(copied ? "Link copied" : "Copy link")
+                ShareLink(item: text) {
+                    Image(systemName: "square.and.arrow.up").frame(width: 44, height: 44)
+                }
+                .simultaneousGesture(TapGesture().onEnded { invited(.share) })
+                .foregroundStyle(Theme.text)
+                .card(12, fill: Theme.raised)
+                .accessibilityLabel("More ways to share")
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .card(20)
     }
 }

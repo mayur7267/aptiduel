@@ -41,6 +41,19 @@ struct RootView: View {
             }
         }
         .animation(.easeInOut(duration: 0.45), value: container.onboarding.showing)
+        // The Streak Tower moment, over the tabs once Home sees a new block
+        // (or a fallen tower), after the splash and any intro.
+        .overlay {
+            if let c = container.streak.pending, !container.launch.splashing, !container.onboarding.showing, router.flow == nil {
+                StreakCelebrationView(
+                    c: c,
+                    onClose: { withAnimation(.easeOut(duration: 0.25)) { container.streak.dismiss() } },
+                    onTower: { container.streak.dismiss(); router.open(.streak) },
+                    onPlay: { container.streak.dismiss(); router.open(.matchmaking(nil)) }
+                )
+                .transition(.opacity)
+            }
+        }
         .overlay {
             if container.launch.splashing {
                 BrandSplash { container.launch.splashFinished() }

@@ -13,6 +13,18 @@ public enum Links {
     // Nobody can tap a Story picture, so this goes on Instagram's Link sticker.
     public static let story = "\(site)/?via=story"
 
+    // A college's campus link (0029_campus_links.sql): whoever opens it
+    // lands on that college's board. /join/57-delhi-technological-university:
+    // the id is what counts, the name is there so it reads well in a group.
+    public static func campus(_ id: Int, name: String) -> String { "\(site)\(campusPath(id, name: name))" }
+
+    public static func campusPath(_ id: Int, name: String) -> String {
+        let folded = name.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "en")).lowercased()
+        var slug = folded.replacing(/[^a-z0-9]+/, with: "-").trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        slug = String(slug.prefix(48)).trimmingCharacters(in: CharacterSet(charactersIn: "-"))
+        return "/join/\(id)" + (slug.isEmpty ? "" : "-\(slug)")
+    }
+
     // Pages the App Store listing and the app both point to.
     public static let privacyPolicy = URL(string: "\(site)/privacy")!
     public static let support = URL(string: "\(site)/support")!
@@ -36,6 +48,9 @@ public enum Links {
         case "duel":
             guard parts.count >= 2, UUID(uuidString: parts[1]) != nil else { return nil }
             return parts.count >= 3 && parts[2] == "result" ? .result(parts[1]) : .duel(parts[1])
+        case "join":
+            guard parts.count >= 2, let id = Int(parts[1].prefix(while: \.isNumber)), id > 0 else { return nil }
+            return .campus(id)
         case "play":
             guard parts.count >= 2 else { return .play(nil) }
             guard let company = COMPANIES.first(where: { $0.slug == parts[1] && !$0.comingSoon }) else { return nil }
@@ -51,6 +66,12 @@ public enum AppLink: Hashable, Sendable {
     case duel(String)
     case result(String)
     case play(Company?) // nil: a quick match
+    case campus(Int) // a college's campus link: join its board
+}
+
+// A college's campus link, for the class group (as on the website's Ranks).
+public func campusShareText(_ college: String, link: String) -> String {
+    "Our college has its own leaderboard on Apticks 🏆 Quick 1v1 aptitude, coding and English duels. Join \(college) and let's see who's #1: \(link)"
 }
 
 // For a challenge you haven't played yet: no score to beat.

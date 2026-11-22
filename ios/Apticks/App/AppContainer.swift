@@ -27,6 +27,7 @@ final class AppContainer {
     let feedback = FeedbackState()
     let review = ReviewState()
     let reminders = ReminderState()
+    let streak = StreakState()
 
     // The tabs keep their view models, so switching tabs shows the last
     // data straight away while it refreshes.
@@ -45,6 +46,17 @@ final class AppContainer {
         profile = ProfileViewModel(api: dependencies.api, router: router)
         account = AccountViewModel(account: dependencies.account, router: router)
         intro = OnboardingViewModel(api: dependencies.api, router: router, onboarding: onboarding)
+        home.streak = streak
+        #if DEBUG
+        // -StreakDemo up, milestone, day1 or fell: that moment, to try it out.
+        switch UserDefaults.standard.string(forKey: "StreakDemo") {
+        case "up": streak.show(.up(from: 4, to: 5, fresh: false))
+        case "milestone": streak.show(.up(from: 6, to: 7, fresh: false))
+        case "day1": streak.show(.up(from: 0, to: 1, fresh: true))
+        case "fell": streak.show(.fell(from: 5))
+        default: break
+        }
+        #endif
     }
 
     // The real backend, or an in-memory one when launched with
@@ -86,6 +98,8 @@ final class AppContainer {
         case .newRoom: "new live room"
         case let .live(id): "live duel \(id)"
         case let .player(id): "player \(id)"
+        case let .campus(id): "campus link \(id)"
+        case .streak: "streak tower"
         case nil: "\(router.tab) tab"
         }
     }
@@ -111,6 +125,10 @@ final class AppContainer {
             LiveStartView(model: LiveStartViewModel(duelId: id, api: api, router: router))
         case let .player(id):
             PlayerProfileView(model: PlayerProfileViewModel(id: id, api: api, router: router))
+        case let .campus(id):
+            CampusJoinView(model: CampusJoinViewModel(id: id, api: api, router: router))
+        case .streak:
+            StreakTowerView(model: StreakTowerViewModel(api: api, router: router))
         }
     }
 }

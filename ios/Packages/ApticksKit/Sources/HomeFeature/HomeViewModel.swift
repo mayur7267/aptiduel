@@ -30,6 +30,8 @@ public final class HomeViewModel {
 
     private let api: any APIClient
     let router: AppRouter
+    // The Streak Tower moment, checked every time Home loads.
+    public var streak: StreakState?
 
     public init(api: any APIClient, router: AppRouter) {
         self.api = api
@@ -52,6 +54,7 @@ public final class HomeViewModel {
             let (me, duels, board) = try await (m, d, b)
             dailyJustDone = self.me.map { $0.quests.daily == 0 && me.quests.daily > 0 } ?? false
             self.me = me
+            streak?.check(me)
             self.duels = duels
             self.board = board
             error = nil

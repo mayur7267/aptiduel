@@ -20,6 +20,12 @@ public protocol APIClient: AnyObject, Sendable {
     // same college if someone added it already).
     func addCollege(name: String, city: String?, country: String) async throws -> Int
     func updateProfile(name: String, collegeId: Int?, gradYear: Int?) async throws -> Me
+    // Campus links (0029_campus_links.sql): one college's page, nil if
+    // there's no such college, and joining it (your college becomes it).
+    func collegeCard(_ id: Int) async throws -> CollegeCard?
+    func joinCollege(_ id: Int) async throws -> Me
+    // The Streak Tower page (0030_streak_tower.sql).
+    func myStreak() async throws -> StreakInfo
 
     // A Quick Match in a subject (0022_subjects.sql). Aptitude uses the
     // original call, so it also works against a database without 0022.
