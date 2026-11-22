@@ -172,5 +172,17 @@ struct FlowHost: View {
                 .id(flow.screen)
                 .transition(.opacity)
         }
+        // The Streak Tower moment over a result: your first duel of the day.
+        .overlay {
+            if let c = container.streak.pending {
+                StreakCelebrationView(
+                    c: c,
+                    onClose: { withAnimation(.easeOut(duration: 0.25)) { container.streak.dismiss() } },
+                    onTower: { container.streak.dismiss(); container.router.open(.streak) },
+                    onPlay: { container.streak.dismiss(); container.router.open(.matchmaking(nil)) }
+                )
+                .transition(.opacity)
+            }
+        }
     }
 }

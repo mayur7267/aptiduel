@@ -23,6 +23,9 @@ public final class DuelResultViewModel {
     public private(set) var nameError: String?
     // Set once a Story picture went to the share sheet: its link was copied.
     public private(set) var storyShared = false
+    // The Streak Tower moment: your first duel of the day raised your
+    // streak, so it plays over this result (once the result has shown).
+    public var streak: StreakState?
 
     private let api: any APIClient
     private let router: AppRouter
@@ -48,7 +51,13 @@ public final class DuelResultViewModel {
         } catch {
             self.error = error.localizedDescription
         }
-        if duel != nil, profile == nil { profile = try? await api.me() }
+        if duel != nil, profile == nil {
+            profile = try? await api.me()
+            if let me = profile, let streak {
+                await sleep(.milliseconds(900))
+                streak.check(me)
+            }
+        }
     }
 
     // Ask for a name only while the profile still has the made-up one

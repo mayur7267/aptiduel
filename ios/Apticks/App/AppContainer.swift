@@ -116,7 +116,7 @@ final class AppContainer {
         case let .duel(id):
             DuelPlayView(model: DuelPlayViewModel(duelId: id, api: api, router: router))
         case let .result(id):
-            DuelResultView(model: DuelResultViewModel(duelId: id, api: api, router: router))
+            DuelResultView(model: resultModel(id))
         case let .challenge(code):
             ChallengeView(model: ChallengeViewModel(code: code, api: api, account: dependencies.account, router: router))
         case .newRoom:
@@ -130,6 +130,15 @@ final class AppContainer {
         case .streak:
             StreakTowerView(model: StreakTowerViewModel(api: api, router: router))
         }
+    }
+}
+
+extension AppContainer {
+    // A result knows the streak, so a new block is celebrated right there.
+    func resultModel(_ id: String) -> DuelResultViewModel {
+        let model = DuelResultViewModel(duelId: id, api: dependencies.api, router: router)
+        model.streak = streak
+        return model
     }
 }
 

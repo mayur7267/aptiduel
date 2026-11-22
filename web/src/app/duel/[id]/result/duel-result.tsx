@@ -14,6 +14,8 @@ import { Tiko, type TikoMood } from "@/components/tiko";
 import { SharePanel } from "@/components/share-panel";
 import { StoryButton, type StoryData } from "@/components/story-card";
 import { BotTag, Card, ErrorNote, PlayerAvatar, Spinner } from "@/components/ui";
+import { StreakCelebration } from "@/components/streak-celebration";
+import { decideCelebration, type Celebration } from "@/lib/streak";
 
 export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -30,9 +32,18 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
   const [profile, setProfile] = useState<Me | null>(null);
   // Set once a story picture went to the share sheet: its link was copied.
   const [storyShared, setStoryShared] = useState(false);
+  // The Streak Tower moment: your first duel of the day raised your
+  // streak, so it plays over this result, once the result has shown.
+  const [celebrate, setCelebrate] = useState<Celebration | null>(null);
 
   useEffect(() => {
-    api.getMe().then(setProfile, () => {});
+    let timer = 0;
+    api.getMe().then((m) => {
+      setProfile(m);
+      const c = decideCelebration(m);
+      if (c?.kind === "up") timer = window.setTimeout(() => setCelebrate(c), 900);
+    }, () => {});
+    return () => window.clearTimeout(timer);
   }, []);
 
   const onLoaded = useEffectEvent((d: Duel) => {
@@ -146,6 +157,14 @@ export function DuelResult({ params }: { params: Promise<{ id: string }> }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {celebrate && (
+        <StreakCelebration
+          c={celebrate}
+          onClose={() => setCelebrate(null)}
+          onTower={() => router.push("/streak")}
+          onPlay={() => router.push("/play")}
+        />
+      )}
       <div className="flex">
         <Link
           href="/"
