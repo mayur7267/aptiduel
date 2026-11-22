@@ -48,12 +48,14 @@ final class AppContainer {
         intro = OnboardingViewModel(api: dependencies.api, router: router, onboarding: onboarding)
         home.streak = streak
         #if DEBUG
-        // -StreakDemo up, milestone, day1 or fell: that moment, to try it out.
+        // -StreakDemo up, milestone, day1 or fell: that moment, to try it out;
+        // note: Tiko's note on the streak chip.
         switch UserDefaults.standard.string(forKey: "StreakDemo") {
         case "up": streak.show(.up(from: 4, to: 5, fresh: false))
         case "milestone": streak.show(.up(from: 6, to: 7, fresh: false))
         case "day1": streak.show(.up(from: 0, to: 1, fresh: true))
         case "fell": streak.show(.fell(from: 5))
+        case "note": streak.demoNote = true
         default: break
         }
         #endif

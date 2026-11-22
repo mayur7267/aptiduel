@@ -25,6 +25,18 @@ public final class StreakState {
         if let c { pending = c }
     }
 
+    // Back on Home after the day's first duel: Tiko's note on the streak
+    // chip, once a day on this device.
+    @ObservationIgnored public var demoNote = false
+    public func noteDue(_ me: Me, now: Date = .now) -> Bool {
+        if demoNote { demoNote = false; return me.streak > 0 }
+        guard me.playedToday, me.streak > 0 else { return false }
+        let key = "streak-note-\(me.id)", today = Streak.istDay(now)
+        if defaults.string(forKey: key) == today { return false }
+        defaults.set(today, forKey: key)
+        return true
+    }
+
     public func show(_ c: StreakCelebration) { pending = c }
     public func dismiss() { pending = nil }
 }

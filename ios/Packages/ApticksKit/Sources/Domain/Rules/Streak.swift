@@ -54,6 +54,19 @@ public enum Streak {
         return (cal.component(.weekday, from: now) + 5) % 7
     }
 
+    // Tiko's note on the streak chip, back on Home after the day's first duel.
+    public static func homeNote(day n: Int) -> (title: String, sub: String) {
+        let sub: String
+        if n == 1 {
+            sub = "Your tower has started. See you tomorrow!"
+        } else if let m = next(after: n), m - n <= 3 {
+            sub = "\(m - n) more \(m - n == 1 ? "day" : "days") to your \(m)-day badge."
+        } else {
+            sub = "See you tomorrow for day \(n + 1)."
+        }
+        return ("Day \(n) done! 🔥", sub)
+    }
+
     // The days of the current streak, when the server can't list them
     // (before 0030): consecutive days ending today, or yesterday.
     public static func days(streak: Int, playedToday: Bool, now: Date = .now) -> [String] {

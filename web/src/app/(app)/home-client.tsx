@@ -21,7 +21,8 @@ import { hasSavedSession } from "@/lib/supabase";
 import { FirstVisit } from "./first-visit";
 import { Avatar, BotTag, Card, ErrorNote, Logo, PlayerAvatar, Spinner, TierBadge } from "@/components/ui";
 import { StreakCelebration } from "@/components/streak-celebration";
-import { decideCelebration, type Celebration } from "@/lib/streak";
+import { decideCelebration, homeNoteDue, type Celebration } from "@/lib/streak";
+import { StreakNote } from "@/components/streak-note";
 
 type Action = "quick" | "challenge" | "daily";
 
@@ -53,6 +54,8 @@ export function HomeClient() {
   // The Streak Tower moment: a new block (or a fallen tower) since this
   // device last showed one.
   const [celebrate, setCelebrate] = useState<Celebration | null>(null);
+  // Back after the day's first duel: Tiko on the streak chip, once a day.
+  const [note, setNote] = useState(false);
   const minute = useSyncExternalStore(subscribeMinute, currentMinute, () => 0);
   const fresh = useSyncExternalStore(subscribeNever, isFirstVisit, () => false);
   // games_played counts rated duels only; a finished Daily (no opponent)
@@ -70,7 +73,10 @@ export function HomeClient() {
         setDuels(d);
         setBoard(b);
         setError(null);
-        setCelebrate(demoCelebration() ?? decideCelebration(m));
+        const c = demoCelebration() ?? decideCelebration(m);
+        setCelebrate(c);
+        // The full moment already says it; otherwise a small note.
+        if (!c && (new URLSearchParams(window.location.search).get("streak") === "note" || homeNoteDue(m))) setNote(true);
       })
       .catch((e: Error) => active && setError(e.message));
     return () => {
@@ -202,6 +208,7 @@ export function HomeClient() {
             </p>
           </div>
           <div className="flex items-center gap-2.5">
+            <span className="relative">
             <Link
               href="/streak"
               aria-label="Your Streak Tower"
@@ -221,6 +228,8 @@ export function HomeClient() {
                 <span>Start a streak</span>
               )}
             </Link>
+            {note && me.streak > 0 && <StreakNote day={me.streak} onDone={() => setNote(false)} />}
+            </span>
             <span className="hidden h-10 items-center gap-2 rounded-full border border-violet/30 bg-violet-tint px-3.5 text-sm font-bold text-violet lg:flex">
               <Shield size={15} strokeWidth={2.2} />
               <span className="font-mono">{me.rating.toLocaleString("en-IN")}</span> · {tier.name}

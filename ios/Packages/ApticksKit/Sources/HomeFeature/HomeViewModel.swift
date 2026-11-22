@@ -32,6 +32,8 @@ public final class HomeViewModel {
     let router: AppRouter
     // The Streak Tower moment, checked every time Home loads.
     public var streak: StreakState?
+    // Tiko's note on the streak chip ("Day 5 done!"), when it's due.
+    public var streakNote: Int?
 
     public init(api: any APIClient, router: AppRouter) {
         self.api = api
@@ -55,6 +57,8 @@ public final class HomeViewModel {
             dailyJustDone = self.me.map { $0.quests.daily == 0 && me.quests.daily > 0 } ?? false
             self.me = me
             streak?.check(me)
+            // The full moment already says it; otherwise a small note.
+            if let streak, streak.pending == nil, streak.noteDue(me) { streakNote = me.streak }
             self.duels = duels
             self.board = board
             error = nil

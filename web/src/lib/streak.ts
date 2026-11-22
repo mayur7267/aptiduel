@@ -76,6 +76,31 @@ export function decideCelebration(me: { id: string; streak: number; played_today
   return c;
 }
 
+// Back on Home after the day's first duel: Tiko hops onto the streak chip
+// with a short note, once a day on this device.
+export function homeNoteDue(me: { id: string; streak: number; played_today: boolean }, today = istToday()) {
+  if (!me.played_today || me.streak < 1) return false;
+  const key = `apticks-streak-note:${me.id}`;
+  try {
+    if (localStorage.getItem(key) === today) return false;
+    localStorage.setItem(key, today);
+  } catch {
+    return false;
+  }
+  return true;
+}
+
+export function homeNoteText(n: number) {
+  const next = nextMilestone(n);
+  const sub =
+    n === 1
+      ? "Your tower has started. See you tomorrow!"
+      : next && next - n <= 3
+        ? `${next - n} more ${next - n === 1 ? "day" : "days"} to your ${next}-day badge.`
+        : `See you tomorrow for day ${n + 1}.`;
+  return { title: `Day ${n} done! 🔥`, sub };
+}
+
 // The days of the current streak when the server can't list them (before
 // 0030): consecutive days ending today, or yesterday if not played yet.
 export function streakDays(streak: number, playedToday: boolean, now = new Date()) {

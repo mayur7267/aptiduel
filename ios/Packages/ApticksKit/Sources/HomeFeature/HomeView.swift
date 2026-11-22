@@ -109,7 +109,7 @@ public struct HomeView: View {
 
     private func content(_ me: Me) -> some View {
         VStack(alignment: .leading, spacing: 16) {
-            header(me)
+            header(me).zIndex(1) // Tiko's streak note hangs over the cards below
 
             if me.hasGuestName {
                 Button { router.tab = .profile } label: {
@@ -204,7 +204,8 @@ public struct HomeView: View {
             }
             .layoutPriority(-1)
             Spacer(minLength: 4)
-            StreakChip(streak: me.streak, atRisk: me.streak > 0 && !me.playedToday && Calendar.current.component(.hour, from: .now) >= 18) {
+            StreakChip(streak: me.streak, atRisk: me.streak > 0 && !me.playedToday && Calendar.current.component(.hour, from: .now) >= 18,
+                       note: model.streakNote, noteDone: { model.streakNote = nil }) {
                 router.open(.streak)
             }
             RatingChip(rating: me.rating) { router.tab = .profile }
